@@ -1,0 +1,179 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="800" viewBox="0 0 1400 800">
+  <title>Equatoria — Data Engine (Consent → Curate → Label → Evaluate → Deliver)</title>
+  <desc>Animated circular AI-brain motif with callouts showing the data engine stages and HQ Lagos. Transparent background.</desc>
+  <defs>
+    <linearGradient id="ring" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0ea5a5"/>
+      <stop offset="50%" stop-color="#22d3ee"/>
+      <stop offset="100%" stop-color="#111827"/>
+    </linearGradient>
+    <radialGradient id="nodeGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#22d3ee" stop-opacity="0.9"/>
+      <stop offset="100%" stop-color="#22d3ee" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="softGlow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="6" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+
+    <!-- Motion path for orbiters -->
+    <path id="orbit" d="M 900,400 m -250,0 a 250,250 0 1,0 500,0 a 250,250 0 1,0 -500,0" fill="none" stroke="none"/>
+    <!-- Quick style -->
+    <style>
+      .sans { font-family: Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Helvetica, Arial, sans-serif; }
+      .label { font-size: 16px; font-weight: 700; fill: #0f172a; paint-order: stroke fill; stroke: #ffffff; stroke-width: 3px; stroke-opacity: .6; }
+      .sub   { font-size: 12px; font-weight: 500; fill: #334155; paint-order: stroke fill; stroke: #ffffff; stroke-width: 3px; stroke-opacity: .5;}
+      .tick  { stroke: #0f172a; stroke-opacity: .6; stroke-width: 1.5; }
+      .net   { stroke: #0ea5a5; stroke-opacity: .5; }
+      .net2  { stroke: #22d3ee; stroke-opacity: .45; }
+      .node  { fill: #22d3ee; }
+    </style>
+  </defs>
+
+  <!-- Brain circle group -->
+  <g id="brain" transform="translate(900,400)">
+    <!-- Outer animated ring -->
+    <circle r="262" fill="none" stroke="url(#ring)" stroke-width="2" opacity=".5"/>
+    <circle r="250" fill="none" stroke="url(#ring)" stroke-width="12" stroke-linecap="round"
+            stroke-dasharray="60 30 10 20 5 15 80 40">
+      <animate attributeName="stroke-dashoffset" from="0" to="-265" dur="14s" repeatCount="indefinite"/>
+      <animate attributeName="opacity" values="0.7;0.95;0.7" dur="6s" repeatCount="indefinite"/>
+    </circle>
+
+    <!-- Inner neural web -->
+    <g id="web" filter="url(#softGlow)">
+      <!-- Rotating layer 1 -->
+      <g>
+        <g transform="rotate(0)">
+          <polyline class="net" fill="none" stroke-width="1.2"
+            points="-60,-80  40,-110  120,-40  100,50  -10,120  -110,40 -60,-80">
+            <animateTransform attributeName="transform" type="rotate" from="0" to="360" dur="40s" repeatCount="indefinite"/>
+          </polyline>
+          <polyline class="net2" fill="none" stroke-width="1.0"
+            points="70,-130  150,-10  60,100  -50,90  -140,-10  -40,-120 70,-130">
+            <animateTransform attributeName="transform" type="rotate" from="360" to="0" dur="52s" repeatCount="indefinite"/>
+          </polyline>
+        </g>
+      </g>
+
+      <!-- Nodes (pulsing) -->
+      <g>
+        <!-- Define a helper function-like template via use -->
+        <circle class="node" cx="-60" cy="-80" r="3">
+          <animate attributeName="r" values="3;6;3" dur="3.2s" repeatCount="indefinite"/>
+          <animate attributeName="opacity" values="1;.6;1" dur="3.2s" repeatCount="indefinite"/>
+        </circle>
+        <circle class="node" cx="40" cy="-110" r="3">
+          <animate attributeName="r" values="3;6;3" dur="2.4s" repeatCount="indefinite"/>
+          <animate attributeName="opacity" values="1;.5;1" dur="2.4s" repeatCount="indefinite"/>
+        </circle>
+        <circle class="node" cx="120" cy="-40" r="3">
+          <animate attributeName="r" values="3;6;3" dur="2.8s" repeatCount="indefinite"/>
+          <animate attributeName="opacity" values="1;.55;1" dur="2.8s" repeatCount="indefinite"/>
+        </circle>
+        <circle class="node" cx="100" cy="50" r="3">
+          <animate attributeName="r" values="3;6;3" dur="3.0s" repeatCount="indefinite"/>
+          <animate attributeName="opacity" values="1;.6;1" dur="3.0s" repeatCount="indefinite"/>
+        </circle>
+        <circle class="node" cx="-10" cy="120" r="3">
+          <animate attributeName="r" values="3;6;3" dur="2.6s" repeatCount="indefinite"/>
+          <animate attributeName="opacity" values="1;.6;1" dur="2.6s" repeatCount="indefinite"/>
+        </circle>
+        <circle class="node" cx="-110" cy="40" r="3">
+          <animate attributeName="r" values="3;6;3" dur="3.4s" repeatCount="indefinite"/>
+          <animate attributeName="opacity" values="1;.6;1" dur="3.4s" repeatCount="indefinite"/>
+        </circle>
+      </g>
+
+      <!-- Faint radial glow -->
+      <circle r="135" fill="url(#nodeGlow)" opacity=".3"/>
+    </g>
+
+    <!-- Orbiting dots -->
+    <g>
+      <circle r="5" fill="#0ea5a5">
+        <animateMotion dur="18s" repeatCount="indefinite">
+          <mpath href="#orbit"/>
+        </animateMotion>
+      </circle>
+      <circle r="4" fill="#22d3ee">
+        <animateMotion dur="12s" repeatCount="indefinite" keyPoints="0;1" keyTimes="0;1" calcMode="linear">
+          <mpath href="#orbit"/>
+        </animateMotion>
+      </circle>
+      <circle r="3" fill="#111827">
+        <animateMotion dur="26s" repeatCount="indefinite" keyPoints="0;1" keyTimes="0;1" calcMode="linear">
+          <mpath href="#orbit"/>
+        </animateMotion>
+      </circle>
+    </g>
+  </g>
+
+  <!-- Callouts / key information -->
+  <g class="sans">
+    <!-- CONSENT -->
+    <g transform="translate(900,400)">
+      <line class="tick" x1="0" y1="-250" x2="0" y2="-300"/>
+      <circle cx="0" cy="-250" r="3" fill="#0f172a"/>
+      <g transform="translate(-10,-330)">
+        <text class="label" x="0" y="0">Consent</text>
+        <text class="sub" x="0" y="18">Rights, compensation, privacy</text>
+      </g>
+    </g>
+
+    <!-- CURATE -->
+    <g transform="translate(900,400)">
+      <line class="tick" x1="210" y1="-120" x2="255" y2="-170"/>
+      <circle cx="210" cy="-120" r="3" fill="#0f172a"/>
+      <g transform="translate(265,-180)">
+        <text class="label" x="0" y="0">Curate</text>
+        <text class="sub" x="0" y="18">Slices, de-dup, coverage</text>
+      </g>
+    </g>
+
+    <!-- LABEL -->
+    <g transform="translate(900,400)">
+      <line class="tick" x1="248" y1="0" x2="305" y2="0"/>
+      <circle cx="248" cy="0" r="3" fill="#0f172a"/>
+      <g transform="translate(315,-10)">
+        <text class="label" x="0" y="0">Label</text>
+        <text class="sub" x="0" y="18">SMEs, rubrics, QA</text>
+      </g>
+    </g>
+
+    <!-- EVALUATE -->
+    <g transform="translate(900,400)">
+      <line class="tick" x1="210" y1="120" x2="255" y2="170"/>
+      <circle cx="210" cy="120" r="3" fill="#0f172a"/>
+      <g transform="translate(265,160)">
+        <text class="label" x="0" y="0">Evaluate</text>
+        <text class="sub" x="0" y="18">LLM safety & performance</text>
+      </g>
+    </g>
+
+    <!-- DELIVER -->
+    <g transform="translate(900,400)">
+      <line class="tick" x1="0" y1="250" x2="0" y2="300"/>
+      <circle cx="0" cy="250" r="3" fill="#0f172a"/>
+      <g transform="translate(-28,330)">
+        <text class="label" x="0" y="0">Deliver</text>
+        <text class="sub" x="0" y="18">Datasheets, lineage, QC</text>
+      </g>
+    </g>
+
+    <!-- HQ Lagos -->
+    <g transform="translate(900,400)">
+      <line class="tick" x1="-235" y1="100" x2="-300" y2="140"/>
+      <circle cx="-235" cy="100" r="3" fill="#0f172a"/>
+      <g transform="translate(-435,155)">
+        <text class="label" x="140" y="0">HQ Lagos</text>
+        <text class="sub" x="140" y="18">Africa-native coverage</text>
+      </g>
+    </g>
+
+  </g>
+</svg>

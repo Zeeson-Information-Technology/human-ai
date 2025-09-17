@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- Transparent background -->
+  <defs>
+    <!-- Soft teal/blue gradient strokes -->
+    <linearGradient id="g1" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#00E5D4"/>
+      <stop offset="100%" stop-color="#3B82F6"/>
+    </linearGradient>
+    <radialGradient id="pulse" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#9ffcff" stop-opacity="0.65"/>
+      <stop offset="60%" stop-color="#00e5d4" stop-opacity="0.15"/>
+      <stop offset="100%" stop-color="#00e5d4" stop-opacity="0"/>
+    </radialGradient>
+
+    <!-- Node glow filter -->
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="2" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+
+    <!-- dash animation for paths -->
+    <style><![CDATA[
+      .orbit { animation: spin 24s linear infinite; transform-origin: 256px 256px; }
+      .dash  { stroke-dasharray: 6 10; animation: dash 6s linear infinite; }
+      .pulse { animation: pulse 4s ease-in-out infinite; }
+      @keyframes spin { from { transform: rotate(0deg);} to { transform: rotate(360deg);} }
+      @keyframes dash { 0% { stroke-dashoffset: 0;} 100% { stroke-dashoffset: -160;} }
+      @keyframes pulse { 0%,100% { opacity: .18; r: 90;} 50% { opacity: .38; r: 120;} }
+    ]]></style>
+  </defs>
+
+  <!-- Faint circular guide -->
+  <circle cx="256" cy="256" r="200" fill="none" stroke="url(#g1)" stroke-opacity=".18" stroke-width="1.2"/>
+
+  <!-- Rotating lattice (neural "web") -->
+  <g class="orbit" opacity=".9">
+    <g fill="none" stroke="url(#g1)" stroke-width="1.5">
+      <!-- Four offset great circles -->
+      <ellipse cx="256" cy="256" rx="180" ry="110" transform="rotate(12 256 256)"/>
+      <ellipse cx="256" cy="256" rx="180" ry="110" transform="rotate(-28 256 256)"/>
+      <ellipse cx="256" cy="256" rx="110" ry="180" transform="rotate(18 256 256)"/>
+      <ellipse cx="256" cy="256" rx="110" ry="180" transform="rotate(-32 256 256)"/>
+    </g>
+
+    <!-- Radial chords -->
+    <g class="dash" stroke="url(#g1)" stroke-width="1.2" opacity=".9">
+      <path d="M76,256 Q256,176 436,256"/>
+      <path d="M96,196 Q256,256 416,316"/>
+      <path d="M96,316 Q256,256 416,196"/>
+      <path d="M136,156 Q256,236 376,356"/>
+      <path d="M136,356 Q256,276 376,156"/>
+    </g>
+  </g>
+
+  <!-- Nodes (pulsing dots) -->
+  <g filter="url(#glow)">
+    <g fill="#66fff0" opacity=".95">
+      <circle cx="256" cy="256" r="3"/>
+      <circle cx="196" cy="228" r="2.6"/>
+      <circle cx="324" cy="214" r="2.6"/>
+      <circle cx="212" cy="298" r="2.4"/>
+      <circle cx="352" cy="292" r="2.4"/>
+      <circle cx="280" cy="344" r="2.4"/>
+      <circle cx="232" cy="176" r="2.2"/>
+      <circle cx="168" cy="270" r="2.2"/>
+      <circle cx="348" cy="168" r="2.2"/>
+      <circle cx="396" cy="256" r="2.2"/>
+      <circle cx="116" cy="256" r="2.2"/>
+    </g>
+  </g>
+
+  <!-- Subtle breathing glow ring -->
+  <circle class="pulse" cx="256" cy="256" r="100" fill="url(#pulse)"/>
+</svg>

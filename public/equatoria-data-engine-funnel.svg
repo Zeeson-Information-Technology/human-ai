@@ -1,0 +1,140 @@
+<!-- equatoria-data-engine-funnel.svg -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 800" preserveAspectRatio="xMidYMid meet">
+  <defs>
+    <!-- Gradient for strokes -->
+    <linearGradient id="g1" x1="120" y1="120" x2="680" y2="680" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#06B6D4"/>   <!-- cyan-500 -->
+      <stop offset="0.55" stop-color="#10B981"/> <!-- emerald-500 -->
+      <stop offset="1" stop-color="#111827"/>    <!-- slate-900 -->
+    </linearGradient>
+
+    <!-- Soft outer glow -->
+    <filter id="glow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="8" result="b"/>
+      <feMerge>
+        <feMergeNode in="b"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+
+    <!-- Subtle drop shadow for inner elements -->
+    <filter id="shadow" x="-30%" y="-30%" width="160%" height="160%">
+      <feDropShadow dx="0" dy="2" stdDeviation="2" flood-color="#0ea5a5" flood-opacity="0.35"/>
+    </filter>
+
+    <!-- Arrowhead for subtle direction cues -->
+    <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#10B981" opacity="0.85"/>
+    </marker>
+
+    <!-- Orbits (paths for particle motion) -->
+    <path id="orbitOuter" d="M400,80 A320,320 0 1,1 399.99,80" fill="none"/>
+    <path id="orbitInner" d="M400,160 A240,240 0 1,1 399.99,160" fill="none"/>
+  </defs>
+
+  <!-- TRANSPARENT BACKGROUND (nothing drawn) -->
+
+  <!-- Outer halo ring (animated dash) -->
+  <g filter="url(#glow)">
+    <circle cx="400" cy="400" r="320"
+            fill="none"
+            stroke="url(#g1)"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-dasharray="6 10"
+            opacity="0.65"
+            vector-effect="non-scaling-stroke">
+      <animateTransform attributeName="transform"
+                        type="rotate"
+                        from="0 400 400"
+                        to="360 400 400"
+                        dur="28s"
+                        repeatCount="indefinite"/>
+    </circle>
+  </g>
+
+  <!-- Mid ring (thin) -->
+  <circle cx="400" cy="400" r="280"
+          fill="none"
+          stroke="url(#g1)"
+          stroke-width="1.5"
+          opacity="0.25"
+          vector-effect="non-scaling-stroke"/>
+
+  <!-- Dotted inner ring -->
+  <circle cx="400" cy="400" r="240"
+          fill="none"
+          stroke="#10B981"
+          stroke-width="1.5"
+          stroke-dasharray="2 10"
+          opacity="0.45"
+          vector-effect="non-scaling-stroke"/>
+
+  <!-- “Flow arcs” with arrowheads (clockwise) -->
+  <g stroke="url(#g1)" stroke-width="3" fill="none" opacity="0.8" filter="url(#shadow)" vector-effect="non-scaling-stroke">
+    <path d="M150,370 A250,250 0 0 1 390,160" marker-end="url(#arrow)"/>
+    <path d="M410,160 A250,250 0 0 1 650,370" marker-end="url(#arrow)" opacity="0.85"/>
+    <path d="M650,430 A250,250 0 0 1 410,640" marker-end="url(#arrow)" opacity="0.7"/>
+    <path d="M390,640 A250,250 0 0 1 150,430" marker-end="url(#arrow)" opacity="0.55"/>
+  </g>
+
+  <!-- Central “brain-like” network -->
+  <g filter="url(#shadow)">
+    <!-- Lobe outlines -->
+    <path d="M360,300 C300,320 300,380 360,410 C330,435 330,480 370,505 C410,530 450,520 465,490 C500,505 540,485 545,455 C555,400 520,360 480,350 C500,310 470,280 430,285 C410,260 380,270 360,300 Z"
+          fill="none" stroke="url(#g1)" stroke-width="2.5" opacity="0.9" vector-effect="non-scaling-stroke"/>
+    <!-- Neuron links -->
+    <g stroke="#0EA5A5" stroke-width="2" opacity="0.7" vector-effect="non-scaling-stroke">
+      <path d="M370,330 L410,310"/>
+      <path d="M410,310 L455,330"/>
+      <path d="M455,330 L480,365"/>
+      <path d="M370,360 L405,390"/>
+      <path d="M405,390 L450,405"/>
+      <path d="M450,405 L485,385"/>
+      <path d="M430,445 L470,470"/>
+      <path d="M400,430 L420,460"/>
+      <path d="M380,410 L400,430"/>
+    </g>
+    <!-- Nodes -->
+    <g fill="#10B981" opacity="0.95">
+      <circle cx="370" cy="330" r="5"/>
+      <circle cx="410" cy="310" r="5"/>
+      <circle cx="455" cy="330" r="5"/>
+      <circle cx="480" cy="365" r="5"/>
+      <circle cx="405" cy="390" r="5"/>
+      <circle cx="450" cy="405" r="5"/>
+      <circle cx="485" cy="385" r="5"/>
+      <circle cx="430" cy="445" r="5"/>
+      <circle cx="470" cy="470" r="5"/>
+      <circle cx="420" cy="460" r="5"/>
+      <circle cx="380" cy="410" r="5"/>
+      <circle cx="400" cy="430" r="5"/>
+    </g>
+  </g>
+
+  <!-- Particles orbiting (animated) -->
+  <g>
+    <circle r="5" fill="#06B6D4" opacity="0.9">
+      <animateMotion dur="12s" repeatCount="indefinite" rotate="auto">
+        <mpath href="#orbitOuter"/>
+      </animateMotion>
+    </circle>
+    <circle r="4" fill="#10B981" opacity="0.85">
+      <animateMotion dur="9s" repeatCount="indefinite" rotate="auto" keyPoints="0;1" keyTimes="0;1">
+        <mpath href="#orbitInner"/>
+      </animateMotion>
+    </circle>
+    <circle r="3.5" fill="#111827" opacity="0.65">
+      <animateMotion dur="16s" repeatCount="indefinite" rotate="auto-reverse">
+        <mpath href="#orbitOuter"/>
+      </animateMotion>
+    </circle>
+  </g>
+
+  <!-- Subtle rotating ring (very light) -->
+  <g opacity="0.15">
+    <circle cx="400" cy="400" r="200" fill="none" stroke="#0EA5A5" stroke-width="18" stroke-opacity="0.25">
+      <animateTransform attributeName="transform" type="rotate" from="0 400 400" to="-360 400 400" dur="90s" repeatCount="indefinite"/>
+    </circle>
+  </g>
+</svg>

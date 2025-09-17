@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en" style="margin: 0; padding: 0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width" />
+    <title>Thanks — we received your request</title>
+    <meta name="x-apple-disable-message-reformatting" />
+    <style>
+      html,
+      body {
+        margin: 0 !important;
+        padding: 0 !important;
+        width: 100% !important;
+      }
+      table {
+        border-collapse: collapse !important;
+      }
+      .bg {
+        background: #f7f7fb;
+      }
+      .container {
+        width: 100%;
+        max-width: 720px;
+        margin: 0 auto;
+      }
+      .card {
+        background: #ffffff;
+        border-radius: 14px;
+        overflow: hidden;
+        border: 1px solid #eef0f4;
+      }
+      .header {
+        background: linear-gradient(135deg, #0ea5a5, #111827);
+        color: #ffffff;
+        padding: 26px 22px;
+        text-align: center;
+      }
+      .brand {
+        font-family: Arial, Helvetica, sans-serif;
+        font-weight: 700;
+        font-size: 18px;
+      }
+      .title {
+        font-family: Arial, Helvetica, sans-serif;
+        margin: 8px 0 0;
+        font-size: 20px;
+        font-weight: 800;
+      }
+      .content {
+        padding: 26px 24px;
+        font-family: Arial, Helvetica, sans-serif;
+        color: #0f172a;
+        line-height: 1.6;
+        font-size: 14px;
+      }
+      .btn {
+        display: inline-block;
+        padding: 12px 16px;
+        background: #0ea5a5;
+        color: #ffffff !important;
+        border-radius: 10px;
+        font-weight: 700;
+        font-size: 14px;
+      }
+      .footer {
+        text-align: center;
+        color: #94a3b8;
+        font-family: Arial, Helvetica, sans-serif;
+        font-size: 12px;
+        padding: 18px 0 28px;
+      }
+      @media only screen and (max-width: 600px) {
+        .content {
+          padding: 20px 16px !important;
+        }
+        .title {
+          font-size: 18px !important;
+        }
+      }
+    </style>
+  </head>
+  <body class="bg">
+    <table
+      role="presentation"
+      width="100%"
+      cellspacing="0"
+      cellpadding="0"
+      class="bg"
+    >
+      <tr>
+        <td align="center" style="padding: 28px 16px">
+          <table role="presentation" width="100%" class="container">
+            <tr>
+              <td>
+                <table role="presentation" width="100%" class="card">
+                  <tr>
+                    <td class="header">
+                      <div class="brand">Equatoria</div>
+                      <div class="title">Thanks — we received your request</div>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td class="content">
+                      <p>Hi {{name}},</p>
+                      <p>
+                        Thanks for reaching out about a pilot with
+                        <strong>{{company}}</strong>. Our team has received your
+                        message and will respond shortly with next steps (NDA +
+                        a scoped 1–2 week pilot).
+                      </p>
+                      <p>
+                        We’ll review your use case and get back to you soon.
+                      </p>
+                      <p style="margin-top: 18px">
+                        <a class="btn" href="mailto:people@workmateteam.com"
+                          >Add more details</a
+                        >
+                      </p>
+                      <p
+                        style="
+                          color: #475569;
+                          font-size: 12px;
+                          margin-top: 16px;
+                        "
+                      >
+                        If this wasn’t you, you can ignore this email.
+                      </p>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td class="footer">© {{year}}Equatoria</td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>

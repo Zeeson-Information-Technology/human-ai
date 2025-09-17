@@ -1,0 +1,293 @@
+<!-- email-templates/pilot-request.html -->
+<!DOCTYPE html>
+<html lang="en" style="margin: 0; padding: 0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width" />
+    <title>{{subject}}</title>
+    <meta name="x-apple-disable-message-reformatting" />
+    <style>
+      /* ===== Base reset (safe for email) ===== */
+      html,
+      body {
+        margin: 0 !important;
+        padding: 0 !important;
+        height: 100% !important;
+        width: 100% !important;
+      }
+      * {
+        -ms-text-size-adjust: 100%;
+        -webkit-text-size-adjust: 100%;
+      }
+      table,
+      td {
+        border-collapse: collapse !important;
+      }
+      img {
+        border: 0;
+        outline: none;
+        text-decoration: none;
+        display: block;
+        max-width: 100%;
+        height: auto;
+      }
+      a {
+        text-decoration: none;
+      }
+      /* ===== Layout ===== */
+      .bg {
+        background: #f7f7fb;
+      }
+      .container {
+        width: 100%;
+        max-width: 720px;
+        margin: 0 auto;
+      }
+      .card {
+        background: #ffffff;
+        border-radius: 14px;
+        overflow: hidden;
+        border: 1px solid #eef0f4;
+      }
+      .header {
+        background: linear-gradient(135deg, #0ea5a5, #111827);
+        color: #ffffff;
+        padding: 28px 24px;
+        text-align: center;
+      }
+      .brand {
+        font-family: Arial, Helvetica, sans-serif;
+        font-weight: 700;
+        font-size: 18px;
+        letter-spacing: 0.3px;
+      }
+      .title {
+        font-family: Arial, Helvetica, sans-serif;
+        margin: 10px 0 0;
+        font-size: 24px;
+        line-height: 1.25;
+        font-weight: 800;
+      }
+      .content {
+        padding: 30px 28px;
+        font-family: Arial, Helvetica, sans-serif;
+        color: #0f172a;
+      }
+      .subtitle {
+        color: #334155;
+        margin: 0 0 14px;
+        font-size: 14px;
+      }
+      .subject {
+        font-size: 18px;
+        font-weight: 700;
+        color: #0f172a;
+        margin: 10px 0 18px;
+      }
+      .divider {
+        height: 1px;
+        background: #eef0f4;
+        margin: 16px 0 22px;
+      }
+      .row {
+        width: 100%;
+        margin: 0;
+      }
+      .label {
+        color: #64748b;
+        width: 140px;
+        vertical-align: top;
+        padding: 8px 0;
+        font-size: 13px;
+      }
+      .value {
+        color: #0f172a;
+        padding: 8px 0;
+        font-size: 14px;
+      }
+      .message {
+        background: #fafbff;
+        border: 1px solid #eef0f4;
+        border-radius: 10px;
+        padding: 14px;
+        color: #0f172a;
+        line-height: 1.6;
+        font-size: 14px;
+      }
+      .accent {
+        height: 4px;
+        background: linear-gradient(90deg, #0ea5a5, #22d3ee, #111827);
+      }
+      .actions {
+        margin-top: 18px;
+      }
+      .btn {
+        display: inline-block;
+        padding: 12px 16px;
+        background: #0ea5a5;
+        color: #ffffff !important;
+        border-radius: 10px;
+        font-weight: 700;
+        font-size: 14px;
+      }
+      .btn.secondary {
+        background: #111827;
+      }
+      .meta {
+        color: #475569;
+        font-size: 12px;
+        margin-top: 18px;
+      }
+      .footer {
+        text-align: center;
+        color: #94a3b8;
+        font-family: Arial, Helvetica, sans-serif;
+        font-size: 12px;
+        padding: 18px 0 28px;
+      }
+      .wrapper-pad {
+        padding: 28px 16px;
+      }
+      /* ===== Mobile tweaks ===== */
+      @media only screen and (max-width: 600px) {
+        .content {
+          padding: 22px 18px !important;
+        }
+        .header {
+          padding: 24px 18px !important;
+        }
+        .title {
+          font-size: 20px !important;
+        }
+        .label {
+          width: 110px !important;
+        }
+        .btn {
+          display: block;
+          text-align: center;
+          width: 100%;
+          margin-bottom: 10px;
+        }
+      }
+    </style>
+  </head>
+  <body class="bg">
+    <!-- Preheader (hidden but useful for preview) -->
+    <div
+      style="
+        display: none;
+        max-height: 0;
+        overflow: hidden;
+        opacity: 0;
+        mso-hide: all;
+      "
+    >
+      New pilot request from {{company}} — {{name}} ({{email}})
+    </div>
+
+    <table
+      role="presentation"
+      width="100%"
+      cellspacing="0"
+      cellpadding="0"
+      class="bg"
+    >
+      <tr>
+        <td align="center" class="wrapper-pad">
+          <table
+            role="presentation"
+            width="100%"
+            cellspacing="0"
+            cellpadding="0"
+            class="container"
+          >
+            <tr>
+              <td>
+                <!-- Card -->
+                <table role="presentation" width="100%" class="card">
+                  <!-- Header -->
+                  <tr>
+                    <td class="header">
+                      <!-- Optional logo: replace text with an <img> if you have one -->
+                      <div class="brand">Equatoria</div>
+                      <div class="title">New Pilot Request</div>
+                    </td>
+                  </tr>
+
+                  <!-- Accent bar -->
+                  <tr>
+                    <td class="accent"></td>
+                  </tr>
+
+                  <!-- Body -->
+                  <tr>
+                    <td class="content">
+                      <p class="subtitle">
+                        You received a new pilot/consultation request.
+                      </p>
+                      <div class="subject">{{subject}}</div>
+
+                      <div class="divider"></div>
+
+                      <table
+                        role="presentation"
+                        width="100%"
+                        cellspacing="0"
+                        cellpadding="0"
+                        class="row"
+                      >
+                        <tr>
+                          <td class="label"><strong>From</strong></td>
+                          <td class="value">{{name}} &lt;{{email}}&gt;</td>
+                        </tr>
+                        <tr>
+                          <td class="label"><strong>Company</strong></td>
+                          <td class="value">{{company}}</td>
+                        </tr>
+                      </table>
+
+                      <div class="divider"></div>
+
+                      <div class="label" style="padding: 0 0 6px 0">
+                        <strong>Message</strong>
+                      </div>
+                      <div class="message">{{message}}</div>
+
+                      <div class="actions">
+                        <!-- Reply button goes to the sender -->
+                        <a
+                          class="btn"
+                          href="mailto:{{email}}?subject=Re:%20{{subject}}"
+                          >Reply to {{name}}</a
+                        >
+                        <!-- Optional: link to internal CRM/task (replace # with real URL) -->
+                        <a
+                          class="btn secondary"
+                          href="#"
+                          target="_blank"
+                          rel="noopener"
+                          >Open in CRM</a
+                        >
+                      </div>
+
+                      <p class="meta">
+                        This request was generated from the landing form and
+                        also stored in your database.
+                      </p>
+                    </td>
+                  </tr>
+
+                  <!-- Footer -->
+                  <tr>
+                    <td class="footer">© {{year}} Equatoria — Lagos</td>
+                  </tr>
+                </table>
+                <!-- /Card -->
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>

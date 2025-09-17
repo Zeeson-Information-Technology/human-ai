@@ -1,0 +1,133 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 1000" width="1200" height="1200">
+  <defs>
+    <!-- Gradients -->
+    <linearGradient id="gradRing" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0ea5a5"/>
+      <stop offset="50%" stop-color="#10b981"/>
+      <stop offset="100%" stop-color="#0f172a"/>
+    </linearGradient>
+    <linearGradient id="gradEdge" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#06b6d4"/>
+      <stop offset="100%" stop-color="#22d3ee"/>
+    </linearGradient>
+    <radialGradient id="gradNode" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#e6fffb" stop-opacity="1"/>
+      <stop offset="100%" stop-color="#0ea5a5" stop-opacity="1"/>
+    </radialGradient>
+
+    <!-- Circle path for orbiting dots -->
+    <path id="orbit" d="M500,160 a340,340 0 1,0 0,680 a340,340 0 1,0 0,-680" />
+    <clipPath id="clipCircle">
+      <circle cx="500" cy="500" r="360"/>
+    </clipPath>
+
+    <style>
+      /* Subtle motion */
+      .dash {
+        stroke-dasharray: 12 16;
+        animation: dashAnim 16s linear infinite;
+      }
+      .dash.fast {
+        stroke-dasharray: 6 10;
+        animation-duration: 10s;
+      }
+      @keyframes dashAnim {
+        to { stroke-dashoffset: -2000; }
+      }
+      .pulse { animation: pulse 3s ease-in-out infinite; }
+      .pulse.alt { animation-duration: 4.5s; animation-delay: .8s; }
+      @keyframes pulse {
+        0%   { opacity:.6; }
+        50%  { opacity:1; }
+        100% { opacity:.6; }
+      }
+      .spin-slow { animation: spin 60s linear infinite; transform-origin: 500px 500px; }
+      .spin-med  { animation: spin 35s linear infinite reverse; transform-origin: 500px 500px; }
+      @keyframes spin { to { transform: rotate(360deg); } }
+    </style>
+  </defs>
+
+  <!-- Outer decorative rings (no fill background) -->
+  <g fill="none">
+    <circle cx="500" cy="500" r="360" stroke="url(#gradRing)" stroke-width="10" opacity=".75"/>
+    <circle cx="500" cy="500" r="325" stroke="url(#gradRing)" stroke-width="2" class="dash"/>
+    <circle cx="500" cy="500" r="285" stroke="url(#gradRing)" stroke-width="2" class="dash fast" opacity=".9"/>
+    <circle cx="500" cy="500" r="245" stroke="#cbd5e1" stroke-width="1" opacity=".35"/>
+  </g>
+
+  <!-- Orbiting beads -->
+  <g fill="url(#gradNode)" opacity=".95">
+    <circle r="5">
+      <animateMotion dur="22s" repeatCount="indefinite" rotate="auto">
+        <mpath xlink:href="#orbit"/>
+      </animateMotion>
+    </circle>
+    <circle r="5" class="pulse">
+      <animateMotion dur="22s" repeatCount="indefinite" rotate="auto" begin="-5.5s">
+        <mpath xlink:href="#orbit"/>
+      </animateMotion>
+    </circle>
+    <circle r="5" class="pulse alt">
+      <animateMotion dur="22s" repeatCount="indefinite" rotate="auto" begin="-11s">
+        <mpath xlink:href="#orbit"/>
+      </animateMotion>
+    </circle>
+    <circle r="5">
+      <animateMotion dur="22s" repeatCount="indefinite" rotate="auto" begin="-16.5s">
+        <mpath xlink:href="#orbit"/>
+      </animateMotion>
+    </circle>
+  </g>
+
+  <!-- Brain-like network (clipped inside main circle) -->
+  <g clip-path="url(#clipCircle)" stroke="url(#gradEdge)" stroke-width="2.5" stroke-linecap="round">
+    <!-- Hemispheric scaffold curves -->
+    <path d="M320,430 C360,360 440,320 500,330 C560,340 640,380 680,450" fill="none" opacity=".9"/>
+    <path d="M320,570 C360,640 440,680 500,670 C560,660 640,620 680,550" fill="none" opacity=".9"/>
+    <path d="M340,500 C390,450 450,440 500,460 C550,480 610,520 660,500" fill="none" opacity=".9"/>
+
+    <!-- Cross links -->
+    <path d="M360,400 L640,600" opacity=".6"/>
+    <path d="M360,600 L640,400" opacity=".6"/>
+    <path d="M420,380 L580,620" opacity=".5"/>
+    <path d="M420,620 L580,380" opacity=".5"/>
+
+    <!-- Nodes -->
+    <g fill="url(#gradNode)" stroke="none">
+      <circle cx="320" cy="430" r="5" class="pulse"/>
+      <circle cx="360" cy="360" r="4" class="pulse alt"/>
+      <circle cx="440" cy="320" r="4"/>
+      <circle cx="500" cy="330" r="5" class="pulse"/>
+      <circle cx="560" cy="340" r="4"/>
+      <circle cx="640" cy="380" r="5" class="pulse alt"/>
+      <circle cx="680" cy="450" r="5"/>
+
+      <circle cx="340" cy="500" r="4" class="pulse"/>
+      <circle cx="390" cy="450" r="4"/>
+      <circle cx="450" cy="440" r="4"/>
+      <circle cx="500" cy="460" r="5" class="pulse alt"/>
+      <circle cx="550" cy="480" r="4"/>
+      <circle cx="610" cy="520" r="4"/>
+      <circle cx="660" cy="500" r="5"/>
+
+      <circle cx="320" cy="570" r="5" class="pulse alt"/>
+      <circle cx="360" cy="640" r="4"/>
+      <circle cx="440" cy="680" r="4"/>
+      <circle cx="500" cy="670" r="5" class="pulse"/>
+      <circle cx="560" cy="660" r="4"/>
+      <circle cx="640" cy="620" r="5" class="pulse"/>
+      <circle cx="680" cy="550" r="5"/>
+    </g>
+
+    <!-- Moving "signal" strokes -->
+    <g class="spin-med" stroke="url(#gradRing)" stroke-width="3" stroke-linecap="round" fill="none" opacity=".85">
+      <path d="M310,440 C420,360 530,360 690,460" class="dash"/>
+      <path d="M310,560 C420,640 530,640 690,540" class="dash fast"/>
+    </g>
+  </g>
+
+  <!-- Inner subtle ring to frame the brain -->
+  <circle cx="500" cy="500" r="370" fill="none" stroke="#0ea5a5" stroke-opacity=".25" stroke-width="1"/>
+
+</svg>

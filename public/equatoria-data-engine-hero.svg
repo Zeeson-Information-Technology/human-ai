@@ -1,0 +1,50 @@
+<!-- Equatoria Data Engine motif -->
+<svg width="1200" height="420" viewBox="0 0 1200 420" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Equatoria Data Engine motif">
+  <defs>
+    <linearGradient id="g1" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0EA5A5" stop-opacity="0.35"/>
+      <stop offset="1" stop-color="#111827" stop-opacity="0.35"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="50%" cy="60%" r="60%">
+      <stop offset="0" stop-color="#0EA5A5" stop-opacity="0.25"/>
+      <stop offset="1" stop-color="#0EA5A5" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="line" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#22D3EE" stop-opacity="0.0"/>
+      <stop offset="0.5" stop-color="#22D3EE" stop-opacity="0.9"/>
+      <stop offset="1" stop-color="#22D3EE" stop-opacity="0.0"/>
+    </linearGradient>
+  </defs>
+
+  <!-- subtle background -->
+  <rect width="1200" height="420" fill="url(#g1)"/>
+  <rect width="1200" height="420" fill="url(#glow)"/>
+
+  <!-- equator circle with horizon -->
+  <g transform="translate(600,210)">
+    <circle r="120" fill="none" stroke="#0B0B0E" stroke-opacity="0.45" stroke-width="1.5"/>
+    <circle r="160" fill="none" stroke="#0B0B0E" stroke-opacity="0.25" stroke-width="1"/>
+    <circle r="200" fill="none" stroke="#0B0B0E" stroke-opacity="0.12" stroke-width="1"/>
+    <!-- horizon line -->
+    <line x1="-260" y1="0" x2="260" y2="0" stroke="url(#line)" stroke-width="2"/>
+    <!-- small anchor dot -->
+    <circle r="3.5" fill="#0EA5A5"/>
+  </g>
+
+  <!-- perspective grid -->
+  <g stroke="#0B0B0E" stroke-opacity="0.12" stroke-width="1">
+    <!-- verticals -->
+    <path d="M100 420L300 260L600 210L900 260L1100 420" />
+    <path d="M50 420L280 270L600 210L920 270L1150 420" />
+    <path d="M150 420L320 255L600 210L880 255L1050 420" />
+    <!-- horizontals -->
+    <path d="M0 320H1200"/>
+    <path d="M0 360H1200"/>
+    <path d="M0 400H1200"/>
+  </g>
+
+  <!-- caption (optional; can be hidden with aria if used purely decorative) -->
+  <text x="600" y="60" text-anchor="middle" font-family="system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial" font-size="14" fill="#334155" fill-opacity="0.85">
+    Consent → Curate → Label → Evaluate → Deliver
+  </text>
+</svg>
