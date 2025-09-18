@@ -1,10 +1,14 @@
-// app/layout.tsx
+// /src/app/layout.tsx
 import "./globals.css";
 import type { ReactNode } from "react";
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import HashScroll from "../components/hash-scroll";
 
-export const metadata = {
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+
+export const metadata: Metadata = {
+  metadataBase: new URL(siteUrl),
   title: "Equatoria — Human-in-the-loop AI data & evaluations",
   description:
     "Consent-based data sourcing, meticulous labeling, safety evaluations, and secure handover — built in Africa, serving the world.",
@@ -12,7 +16,7 @@ export const metadata = {
     title: "Equatoria",
     description:
       "Enterprise-grade data, evaluations, and secure handover for AI labs and regulated industries.",
-    url: "https://equatoria.ai",
+    url: siteUrl,
     siteName: "Equatoria",
     images: [{ url: "/og-image.png", width: 1200, height: 630 }],
   },
@@ -36,12 +40,19 @@ export const metadata = {
   },
 };
 
-export default function RootLayout({ children }: { children: ReactNode }) {
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   return (
     <html lang="en" className="scroll-smooth">
       <body className="min-h-screen bg-white text-gray-900 antialiased">
         <main className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <HashScroll />
+          {/* Wrap client hooks (useSearchParams/usePathname) in Suspense */}
+          <Suspense fallback={null}>
+            <HashScroll />
+          </Suspense>
           {children}
         </main>
       </body>

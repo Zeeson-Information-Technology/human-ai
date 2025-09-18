@@ -4,6 +4,7 @@ import Section from "../components/section";
 import Footer from "../components/footer";
 import Highlight from "../components/highlight";
 import Stats from "../components/stats";
+import Image from "next/image";
 
 export default function Page() {
   return (
@@ -87,9 +88,13 @@ export default function Page() {
                     "radial-gradient(65% 55% at 60% 50%, rgba(226,254,255,0.75) 0%, rgba(226,254,255,0.25) 45%, rgba(226,254,255,0) 75%)",
                 }}
               />
-              <img
+
+              <Image
                 src="/equatoria-hero-brain-circle-clean.svg"
                 alt="Equatoria data-to-AI pipeline"
+                priority
+                width={720} // set to your SVG’s real size if known
+                height={720}
                 className="relative z-10 w-full max-w-xl rounded-2xl shadow-xl ring-1 ring-black/5 animate-hero-float"
               />
             </div>

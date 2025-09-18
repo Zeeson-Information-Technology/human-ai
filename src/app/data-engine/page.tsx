@@ -3,6 +3,7 @@ import Link from "next/link";
 import Nav from "../../components/nav";
 import Footer from "../../components/footer";
 import Section from "../../components/section";
+import Image from "next/image";
 
 export const metadata = {
   title: "Data Engine — Equatoria",
@@ -36,12 +37,12 @@ export default function DataEnginePage() {
               </p>
 
               <div className="mt-6 flex flex-wrap items-center gap-3">
-                <a
+                <Link
                   href="/#contact"
                   className="rounded-xl bg-black px-5 py-3 font-medium text-white hover:opacity-90"
                 >
                   Request a pilot
-                </a>
+                </Link>
                 <Link
                   href="/whitepaper"
                   className="rounded-xl border px-5 py-3 font-medium hover:bg-gray-50"
@@ -93,9 +94,12 @@ export default function DataEnginePage() {
                 />
               </div>
 
-              <img
+              <Image
                 src="/equatoria-data-engine-funnel.svg"
                 alt="Equatoria Data Engine — consent → curate → label → evaluate → deliver"
+                priority
+                width={720}
+                height={720}
                 className="w-full max-w-xl rounded-2xl shadow-xl ring-1 ring-black/5 sm:ml-auto"
               />
             </div>
@@ -347,12 +351,12 @@ export default function DataEnginePage() {
             timelines, costs, and success metrics.
           </p>
           <div className="mt-6 flex items-center justify-center gap-3">
-            <a
+            <Link
               href="/#contact"
               className="rounded-xl bg-black px-5 py-3 font-medium text-white hover:opacity-90"
             >
               Start a pilot
-            </a>
+            </Link>
             <Link
               href="/whitepaper"
               className="rounded-xl border px-5 py-3 font-medium hover:bg-gray-50"

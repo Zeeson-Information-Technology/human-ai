@@ -1,10 +1,14 @@
-// src/lib/db-connect.ts
+// /src/lib/db-connect.ts
 import "server-only";
 import mongoose from "mongoose";
 
-const uri = process.env.MONGODB_URI;
+function getMongoUri(): string {
+  const u = process.env.MONGODB_URI;
+  if (!u) throw new Error("MONGODB_URI is not set");
+  return u;
+}
+
 const dbName = process.env.MONGODB_DB || "human_intel";
-if (!uri) throw new Error("MONGODB_URI is not set");
 
 declare global {
   // eslint-disable-next-line no-var
@@ -13,7 +17,8 @@ declare global {
 
 export default async function dbConnect() {
   if (!global.__mongoose) {
-    global.__mongoose = mongoose.connect(uri, { dbName });
+    // getMongoUri() returns a string, so TS is happy
+    global.__mongoose = mongoose.connect(getMongoUri(), { dbName });
   }
   return global.__mongoose;
 }

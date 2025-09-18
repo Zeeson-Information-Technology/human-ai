@@ -1,18 +1,43 @@
-// src/app/admin/leads/page.tsx
+// /src/app/admin/leads/page.tsx
 import dbConnect from "@/lib/db-connect";
 import PilotRequest from "@/model/pilot-request";
 import { revalidatePath } from "next/cache";
 
-async function getLeads() {
+type PilotDoc = {
+  _id: unknown;
+  name: string;
+  email: string;
+  company: string;
+  message?: string;
+  handled?: boolean;
+  createdAt: Date | string | number;
+};
+
+type Lead = {
+  id: string;
+  name: string;
+  email: string;
+  company: string;
+  message: string;
+  handled: boolean;
+  createdAt: string; // ISO
+};
+
+async function getLeads(): Promise<Lead[]> {
   await dbConnect();
-  const docs = await PilotRequest.find({}).sort({ createdAt: -1 }).lean();
-  return docs.map((d: any) => ({
+
+  // Type the lean() result so .map() receives a known shape
+  const docs = (await PilotRequest.find({})
+    .sort({ createdAt: -1 })
+    .lean()) as unknown as PilotDoc[];
+
+  return docs.map((d) => ({
     id: String(d._id),
     name: d.name,
     email: d.email,
     company: d.company,
-    message: d.message,
-    handled: !!d.handled,
+    message: d.message ?? "",
+    handled: Boolean(d.handled),
     createdAt: new Date(d.createdAt).toISOString(),
   }));
 }

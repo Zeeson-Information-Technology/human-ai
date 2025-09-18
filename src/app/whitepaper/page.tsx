@@ -66,12 +66,12 @@ export default function WhitepaperPage() {
               <ol className="mt-3 space-y-2 text-sm">
                 {TOC.map((item) => (
                   <li key={item.href}>
-                    <a
+                    <Link
                       href={item.href}
                       className="block rounded-md px-2 py-1 text-gray-700 hover:bg-gray-50 hover:text-black"
                     >
                       {item.label}
-                    </a>
+                    </Link>
                   </li>
                 ))}
               </ol>
@@ -91,9 +91,9 @@ export default function WhitepaperPage() {
               <ol className="mt-2 grid gap-1 text-sm sm:grid-cols-2">
                 {TOC.map((item) => (
                   <li key={item.href}>
-                    <a href={item.href} className="hover:text-black">
+                    <Link href={item.href} className="hover:text-black">
                       {item.label}
-                    </a>
+                    </Link>
                   </li>
                 ))}
               </ol>
@@ -293,12 +293,12 @@ export default function WhitepaperPage() {
                 plan with clear success metrics.
               </p>
               <div className="mt-4 flex flex-wrap items-center gap-3">
-                <a
+                <Link
                   href="/#contact"
                   className="rounded-xl bg-black px-5 py-3 font-medium text-white hover:opacity-90"
                 >
                   Start a pilot
-                </a>
+                </Link>
                 <Link
                   href="/"
                   className="rounded-xl border px-5 py-3 font-medium hover:bg-gray-50"
@@ -334,9 +334,9 @@ function Section({
   return (
     <section id={id} className="scroll-mt-28">
       <div className="mb-3 mt-2 text-xs font-semibold uppercase tracking-wider text-gray-500">
-        <a href={`#${id}`} className="hover:text-black">
+        <Link href={`#${id}`} className="hover:text-black">
           {title}
-        </a>
+        </Link>
       </div>
       <div className="space-y-3 text-[17px] leading-7 text-gray-800">
         {children}

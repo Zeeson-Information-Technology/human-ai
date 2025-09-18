@@ -3,6 +3,7 @@ import Link from "next/link";
 import Nav from "@/components/nav";
 import Footer from "@/components/footer";
 import Section from "@/components/section";
+import Image from "next/image";
 
 export const metadata = {
   title: "Telecom — Equatoria",
@@ -37,12 +38,12 @@ export default function TelecomPage() {
               </p>
 
               <div className="mt-6 flex flex-wrap items-center gap-3">
-                <a
+                <Link
                   href="/#contact"
                   className="rounded-xl bg-black px-5 py-3 font-medium text-white hover:opacity-90"
                 >
                   Talk to a specialist
-                </a>
+                </Link>
                 <Link
                   href="/data-engine"
                   className="rounded-xl border px-5 py-3 font-medium hover:bg-gray-50"
@@ -98,9 +99,12 @@ export default function TelecomPage() {
                 />
               </div>
 
-              <img
+              <Image
                 src="/equatoria-hero-brain-circle-clean.svg"
                 alt="Telecom data operations visual"
+                priority
+                width={720} // set to your SVG’s real size if known
+                height={720}
                 className="w-full max-w-xl rounded-2xl shadow-xl ring-1 ring-black/5 sm:ml-auto"
               />
             </div>
@@ -347,12 +351,12 @@ export default function TelecomPage() {
             you can benchmark internally.
           </p>
           <div className="mt-6 flex items-center justify-center gap-3">
-            <a
+            <Link
               href="/#contact"
               className="rounded-xl bg-black px-5 py-3 font-medium text-white hover:opacity-90"
             >
               Speak with us
-            </a>
+            </Link>
             <Link
               href="/whitepaper"
               className="rounded-xl border px-5 py-3 font-medium hover:bg-gray-50"

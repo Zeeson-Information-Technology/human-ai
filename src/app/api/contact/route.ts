@@ -1,4 +1,4 @@
-// src/app/api/contact/route.ts
+// /src/app/api/contact/route.ts
 export const runtime = "nodejs";
 
 import { NextResponse } from "next/server";
@@ -6,6 +6,25 @@ import { z } from "zod";
 import dbConnect from "@/lib/db-connect";
 import PilotRequest from "@/model/pilot-request";
 import sendEmail from "@/lib/sendSmtpMail";
+
+// Normalize Nodemailer-like results (accepted: (string | Address)[]) into string[]
+type AddressLike = string | { address?: string | null };
+
+// What we return downstream / expose to client
+type SendResult = {
+  messageId?: string | null;
+  accepted?: string[];
+  response?: string | null;
+} | null;
+
+// What sendEmail might actually return (looser)
+type RawSendResult = {
+  messageId?: string | null;
+  accepted?: AddressLike[];
+  response?: string | null;
+} | null;
+
+type SendError = unknown;
 
 const PayloadSchema = z.object({
   name: z.string().min(2),
@@ -22,6 +41,20 @@ function escapeHtml(str: string) {
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#39;");
+}
+
+// Coerce RawSendResult -> SendResult (string[] accepted)
+function normalizeSendResult(raw: RawSendResult): SendResult {
+  if (!raw) return null;
+  const accepted =
+    raw.accepted
+      ?.map((a) => (typeof a === "string" ? a : a.address ?? ""))
+      .filter(Boolean) ?? [];
+  return {
+    messageId: raw.messageId ?? null,
+    accepted,
+    response: raw.response ?? null,
+  };
 }
 
 export async function POST(req: Request) {
@@ -63,14 +96,14 @@ export async function POST(req: Request) {
     const safeMsg = escapeHtml(created.message).replace(/\n/g, "<br/>");
     const year = new Date().getFullYear();
 
-    // Send emails and capture results
-    let internalRes: any = null;
-    let confirmRes: any = null;
-    let internalErr: any = null;
-    let confirmErr: any = null;
+    // Send emails and capture results (typed + normalized)
+    let internalRes: SendResult = null;
+    let confirmRes: SendResult = null;
+    let internalErr: SendError = null;
+    let confirmErr: SendError = null;
 
     try {
-      internalRes = await sendEmail({
+      const rawInternal: RawSendResult = await sendEmail({
         to,
         subject: `New pilot request — ${created.company}`,
         template: "pilot-request",
@@ -83,6 +116,7 @@ export async function POST(req: Request) {
         },
         replyTo: created.email,
       });
+      internalRes = normalizeSendResult(rawInternal);
       if (internalRes && internalRes.messageId) {
         console.log("Internal email sent:", internalRes);
       }
@@ -93,7 +127,7 @@ export async function POST(req: Request) {
 
     // Send confirmation email after internal email
     try {
-      confirmRes = await sendEmail({
+      const rawConfirm: RawSendResult = await sendEmail({
         to: created.email,
         subject: "We received your pilot request",
         template: "pilot-confirm",
@@ -104,6 +138,7 @@ export async function POST(req: Request) {
         },
         replyTo: process.env.ZEPTOMAIL_FROM_ADDRESS || "noreply@diboruwa.com",
       });
+      confirmRes = normalizeSendResult(rawConfirm);
       if (confirmRes && confirmRes.messageId) {
         console.log("Confirmation email sent:", confirmRes);
       }

@@ -1,3 +1,4 @@
+// /src/components/hash-scroll.tsx
 "use client";
 
 import { useEffect } from "react";
