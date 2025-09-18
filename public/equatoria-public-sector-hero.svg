@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="720" height="720" viewBox="0 0 720 720" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <radialGradient id="bgGlow" cx="0.7" cy="0.5" r="0.55">
+      <stop offset="0%" stop-color="#00D4B2" stop-opacity="0.32"/>
+      <stop offset="60%" stop-color="#00D4B2" stop-opacity="0.12"/>
+      <stop offset="100%" stop-color="#00D4B2" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="accent" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#06B6D4"/>
+      <stop offset="100%" stop-color="#10B981"/>
+    </linearGradient>
+    <filter id="softShadow" x="-50%" y="-50%" width="200%" height="200%">
+      <feDropShadow dx="0" dy="8" stdDeviation="18" flood-color="#0B0F19" flood-opacity="0.12"/>
+    </filter>
+  </defs>
+
+  <!-- Soft glow on the right side (lighting only behind visual) -->
+  <ellipse cx="490" cy="360" rx="260" ry="240" fill="url(#bgGlow)"/>
+
+  <!-- Concentric guidelines (policy layers / audit rings) -->
+  <g opacity="0.7" stroke="url(#accent)" stroke-width="1.5">
+    <circle cx="360" cy="360" r="220" stroke-opacity="0.28"/>
+    <circle cx="360" cy="360" r="170" stroke-opacity="0.22"/>
+    <circle cx="360" cy="360" r="120" stroke-opacity="0.18"/>
+  </g>
+
+  <!-- Government building (pillars) -->
+  <g transform="translate(210,250)" filter="url(#softShadow)">
+    <!-- pediment -->
+    <path d="M0 60 L150 0 L300 60 Z" fill="white" fill-opacity="0.9" stroke="url(#accent)" stroke-width="2"/>
+    <!-- pillars -->
+    <g>
+      <rect x="20"  y="60" width="34" height="150" rx="6" fill="white" fill-opacity="0.95" stroke="url(#accent)" stroke-width="1.5"/>
+      <rect x="83"  y="60" width="34" height="150" rx="6" fill="white" fill-opacity="0.95" stroke="url(#accent)" stroke-width="1.5"/>
+      <rect x="146" y="60" width="34" height="150" rx="6" fill="white" fill-opacity="0.95" stroke="url(#accent)" stroke-width="1.5"/>
+      <rect x="209" y="60" width="34" height="150" rx="6" fill="white" fill-opacity="0.95" stroke="url(#accent)" stroke-width="1.5"/>
+      <rect x="272" y="60" width="34" height="150" rx="6" fill="white" fill-opacity="0.95" stroke="url(#accent)" stroke-width="1.5"/>
+    </g>
+    <!-- base -->
+    <rect x="-10" y="210" width="320" height="18" rx="6" fill="white" fill-opacity="0.95" stroke="url(#accent)" stroke-width="1.5"/>
+  </g>
+
+  <!-- Accessibility badge (universal access) -->
+  <g transform="translate(155,215)" opacity="0.95">
+    <circle cx="38" cy="38" r="38" fill="white" fill-opacity="0.9" stroke="url(#accent)" stroke-width="1.5"/>
+    <!-- stylized person / accessibility -->
+    <path d="M38 24 a6 6 0 1 0 0.1 0Z" fill="#06B6D4"/>
+    <path d="M38 32 v18" stroke="#10B981" stroke-width="3" stroke-linecap="round"/>
+    <path d="M20 40 h36" stroke="#06B6D4" stroke-width="3" stroke-linecap="round"/>
+    <path d="M30 60 l8 -8" stroke="#10B981" stroke-width="3" stroke-linecap="round"/>
+    <path d="M46 60 l-8 -8" stroke="#10B981" stroke-width="3" stroke-linecap="round"/>
+  </g>
+
+  <!-- Shield with check (security/compliance) -->
+  <g transform="translate(480,455)" opacity="0.95">
+    <path d="M80 0 L140 26 C140 96 116 132 80 154 C44 132 20 96 20 26 L80 0Z"
+          fill="white" fill-opacity="0.9" stroke="url(#accent)" stroke-width="2"/>
+    <path d="M52 84 l22 22 l40 -48" fill="none" stroke="#10B981" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+
+  <!-- Document card (policy / permit) -->
+  <g transform="translate(480,260)" opacity="0.95">
+    <rect x="-24" y="-24" width="150" height="110" rx="14" fill="white" fill-opacity="0.86" stroke="url(#accent)" stroke-width="1.5"/>
+    <rect x="-8" y="-6" width="116" height="10" rx="5" fill="#06B6D4" opacity="0.9"/>
+    <rect x="-8" y="16" width="90" height="10" rx="5" fill="#10B981" opacity="0.8"/>
+    <rect x="-8" y="38" width="104" height="10" rx="5" fill="#0EA5E9" opacity="0.5"/>
+  </g>
+
+  <!-- Speech bubbles (multilingual civic services) -->
+  <g transform="translate(180,460)" opacity="0.95">
+    <rect x="0" y="0" width="130" height="60" rx="12" fill="white" fill-opacity="0.9" stroke="url(#accent)" stroke-width="1.5"/>
+    <path d="M34 60 l-10 12 l2 -14" fill="white" stroke="url(#accent)" stroke-width="1.5"/>
+    <rect x="16" y="18" width="98" height="8" rx="4" fill="#10B981" opacity="0.9"/>
+    <rect x="16" y="36" width="76" height="8" rx="4" fill="#06B6D4" opacity="0.7"/>
+  </g>
+
+  <!-- Small network nodes (data provenance / slices) -->
+  <g fill="#10B981" fill-opacity="0.85">
+    <circle cx="360" cy="130" r="4"/>
+    <circle cx="540" cy="210" r="4"/>
+    <circle cx="580" cy="380" r="4"/>
+    <circle cx="200" cy="500" r="4"/>
+    <circle cx="160" cy="320" r="4"/>
+    <circle cx="360" cy="590" r="4"/>
+  </g>
+
+  <!-- Connector hints -->
+  <g stroke="url(#accent)" stroke-opacity="0.5">
+    <path d="M360 130 L360 210"/>
+    <path d="M540 210 L530 260"/>
+    <path d="M580 380 L520 360"/>
+    <path d="M200 500 L250 470"/>
+    <path d="M160 320 L220 350"/>
+    <path d="M360 590 L360 520"/>
+  </g>
+</svg>

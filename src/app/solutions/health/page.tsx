@@ -101,7 +101,7 @@ export default function HealthPage() {
               </div>
 
               <Image
-                src="/equatoria-hero-brain-circle-clean.svg"
+                src="/equatoria-health-hero.svg"
                 alt="Retail & commerce data operations visual"
                 priority
                 width={720}

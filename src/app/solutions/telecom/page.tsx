@@ -100,7 +100,7 @@ export default function TelecomPage() {
               </div>
 
               <Image
-                src="/equatoria-hero-brain-circle-clean.svg"
+                src="/equatoria-telecom-hero.svg"
                 alt="Telecom data operations visual"
                 priority
                 width={720} // set to your SVG’s real size if known

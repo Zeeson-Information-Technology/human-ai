@@ -99,7 +99,7 @@ export default function FinancialServicesPage() {
               </div>
 
               <Image
-                src="/equatoria-hero-brain-circle-clean.svg"
+                src="/equatoria-financial-services-hero.svg"
                 alt="Retail & commerce data operations visual"
                 priority
                 width={720}

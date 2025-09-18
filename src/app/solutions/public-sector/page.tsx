@@ -42,7 +42,7 @@ export default function PublicSectorPage() {
                   href="/#contact"
                   className="rounded-xl bg-black px-5 py-3 font-medium text-white hover:opacity-90"
                 >
-                  Speak with our public sector team
+                  Speak with our team
                 </Link>
                 <Link
                   href="/data-engine"
@@ -97,7 +97,7 @@ export default function PublicSectorPage() {
               </div>
 
               <Image
-                src="/equatoria-hero-brain-circle-clean.svg"
+                src="/equatoria-public-sector-hero.svg"
                 alt="Retail & commerce data operations visual"
                 priority
                 width={720}

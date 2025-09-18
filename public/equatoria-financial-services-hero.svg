@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="720" height="720" viewBox="0 0 720 720" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Transparent background -->
+  <defs>
+    <radialGradient id="g1" cx="0.5" cy="0.5" r="0.6">
+      <stop offset="0%" stop-color="#00D4B2" stop-opacity="0.35"/>
+      <stop offset="60%" stop-color="#00D4B2" stop-opacity="0.12"/>
+      <stop offset="100%" stop-color="#00D4B2" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="softShadow" x="-50%" y="-50%" width="200%" height="200%">
+      <feDropShadow dx="0" dy="8" stdDeviation="18" flood-color="#0B0F19" flood-opacity="0.12"/>
+    </filter>
+    <linearGradient id="strokeAccent" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#06B6D4"/>
+      <stop offset="100%" stop-color="#10B981"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Subtle glow behind motif (allowed on visual side only; can be hidden by page) -->
+  <circle cx="510" cy="360" r="250" fill="url(#g1)"/>
+
+  <!-- Concentric rings -->
+  <g opacity="0.7" stroke="url(#strokeAccent)" stroke-width="1.5">
+    <circle cx="360" cy="360" r="220" stroke-opacity="0.35"/>
+    <circle cx="360" cy="360" r="170" stroke-opacity="0.25"/>
+    <circle cx="360" cy="360" r="120" stroke-opacity="0.2"/>
+  </g>
+
+  <!-- Network nodes -->
+  <g fill="#10B981" fill-opacity="0.85">
+    <circle cx="360" cy="140" r="4"/>
+    <circle cx="530" cy="240" r="4"/>
+    <circle cx="560" cy="410" r="4"/>
+    <circle cx="360" cy="580" r="4"/>
+    <circle cx="200" cy="480" r="4"/>
+    <circle cx="180" cy="300" r="4"/>
+  </g>
+
+  <!-- Connector lines -->
+  <g stroke="url(#strokeAccent)" stroke-opacity="0.5">
+    <path d="M360 140 L360 240" />
+    <path d="M530 240 L470 300" />
+    <path d="M560 410 L470 380" />
+    <path d="M360 580 L360 480" />
+    <path d="M200 480 L260 430" />
+    <path d="M180 300 L250 330" />
+  </g>
+
+  <!-- Shield with check (security/compliance) -->
+  <g transform="translate(270,225)" filter="url(#softShadow)">
+    <path d="M90 0 L160 30 C160 120 130 165 90 190 C50 165 20 120 20 30 L90 0Z"
+          fill="white" fill-opacity="0.85" stroke="url(#strokeAccent)" stroke-width="2"/>
+    <path d="M65 105 l25 25 l45 -55" fill="none" stroke="#10B981" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+
+  <!-- ID / KYC card (top-left) -->
+  <g transform="translate(155,190)" opacity="0.9">
+    <rect x="0" y="0" width="110" height="70" rx="10" fill="white" fill-opacity="0.82" stroke="url(#strokeAccent)" stroke-width="1.5"/>
+    <circle cx="28" cy="35" r="14" fill="#E2FEFF" stroke="#06B6D4" stroke-width="1"/>
+    <rect x="52" y="22" width="46" height="6" rx="3" fill="#10B981" opacity="0.9"/>
+    <rect x="52" y="36" width="46" height="6" rx="3" fill="#06B6D4" opacity="0.6"/>
+  </g>
+
+  <!-- Bank statement / receipt (bottom-right) -->
+  <g transform="translate(470,450)" opacity="0.95">
+    <rect x="0" y="0" width="120" height="90" rx="10" fill="white" fill-opacity="0.82" stroke="url(#strokeAccent)" stroke-width="1.5"/>
+    <rect x="16" y="18" width="88" height="8" rx="4" fill="#10B981" opacity="0.9"/>
+    <rect x="16" y="36" width="88" height="8" rx="4" fill="#06B6D4" opacity="0.7"/>
+    <rect x="16" y="54" width="64" height="8" rx="4" fill="#0EA5E9" opacity="0.5"/>
+  </g>
+
+  <!-- Lock icon (privacy) -->
+  <g transform="translate(265,460)" opacity="0.9">
+    <rect x="0" y="14" width="56" height="42" rx="8" fill="white" fill-opacity="0.85" stroke="url(#strokeAccent)" stroke-width="1.5"/>
+    <path d="M14 26 v-8 a14 14 0 0 1 28 0 v8" fill="none" stroke="url(#strokeAccent)" stroke-width="1.5"/>
+    <circle cx="28" cy="38" r="4" fill="#10B981"/>
+  </g>
+
+  <!-- Tiny caption lines near center (evaluations/reporting) -->
+  <g transform="translate(330,330)" opacity="0.55">
+    <rect x="0" y="0" width="60" height="6" rx="3" fill="#06B6D4"/>
+    <rect x="0" y="12" width="44" height="6" rx="3" fill="#10B981" opacity="0.8"/>
+    <rect x="0" y="24" width="52" height="6" rx="3" fill="#0EA5E9" opacity="0.5"/>
+  </g>
+</svg>

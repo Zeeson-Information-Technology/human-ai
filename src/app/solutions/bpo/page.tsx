@@ -84,7 +84,7 @@ export default function BPOPage() {
               </div>
 
               <Image
-                src="/equatoria-hero-brain-circle-clean.svg"
+                src="/equatoria-bpo-hero.svg"
                 alt="Retail & commerce data operations visual"
                 priority
                 width={720}

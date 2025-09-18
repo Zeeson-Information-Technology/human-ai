@@ -97,7 +97,7 @@ export default function AiLabsPage() {
               </div>
 
               <Image
-                src="/equatoria-hero-brain-circle-clean.svg"
+                src="/equatoria-ai-labs-hero.svg"
                 alt="Retail & commerce data operations visual"
                 priority
                 width={720}

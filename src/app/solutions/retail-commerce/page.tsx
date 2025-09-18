@@ -83,7 +83,7 @@ export default function RetailCommercePage() {
                 <div className="absolute right-[6%] top-[48%] h-[14px] w-[70%] -translate-y-1/2 rounded-full bg-gradient-to-l from-white/80 via-cyan-200/60 to-transparent blur-md opacity-65" />
               </div>
               <Image
-                src="/equatoria-hero-brain-circle-clean.svg"
+                src="/equatoria-retail-commerce-hero.svg"
                 alt="Retail & commerce data operations visual"
                 priority
                 width={720}
