@@ -751,9 +751,9 @@ export default function AnnotateImagePage() {
                   <Image
                     src={s.image}
                     alt="Demo document"
-                    fill
-                    sizes="(min-width: 768px) 768px, 100vw"
-                    className="rounded-xl object-contain"
+                    width={1200}
+                    height={800}
+                    className="block w-full rounded-xl"
                     draggable={false}
                     ref={imgRef}
                   />
