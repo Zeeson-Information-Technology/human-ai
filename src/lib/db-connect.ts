@@ -1,24 +1,34 @@
-// /src/lib/db-connect.ts
-import "server-only";
 import mongoose from "mongoose";
 
-function getMongoUri(): string {
-  const u = process.env.MONGODB_URI;
-  if (!u) throw new Error("MONGODB_URI is not set");
-  return u;
+const MONGODB_URI = process.env.MONGODB_URI!;
+if (!MONGODB_URI) {
+  throw new Error("Missing MONGODB_URI");
 }
 
-const dbName = process.env.MONGODB_DB || "human_intel";
+type MongooseCache = {
+  conn: typeof mongoose | null;
+  promise: Promise<typeof mongoose> | null;
+};
 
 declare global {
-  // eslint-disable-next-line no-var
-  var __mongoose: Promise<typeof mongoose> | undefined;
+  // Typed cache on the Node global
+  // (only a type declaration; no 'var' usage that would need lint suppression)
+  // eslint-disable-next-line no-unused-vars
+  var __mongooseCache: MongooseCache | undefined;
 }
 
+const cached: MongooseCache = globalThis.__mongooseCache ?? {
+  conn: null,
+  promise: null,
+};
+
 export default async function dbConnect() {
-  if (!global.__mongoose) {
-    // getMongoUri() returns a string, so TS is happy
-    global.__mongoose = mongoose.connect(getMongoUri(), { dbName });
+  if (cached.conn) return cached.conn;
+
+  if (!cached.promise) {
+    cached.promise = mongoose.connect(MONGODB_URI).then((m) => m);
   }
-  return global.__mongoose;
+  cached.conn = await cached.promise;
+  globalThis.__mongooseCache = cached;
+  return cached.conn;
 }

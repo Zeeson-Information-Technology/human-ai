@@ -1,0 +1,14 @@
+[
+  { "id": "p1", "text": "Good morning, how are you?" },
+  { "id": "p2", "text": "Where is the nearest hospital?" },
+  { "id": "p3", "text": "I would like to open a bank account." },
+  { "id": "p4", "text": "Please help me reset my password." },
+  { "id": "p5", "text": "What time does the market open?" },
+  { "id": "p6", "text": "I lost my wallet yesterday." },
+  { "id": "p7", "text": "Can you call me a taxi?" },
+  { "id": "p8", "text": "I need directions to the airport." },
+  { "id": "p9", "text": "How much does this cost?" },
+  { "id": "p10", "text": "Thank you for your assistance." },
+  { "id": "p11", "text": "My card was declined at the store." },
+  { "id": "p12", "text": "I want to report a fraudulent charge." }
+]

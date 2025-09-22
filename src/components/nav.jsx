@@ -28,6 +28,13 @@ export default function Nav() {
           {/* Desktop nav */}
           <nav className="hidden items-center gap-6 text-sm md:flex">
             <Link
+              href="/interviewer"
+              className="text-white/85 hover:text-white"
+            >
+              Use Zuri
+            </Link>
+
+            <Link
               href="/data-engine"
               className="text-white/85 hover:text-white"
             >
@@ -39,18 +46,22 @@ export default function Nav() {
               <div
                 tabIndex={0}
                 className="flex cursor-pointer select-none items-center gap-1 text-white/85 outline-none hover:text-white focus:text-white"
+                aria-haspopup="true"
+                aria-expanded="false"
+                aria-label="Open Solutions menu"
               >
                 <span>Solutions</span>
                 <svg
                   className="h-3 w-3 transition-transform duration-200 group-focus:-rotate-180 group-hover:-rotate-180"
                   viewBox="0 0 20 20"
                   fill="currentColor"
+                  aria-hidden="true"
                 >
                   <path d="M5.23 7.21a.75.75 0 0 1 1.06.02L10 10.94l3.71-3.71a.75.75 0 1 1 1.06 1.06l-4.24 4.24a.75.75 0 0 1-1.06 0L5.21 8.29a.75.75 0 0 1 .02-1.08z" />
                 </svg>
               </div>
 
-              {/* Panel container (visibility controlled by hover/focus) */}
+              {/* Panel container */}
               <div
                 className={[
                   "invisible absolute right-0 top-full mt-3 w-[720px] translate-y-1 opacity-0",
@@ -60,27 +71,42 @@ export default function Nav() {
                   "group-hover:visible group-hover:translate-y-0 group-hover:opacity-100",
                   "group-focus-within:visible group-focus-within:translate-y-0 group-focus-within:opacity-100",
                 ].join(" ")}
+                role="menu"
+                aria-label="Solutions"
               >
                 <SolutionsDropdown />
               </div>
             </div>
 
+            {/* New: Interactive demo hub */}
+            <Link
+              href="/demo"
+              className="text-white/85 hover:text-white"
+              aria-label="Interactive demo"
+            >
+              Demo
+            </Link>
+
             <Link href="/whitepaper" className="text-white/85 hover:text-white">
               Research
             </Link>
+
+            {/* Contact CTA */}
             <Link
               href="/contact"
               className="rounded-lg bg-white px-3 py-2 font-medium text-slate-900 hover:bg-slate-100"
+              aria-label="Book a demo"
             >
               Book a demo
             </Link>
           </nav>
 
-          {/* Mobile CTA (simple for now) */}
+          {/* Mobile CTA (simple) */}
           <div className="md:hidden">
             <Link
-              href="/contact"
+              href="/demo"
               className="rounded-lg bg-white px-3 py-2 text-sm font-medium text-slate-900"
+              aria-label="Open interactive demo"
             >
               Demo
             </Link>

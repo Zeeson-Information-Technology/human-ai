@@ -1,0 +1,9 @@
+[
+  {
+    "id": "receipt_001",
+    "task": "Document OCR — Receipt",
+    "image": "/demo/receipt-plain.svg",
+    "guideline": "Draw one box around the Total amount on the receipt, then choose the correct field label.",
+    "labels": ["Total", "Date", "Merchant", "Tax"]
+  }
+]

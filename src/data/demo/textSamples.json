@@ -1,0 +1,77 @@
+[
+  {
+    "id": "ha_intent_001",
+    "task": "Intent",
+    "source": "Ina so in rufe asusun banki na. Me zan yi?",
+    "guideline": "Label the user’s intent for a banking support flow.",
+    "labels": ["Close Account", "Open Account", "Card Issue", "General Inquiry"]
+  },
+  {
+    "id": "yo_sent_002",
+    "task": "Sentiment",
+    "source": "Iṣẹ́ oníbàárà wọn dáa gan-an, mo ní ìrírí rere.",
+    "guideline": "Classify overall sentiment.",
+    "labels": ["Positive", "Neutral", "Negative"]
+  },
+  {
+    "id": "sw_toxic_003",
+    "task": "Toxicity",
+    "source": "Majibu yako hayana heshima hata kidogo.",
+    "guideline": "Decide if the text violates respectful-language policy.",
+    "labels": ["Toxic", "Not Toxic"]
+  },
+  {
+    "id": "ha_qa_004",
+    "task": "QA",
+    "source": "Tambaya: Me ya kamata in yi idan katin ATM dina ya makale?\nAmsa: Ka kira lambar cibiyar taimako ko ka ziyarci reshe mafi kusa don sakin katin.",
+    "guideline": "Judge if the answer directly addresses the question.",
+    "labels": ["Fully Answers", "Partially Answers", "Does Not Answer"]
+  },
+  {
+    "id": "yo_intent_005",
+    "task": "Intent",
+    "source": "Mo fẹ́ beèrè bí mo ṣe lè yí PIN kárìrìn-ọwọ́ mi padà.",
+    "guideline": "Map to best support intent.",
+    "labels": ["Change PIN", "Reset Password", "Card Issue", "General Inquiry"]
+  },
+  {
+    "id": "sw_transqa_006",
+    "task": "Translation QA",
+    "source": "SRC: The payment was declined due to insufficient funds.\nTGT: Malipo yalikataliwa kwa sababu ya ukosefu wa fedha.",
+    "guideline": "Rate translation adequacy/fluency overall.",
+    "labels": ["Acceptable", "Minor Issues", "Major Issues"]
+  },
+  {
+    "id": "ha_sent_007",
+    "task": "Sentiment",
+    "source": "Aikinsu yana jinkiri sosai, ban gamsu ba.",
+    "guideline": "Classify overall sentiment.",
+    "labels": ["Positive", "Neutral", "Negative"]
+  },
+  {
+    "id": "yo_toxic_008",
+    "task": "Toxicity",
+    "source": "Ìbáṣepọ̀ yìí kò tọ́, àti pé ìrọ̀lẹ́ yín burú.",
+    "guideline": "Flag disrespect or abuse per policy.",
+    "labels": ["Toxic", "Not Toxic"]
+  },
+  {
+    "id": "sw_intent_009",
+    "task": "Intent",
+    "source": "Ninawezaje kuzuia miamala ya mtandaoni kwenye kadi yangu?",
+    "guideline": "Choose the most precise banking intent.",
+    "labels": [
+      "Block Online Transactions",
+      "Card Lost",
+      "Fraud Report",
+      "General Inquiry"
+    ]
+  },
+  {
+    "id": "ha_transqa_010",
+    "task": "Translation QA",
+    "source": "SRC: Please upload a clear photo of your ID.\nTGT: Don Allah ku loda hoto mai kyau na katin shaidarku.",
+    "guideline": "Rate translation adequacy/fluency overall.",
+    "labels": ["Acceptable", "Minor Issues", "Major Issues"]
+  }
+]

@@ -1,9 +1,9 @@
 // /src/app/layout.tsx
 import "./globals.css";
-import type { ReactNode } from "react";
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import HashScroll from "../components/hash-scroll";
+import RouteProgress from "@/components/route-progress";
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
 
@@ -48,6 +48,7 @@ export default function RootLayout({
   return (
     <html lang="en" className="scroll-smooth">
       <body className="min-h-screen bg-white text-gray-900 antialiased">
+        <RouteProgress />
         <main className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           {/* Wrap client hooks (useSearchParams/usePathname) in Suspense */}
           <Suspense fallback={null}>
