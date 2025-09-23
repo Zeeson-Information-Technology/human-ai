@@ -756,6 +756,7 @@ export default function AnnotateImagePage() {
                     className="block w-full rounded-xl"
                     draggable={false}
                     ref={imgRef}
+                    unoptimized
                   />
 
                   {/* Floating toolbar for active box */}

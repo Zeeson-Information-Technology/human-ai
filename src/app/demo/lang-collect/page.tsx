@@ -635,7 +635,7 @@ export default function LangCollectPage() {
                       className="group relative inline-flex items-center gap-3 rounded-2xl px-5 py-3 text-sm font-semibold text-white
                                  bg-gradient-to-r from-emerald-600 via-emerald-500 to-cyan-600
                                  shadow-xl ring-1 ring-black/10 hover:shadow-2xl transition
-                                 focus:outline-none focus:ring-2 focus:ring-emerald-400"
+                                 focus:outline-none focus:ring-2 focus:ring-emerald-400 cursor-pointer"
                     >
                       {/* pulsing red dot */}
                       <span className="relative flex h-3 w-3">
