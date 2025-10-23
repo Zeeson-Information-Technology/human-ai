@@ -46,11 +46,14 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className="scroll-smooth">
-      <body className="min-h-screen bg-white text-gray-900 antialiased">
+    <html lang="en" className="scroll-smooth" suppressHydrationWarning>
+      {/* Extension-injected attributes (e.g., Grammarly) can differ on the client */}
+      <body
+        className="min-h-screen bg-white text-gray-900 antialiased"
+        suppressHydrationWarning
+      >
         <RouteProgress />
         <main className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          {/* Wrap client hooks (useSearchParams/usePathname) in Suspense */}
           <Suspense fallback={null}>
             <HashScroll />
           </Suspense>

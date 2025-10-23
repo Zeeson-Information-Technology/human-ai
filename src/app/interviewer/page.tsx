@@ -39,17 +39,10 @@ export default function ZuriPage() {
 
               <div className="mt-6 flex flex-wrap items-center gap-3">
                 <Link
-                  href="/contact"
-                  className="inline-flex items-center gap-2 rounded-xl bg-black px-5 py-3 font-medium text-white shadow-xl ring-1 ring-black/10 hover:bg-gray-900 hover:shadow-2xl transition"
+                  href="/interviewer/start"
+                  className="rounded-xl bg-emerald-600 px-5 py-3 font-medium text-white hover:bg-emerald-700"
                 >
-                  Book a pilot
-                  <svg
-                    className="h-4 w-4"
-                    viewBox="0 0 20 20"
-                    fill="currentColor"
-                  >
-                    <path d="M7 4l6 6-6 6" />
-                  </svg>
+                  Start an interview
                 </Link>
                 <Link
                   href="/demo"

@@ -31,7 +31,7 @@ export default function Nav() {
               href="/interviewer"
               className="text-white/85 hover:text-white"
             >
-              Use Zuri
+              Hire Zuri
             </Link>
 
             <Link

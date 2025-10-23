@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en" style="margin: 0; padding: 0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width" />
+    <title>Your interview is complete</title>
+    <meta name="x-apple-disable-message-reformatting" />
+    <style>
+      body {
+        margin: 0 !important;
+        padding: 0 !important;
+        background: #0b1220;
+      }
+      .wrap {
+        max-width: 720px;
+        margin: 0 auto;
+        padding: 24px 16px;
+      }
+      .card {
+        background: #0e111a;
+        border: 1px solid #1f2a44;
+        border-radius: 14px;
+        overflow: hidden;
+      }
+      .hdr {
+        background: linear-gradient(135deg, #14b8a6, #111827);
+        color: #fff;
+        padding: 24px;
+        text-align: center;
+      }
+      .brand {
+        font-weight: 800;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: #b6fffb;
+        font-size: 12px;
+      }
+      .title {
+        font-size: 20px;
+        font-weight: 800;
+        margin: 6px 0 0;
+      }
+      .content {
+        color: #e6edf6;
+        padding: 22px;
+        font-size: 14px;
+        line-height: 1.65;
+      }
+      .pill {
+        display: inline-block;
+        padding: 4px 10px;
+        background: #0b1424;
+        border: 1px solid #1f2a44;
+        border-radius: 999px;
+        font-size: 12px;
+        color: #e6edf6;
+      }
+      .footer {
+        text-align: center;
+        color: #8ea3c0;
+        font-size: 12px;
+        padding: 16px 0 22px;
+      }
+      a.button {
+        display: inline-block;
+        padding: 12px 16px;
+        background: #14b8a6;
+        color: #fff !important;
+        border-radius: 12px;
+        font-weight: 800;
+        font-size: 14px;
+        text-decoration: none;
+        letter-spacing: 0.02em;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <table
+        role="presentation"
+        width="100%"
+        cellspacing="0"
+        cellpadding="0"
+        style="border-collapse: collapse"
+      >
+        <tr>
+          <td>
+            <div class="card">
+              <div class="hdr">
+                <div class="brand">Equatoria • Zuri</div>
+                <div class="title">Thanks — your interview is complete</div>
+              </div>
+              <div class="content">
+                <p>Hi {{name}},</p>
+                <p>
+                  Thanks for completing your interview for
+                  <strong>{{jobTitle}}</strong>{{atCompany}}.
+                </p>
+                <p>
+                  We’ve recorded your responses and will get back to you after
+                  review.
+                </p>
+
+                <p style="margin-top: 14px">
+                  <span class="pill">Role: {{role}}</span>
+                  <span class="pill" style="margin-left: 6px"
+                    >Score (prelim): {{score}}%</span
+                  >
+                </p>
+
+                <p style="color: #9fb1c9; font-size: 12px; margin-top: 16px">
+                  No action is required from you now.
+                </p>
+              </div>
+              <div class="footer">© {{year}} Equatoria • Zuri</div>
+            </div>
+          </td>
+        </tr>
+      </table>
+    </div>
+  </body>
+</html>

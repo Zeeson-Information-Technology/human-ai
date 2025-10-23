@@ -57,6 +57,20 @@ export default function Footer() {
             >
               Research
             </Link>
+            <span aria-hidden="true">•</span>
+            <Link
+              href="/policies/privacy"
+              className="hover:text-gray-700 hover:underline"
+            >
+              Privacy
+            </Link>
+            <span aria-hidden="true">•</span>
+            <Link
+              href="/policies/terms"
+              className="hover:text-gray-700 hover:underline"
+            >
+              Terms
+            </Link>
           </div>
         </div>
       </div>
