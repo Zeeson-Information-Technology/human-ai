@@ -5,6 +5,7 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 import { NextRequest, NextResponse } from "next/server";
+import type { VoiceId } from "@aws-sdk/client-polly";
 
 export async function POST(req: NextRequest) {
   try {
@@ -13,7 +14,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: false, error: "Text required" }, { status: 400 });
     }
 
-    const voiceId = process.env.ZURI_TTS_VOICE || "Joanna";
+    const voiceId: VoiceId =
+      (process.env.ZURI_TTS_VOICE as VoiceId | undefined) ?? ("Joanna" as VoiceId);
     const { polly } = await import("@/lib/aws-polly");
     const client = await polly();
     const { SynthesizeSpeechCommand } = await import("@aws-sdk/client-polly");

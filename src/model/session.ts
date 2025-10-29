@@ -2,13 +2,7 @@
 // FILE: src/model/session.ts
 // Canonical Zuri Session model
 // ================================
-import mongoose, {
-  Schema,
-  InferSchemaType,
-  models,
-  model,
-  Types,
-} from "mongoose";
+import mongoose, { Schema, InferSchemaType, models, model } from "mongoose";
 import { randomBytes } from "node:crypto";
 
 // Helper: short, uppercase token (e.g., BW6HYBEL)

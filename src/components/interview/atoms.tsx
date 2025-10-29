@@ -1,5 +1,6 @@
-import React from "react";
+﻿import React from "react";
 import clsx from "clsx";
+import { BRAND_FULL } from "@/lib/brand";
 
 export function SectionCard({
   children,
@@ -58,7 +59,7 @@ export function GhostButton(
 
 export function HeaderBar({
   brandInitial = "Z",
-  brandName = "Equatoria • Zuri",
+  brandName = BRAND_FULL,
   onBack,
   dark = false,
 }: {
@@ -88,3 +89,5 @@ export function HeaderBar({
     </header>
   );
 }
+
+

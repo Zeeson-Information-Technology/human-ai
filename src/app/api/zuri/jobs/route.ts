@@ -173,7 +173,7 @@ export async function POST(req: NextRequest) {
         ok: true,
         id: String(job._id),
         code,
-        shareUrl: `/interviewer/start?job=${code}`,
+        shareUrl: `/zuri/start?job=${code}`,
       },
       { status: 201 }
     );

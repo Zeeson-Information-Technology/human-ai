@@ -22,12 +22,13 @@ function normalizeCode(raw: string | undefined) {
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { code: string } }
+  ctx: { params: Promise<{ code: string }> }
 ) {
   if (!isAdmin(req)) return unauthorized();
   await dbConnect();
 
-  const code = normalizeCode(params.code);
+  const { code: raw } = await ctx.params;
+  const code = normalizeCode(raw);
   if (!code) {
     return NextResponse.json(
       { ok: false, error: "Missing code" },
@@ -47,14 +48,15 @@ export async function GET(
 
 export async function PUT(
   req: NextRequest,
-  { params }: { params: { code: string } }
+  ctx: { params: Promise<{ code: string }> }
 ) {
   if (!isAdmin(req)) return unauthorized();
 
   try {
     await dbConnect();
 
-    const code = normalizeCode(params.code);
+    const { code: raw } = await ctx.params;
+    const code = normalizeCode(raw);
     if (!code) {
       return NextResponse.json(
         { ok: false, error: "Missing code" },
@@ -106,12 +108,13 @@ export async function PUT(
 
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: { code: string } }
+  ctx: { params: Promise<{ code: string }> }
 ) {
   if (!isAdmin(req)) return unauthorized();
   await dbConnect();
 
-  const code = normalizeCode(params.code);
+  const { code: raw } = await ctx.params;
+  const code = normalizeCode(raw);
   if (!code) {
     return NextResponse.json(
       { ok: false, error: "Missing code" },

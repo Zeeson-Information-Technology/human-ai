@@ -6,10 +6,11 @@ export const dynamic = "force-dynamic";
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { code: string } }
+  ctx: { params: Promise<{ code: string }> }
 ) {
   await dbConnect();
-  const code = (params.code || "").trim().toUpperCase();
+  const { code: raw } = await ctx.params;
+  const code = (raw || "").trim().toUpperCase();
   const job = await Job.findOne({ code, active: true }).lean();
   if (!job) {
     return NextResponse.json({ ok: false, error: "Job not found" }, { status: 404 });

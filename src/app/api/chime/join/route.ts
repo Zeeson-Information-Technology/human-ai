@@ -10,10 +10,10 @@ function need(name: string) {
   return v;
 }
 
-const chime = new ChimeSDKMeetings({
-  region: need("CHIME_REGION"),
-  credentials: fromEnv(),
-});
+function chime(region: string) {
+  return new ChimeSDKMeetings({ region, credentials: fromEnv() });
+}
+const PRIMARY_REGION = need("CHIME_REGION");
 
 export async function GET(req: NextRequest) {
   try {
@@ -40,28 +40,70 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    const meeting = await chime.createMeeting({
-      ClientRequestToken: sessionId,
-      MediaRegion: process.env.CHIME_REGION!,
-      ExternalMeetingId: sessionId.slice(0, 64),
-    });
+    // Reuse existing meeting when possible (in stored region if present)
+    let meetingId: string | null = (s as any)?.meta?.chimeMeetingId || null;
+    let meetingRegion: string = (s as any)?.meta?.chimeRegion || PRIMARY_REGION;
+    let meetingObj: any | null = null;
+    if (meetingId) {
+      try {
+        const gm = await chime(meetingRegion).getMeeting({ MeetingId: meetingId });
+        meetingObj = gm.Meeting || null;
+      } catch {
+        meetingId = null;
+      }
+    }
 
-    const attendee = await chime.createAttendee({
-      MeetingId: meeting.Meeting!.MeetingId!,
-      ExternalUserId: sessionId,
+    if (!meetingId || !meetingObj) {
+      const fallbackList = (process.env.CHIME_FALLBACK_REGIONS || "")
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean);
+      const regions = [PRIMARY_REGION, ...fallbackList];
+      for (const region of regions) {
+        try {
+          const created = await chime(region).createMeeting({
+            ClientRequestToken: sessionId,
+            MediaRegion: region,
+            ExternalMeetingId: sessionId.slice(0, 64),
+          });
+          meetingObj = created.Meeting!;
+          meetingId = meetingObj.MeetingId!;
+          meetingRegion = region;
+          break;
+        } catch (e: any) {
+          const msg = String(e?.message || "");
+          // Retry on capacity/unavailable/throttle and also on DNS resolution failures
+          if (/capacity|unavailable|throttl/i.test(msg) || /ENOTFOUND/i.test(msg)) {
+            continue; // try next region
+          }
+          throw e;
+        }
+      }
+      if (!meetingId || !meetingObj) throw new Error("Chime meeting creation failed in all regions");
+      // persist meeting id + region on session
+      (s as any).meta = { ...((s as any).meta || {}), chimeMeetingId: meetingId, chimeRegion: meetingRegion };
+      try { await s.save(); } catch {}
+    }
+
+    const attendee = await chime(meetingRegion).createAttendee({
+      MeetingId: meetingId!,
+      ExternalUserId: `${sessionId}-${Math.random().toString(36).slice(2,8)}`,
     });
 
     return NextResponse.json({
       ok: true,
-      meetingData: { Meeting: meeting.Meeting, Attendee: attendee.Attendee },
+      meetingData: { Meeting: meetingObj, Attendee: attendee.Attendee },
     });
   } catch (err: any) {
     console.error("Chime join error:", err);
-    const msg = /Missing env/.test(err?.message || "")
+    const raw = String(err?.message || "");
+    const msg = /Missing env/.test(raw)
       ? err.message
       : err?.name === "CredentialsProviderError"
       ? "AWS credentials are not set correctly"
-      : err?.message || "Failed to create meeting";
+      : /ENOTFOUND/i.test(raw)
+      ? `Network/DNS error contacting AWS Chime endpoint. Check internet, VPN/firewall, and region (${PRIMARY_REGION}).`
+      : raw || "Failed to create meeting";
     return NextResponse.json({ ok: false, error: msg }, { status: 500 });
   }
 }

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import SolutionsDropdown from "./solutions-dropdown";
 
 export default function Nav() {
@@ -12,25 +13,27 @@ export default function Nav() {
             "backdrop-blur-md supports-[backdrop-filter]:backdrop-blur-md",
             "shadow-[0_8px_30px_rgba(0,0,0,0.25)] ring-1 ring-white/10",
           ].join(" ")}
-          aria-label="Primary navigation"
+          aria-label="Eumanai Home"
         >
           {/* Brand */}
           <Link
             href="/"
             className="flex items-center gap-2 text-white"
-            aria-label="Equatoria — Home"
+            aria-label="Eumanai Home"
           >
-            <span className="text-base font-extrabold tracking-tight">
-              Equatoria
-            </span>
+            <Image
+              src="/euman-logo.png"
+              alt="Eumanai"
+              className="h-auto w-auto"
+              width={137}
+              height={32}
+              priority
+            />
           </Link>
 
           {/* Desktop nav */}
           <nav className="hidden items-center gap-6 text-sm md:flex">
-            <Link
-              href="/interviewer"
-              className="text-white/85 hover:text-white"
-            >
+            <Link href="/zuri" className="text-white/85 hover:text-white">
               Hire Zuri
             </Link>
 
@@ -48,7 +51,7 @@ export default function Nav() {
                 className="flex cursor-pointer select-none items-center gap-1 text-white/85 outline-none hover:text-white focus:text-white"
                 aria-haspopup="true"
                 aria-expanded="false"
-                aria-label="Open Solutions menu"
+                aria-label="Eumanai Home"
               >
                 <span>Solutions</span>
                 <svg
@@ -72,7 +75,7 @@ export default function Nav() {
                   "group-focus-within:visible group-focus-within:translate-y-0 group-focus-within:opacity-100",
                 ].join(" ")}
                 role="menu"
-                aria-label="Solutions"
+                aria-label="Eumanai Home"
               >
                 <SolutionsDropdown />
               </div>
@@ -82,7 +85,7 @@ export default function Nav() {
             <Link
               href="/demo"
               className="text-white/85 hover:text-white"
-              aria-label="Interactive demo"
+              aria-label="Eumanai Home"
             >
               Demo
             </Link>
@@ -95,7 +98,7 @@ export default function Nav() {
             <Link
               href="/contact"
               className="rounded-lg bg-white px-3 py-2 font-medium text-slate-900 hover:bg-slate-100"
-              aria-label="Book a demo"
+              aria-label="Eumanai Home"
             >
               Book a demo
             </Link>
@@ -106,7 +109,7 @@ export default function Nav() {
             <Link
               href="/demo"
               className="rounded-lg bg-white px-3 py-2 text-sm font-medium text-slate-900"
-              aria-label="Open interactive demo"
+              aria-label="Eumanai Home"
             >
               Demo
             </Link>

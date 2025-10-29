@@ -1,11 +1,4 @@
-import mongoose, {
-  Schema,
-  model,
-  models,
-  Types,
-  Model,
-  Document,
-} from "mongoose";
+import { Schema, model, models, Types, Model, Document } from "mongoose";
 
 /**
  * Zuri Interviewer – Core Models

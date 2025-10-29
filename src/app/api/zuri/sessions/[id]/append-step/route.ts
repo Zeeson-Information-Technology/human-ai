@@ -16,12 +16,13 @@ const BodySchema = z.object({
 
 export async function POST(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  ctx: { params: { id: string } } | { params: Promise<{ id: string }> }
 ) {
   try {
     await dbConnect();
-
-    const id = (params.id || "").trim();
+    const p = (ctx as any).params;
+    const awaited = typeof (p as any)?.then === "function" ? await (p as Promise<{ id: string }>) : (p as { id: string });
+    const id = ((awaited?.id) || "").trim();
     const token = (req.nextUrl.searchParams.get("t") || "").trim();
     if (!id || !Types.ObjectId.isValid(id)) {
       return NextResponse.json(

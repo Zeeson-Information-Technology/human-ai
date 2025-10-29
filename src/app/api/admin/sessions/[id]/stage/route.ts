@@ -1,11 +1,11 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import dbConnect from "@/lib/db-connect";
 import Session from "@/model/session";
 import { getSessionUser } from "@/lib/auth-utils";
 
 export async function PATCH(
-  _req: Request,
-  { params }: { params: { id: string } }
+  _req: NextRequest,
+  ctx: { params: Promise<{ id: string }> }
 ) {
   await dbConnect();
   const user = await getSessionUser();
@@ -33,8 +33,9 @@ export async function PATCH(
     );
   }
 
+  const { id } = await ctx.params;
   const s = await Session.findByIdAndUpdate(
-    params.id,
+    id,
     { $set: { pipelineStage: stage } },
     { new: true }
   );

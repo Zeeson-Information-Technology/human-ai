@@ -153,3 +153,4 @@ export default function TalentProfilePage() {
     </div>
   );
 }
+/* eslint-disable @typescript-eslint/no-explicit-any */

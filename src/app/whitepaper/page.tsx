@@ -4,9 +4,9 @@ import Footer from "../../components/footer";
 import Nav from "../../components/nav";
 
 export const metadata = {
-  title: "White paper — Equatoria",
+  title: "White paper — Eumanai",
   description:
-    "Equatoria’s approach to consent-based data sourcing, high-quality labeling, rigorous evaluations, and secure handover — Africa HQ in Lagos.",
+    "Eumanai’s approach to consent-based data sourcing, high-quality labeling, rigorous evaluations, and secure handover",
 };
 
 const TOC: Array<{ label: string; href: string }> = [
@@ -41,7 +41,7 @@ export default function WhitepaperPage() {
             White Paper
           </div>
           <h1 className="mt-3 text-4xl font-extrabold tracking-tight text-gray-900 sm:text-5xl">
-            Equatoria White Paper
+            Eumanai White Paper
           </h1>
           <p className="mt-3 max-w-3xl text-[17px] leading-7 text-gray-800">
             Our approach to consent-based data sourcing, high-quality labeling,
@@ -102,8 +102,8 @@ export default function WhitepaperPage() {
             {/* Sections */}
             <Section id="overview" title="1) Overview">
               <p>
-                Equatoria delivers enterprise-grade data operations for AI
-                teams: consent-based data sourcing, meticulous human-in-the-loop
+                Euman delivers enterprise-grade data operations for AI teams:
+                consent-based data sourcing, meticulous human-in-the-loop
                 labeling, rigorous model evaluations, and secure handover with
                 complete provenance. We specialize in multilingual coverage and
                 regulated industries, operating with an{" "}
@@ -128,7 +128,7 @@ export default function WhitepaperPage() {
                 with scale alone. Progress hinges on the <em>quality</em> of new
                 human data—especially diverse languages, domains, and safety
                 judgments. Africa provides an underrepresented richness of
-                languages, contexts, and real-world tasks. Equatoria organizes
+                languages, contexts, and real-world tasks. Eumanai organizes
                 this expertise with enterprise-grade process and governance.
               </p>
             </Section>
@@ -161,7 +161,7 @@ export default function WhitepaperPage() {
 
             <Section id="sourcing" title="4) Data sourcing">
               <p>
-                Equatoria runs consent-based programs and licensed content
+                Eumanai runs consent-based programs and licensed content
                 partnerships that align rights, compensation, and privacy with
                 downstream AI usage. We avoid gray-area scraping and provide
                 clear provenance for every asset.
@@ -307,7 +307,7 @@ export default function WhitepaperPage() {
                 </Link>
               </div>
               <p className="mt-3 text-sm text-gray-600">
-                Africa headquarters in Lagos • hello@equatoria.ai
+                Africa headquarters in Lagos • hello@eumanai.com
               </p>
             </Section>
           </article>

@@ -58,7 +58,7 @@ export default function TalentSettingsPage() {
     <SettingsLayout heading="Settings">
       {tab === "profile" && (
         <ProfileTab
-          user={user}
+          user={user ? { ...user, resume: user.resume || undefined } : null}
           onUploadResume={uploadResume}
           onSaveBasic={async (data) => {
             await fetch("/api/talent/update-profile", {
@@ -98,10 +98,19 @@ export default function TalentSettingsPage() {
         <AvailabilityTab
           initial={{
             timezone: user?.timezone ?? undefined,
-            hoursPerWeek: user?.hoursPerWeek ?? undefined,
+            hoursPerWeek:
+              user?.hoursPerWeek === null || user?.hoursPerWeek === undefined
+                ? undefined
+                : Number(user.hoursPerWeek),
             daysAvailable: user?.daysAvailable ?? undefined,
-            startHour: user?.startHour ?? undefined,
-            endHour: user?.endHour ?? undefined,
+            startHour:
+              user?.startHour === null || user?.startHour === undefined
+                ? undefined
+                : Number(user.startHour),
+            endHour:
+              user?.endHour === null || user?.endHour === undefined
+                ? undefined
+                : Number(user.endHour),
           }}
           onSave={async (data) => {
             await fetch("/api/talent/update-availability", {

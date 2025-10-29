@@ -247,3 +247,4 @@ export default function CommunicationTab({
     </form>
   );
 }
+/* eslint-disable @typescript-eslint/no-explicit-any */

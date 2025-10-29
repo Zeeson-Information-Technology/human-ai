@@ -8,6 +8,8 @@ import { NextRequest, NextResponse } from "next/server";
 import dbConnect from "@/lib/db-connect";
 import Session from "@/model/session";
 import { Job } from "@/model/job";
+import { generateWithProvider } from "@/lib/llm/provider";
+import { buildTurnPrompt } from "@/lib/llm/prompt";
 
 async function callBedrock(prompt: string) {
   // If you have an Inference Profile, prefer it (required for many Anthropic SKUs now).
@@ -30,7 +32,7 @@ async function callBedrock(prompt: string) {
   const body = JSON.stringify({
     anthropic_version: "bedrock-2023-05-31",
     max_tokens: 400,
-    temperature: 0.4,
+    temperature: 0.5,
     messages: [{ role: "user", content: [{ type: "text", text: prompt }] }],
   });
 
@@ -53,6 +55,16 @@ async function callBedrock(prompt: string) {
       guardrailIdentifier: process.env.BEDROCK_GUARDRAIL_ID!,
       guardrailVersion: process.env.BEDROCK_GUARDRAIL_VERSION || "1",
     };
+  }
+
+  // Dev-only logging of selection
+  if (process.env.NODE_ENV !== "production") {
+    try {
+      console.log("[bedrock] invoke", {
+        modelId: (input as any).modelId || null,
+        inferenceProfileArn: (input as any).inferenceProfileArn || null,
+      });
+    } catch {}
   }
 
   const res = await client.send(new InvokeModelCommand(input));
@@ -120,61 +132,78 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    const sys = `You are Zuri, a fair and professional interviewer. Ask concise, conversational questions, one at a time. Use resume and job context. Avoid bias. Encourage clarifying questions. If the candidate asks a question, answer briefly and steer back.`;
-    const customization = aiGuide
-      ? `\nCustomization (admin guide):\n${aiGuide}`
-      : "";
-    const rubric = rubricHints ? `\nRubric hints:\n${rubricHints}` : "";
-    const ctx = `Job Context:\n${jobContext}${rubric}\n\nResume Summary:\n${resumeSummary}${customization}`;
+    const sys = `You are Zuri, a fair and professional interviewer.
+Ask concise, conversational questions, one at a time. Use resume and job context. Avoid bias.
+Keep responses natural; do not start with fillers like "Certainly.", "Sure.", or "Of course.".
+If the candidate asks a question, answer briefly and steer back. Do not continue speaking if the candidate is silent; wait for their reply.`;
 
-    const turns = history
-      .map(
-        (h: any) =>
-          `${h.role === "assistant" ? "Interviewer" : "Candidate"}: ${
-            h.content
-          }`
-      )
-      .join("\n");
+    const prompt = buildTurnPrompt({
+      sys,
+      jobContext,
+      resumeSummary,
+      aiGuide,
+      rubricHints,
+      history,
+      answer,
+    });
 
-    const prompt =
-      `${sys}\n\n${ctx}\n\n${turns}\nCandidate: ${answer}\n\n` +
-      `Interviewer: Next question and optional brief follow-ups (pure JSON): ` +
-      `{"text": "...", "followups": ["...", "..."]}`;
+    // Rate-limit per session (server-side lock) + retry on throttling
+    const g: any = globalThis as any;
+    if (!g.__zuriTurnLimiter) g.__zuriTurnLimiter = new Map<string, number>();
+    if (!g.__zuriTurnLock) g.__zuriTurnLock = new Map<string, boolean>();
+    const limiter: Map<string, number> = g.__zuriTurnLimiter;
+    const locks: Map<string, boolean> = g.__zuriTurnLock;
+    const sKey = String(sessionId);
 
-    let raw: string;
-    try {
-      raw = await callBedrock(prompt);
-    } catch (e: any) {
-      const emsg = String(e?.message || "");
-      if (/aws-marketplace:ViewSubscriptions|not authorized|access is denied/i.test(emsg)) {
-        // Fallback to a broadly available on-demand model
-        process.env.BEDROCK_MODEL_ID = "anthropic.claude-3-haiku-20240307-v1:0";
-        raw = await callBedrock(prompt);
-      } else {
-        throw e;
+    async function acquireLock(key: string) {
+      // simple spin-wait; serialized per session
+      while (locks.get(key)) {
+        await new Promise((r) => setTimeout(r, 60));
       }
+      locks.set(key, true);
+    }
+    function releaseLock(key: string) {
+      try {
+        locks.delete(key);
+      } catch {}
     }
 
-    let next = { text: (raw || "").trim(), followups: [] as string[] };
+    await acquireLock(sKey);
     try {
-      const j = JSON.parse(raw);
-      if (j && typeof j.text === "string") next.text = j.text.trim();
-      if (Array.isArray(j.followups)) next.followups = j.followups;
-    } catch {
-      // Try to extract embedded JSON object from mixed text
-      const m = raw.match(/\{[\s\S]*\}/);
-      if (m) {
-        try {
-          const j2 = JSON.parse(m[0]);
-          if (j2 && typeof j2.text === "string") next.text = j2.text.trim();
-          if (Array.isArray(j2.followups)) next.followups = j2.followups;
-        } catch {
-          // keep raw
+      const now = Date.now();
+      const last = limiter.get(sKey) || 0;
+      const minGap = 2500; // ms between invokes per session
+      if (now - last < minGap) {
+        await new Promise((r) => setTimeout(r, minGap - (now - last)));
+      }
+
+      // Provider-level fallback + backoff is handled inside generateWithProvider
+      const raw = await generateWithProvider(prompt);
+      limiter.set(sKey, Date.now());
+      
+      let next = { text: (raw || "").trim(), followups: [] as string[] };
+      try {
+        const j = JSON.parse(raw);
+        if (j && typeof j.text === "string") next.text = j.text.trim();
+        if (Array.isArray(j.followups)) next.followups = j.followups;
+      } catch {
+        // Try to extract embedded JSON object from mixed text
+        const m = raw.match(/\{[\s\S]*\}/);
+        if (m) {
+          try {
+            const j2 = JSON.parse(m[0]);
+            if (j2 && typeof j2.text === "string") next.text = j2.text.trim();
+            if (Array.isArray(j2.followups)) next.followups = j2.followups;
+          } catch {
+            // keep raw
+          }
         }
       }
-    }
 
-    return NextResponse.json({ ok: true, next }, { status: 200 });
+      return NextResponse.json({ ok: true, next }, { status: 200 });
+    } finally {
+      releaseLock(sKey);
+    }
   } catch (e: any) {
     console.error("bedrock/turn error", e);
     const msg = /on-demand throughput isn’t supported/i.test(e?.message || "")

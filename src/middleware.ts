@@ -8,16 +8,17 @@ function decodeRoleFromJwt(token: string): string | null {
   if (parts.length < 2) return null;
   const b64 = parts[1].replace(/-/g, "+").replace(/_/g, "/");
   try {
-    // @ts-ignore: atob exists in Edge runtime
-    const json = atob(b64);
+    const json = typeof atob === 'function'
+      ? atob(b64)
+      : Buffer.from(b64, 'base64').toString('utf-8');
     const payload = JSON.parse(json);
     return typeof payload?.role === "string" ? payload.role : null;
   } catch {
     try {
-      // Fallback for Node/dev runtimes
-      // eslint-disable-next-line @typescript-eslint/no-var-requires
-      const buf = (globalThis as any).Buffer?.from
-        ? (globalThis as any).Buffer.from(b64, "base64").toString("utf-8")
+      // Fallback using global Buffer if available
+      const G = globalThis as unknown as { Buffer?: typeof Buffer };
+      const buf = G.Buffer?.from
+        ? G.Buffer.from(b64, "base64").toString("utf-8")
         : null;
       if (!buf) return null;
       const payload = JSON.parse(buf);
@@ -43,7 +44,7 @@ export function middleware(req: NextRequest) {
     // Only allow admin area roles (admin, company, recruiter, manager)
     if (!role || !isAdminAreaRole(role)) {
       return NextResponse.redirect(
-        new URL("/interviewer/start/login?role=admin", req.url)
+        new URL("/zuri/start/login?role=admin", req.url)
       );
     }
   }

@@ -14,3 +14,8 @@ export type Prefill = {
   phone: string;
   inviteLockedEmail: boolean;
 };
+
+export type Message = {
+  role: "assistant" | "user";
+  content: string;
+};

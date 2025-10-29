@@ -3,9 +3,9 @@ import Footer from "@/components/footer";
 import CTA from "@/components/cta";
 
 export const metadata = {
-  title: "Contact — Equatoria",
+  title: "Contact — Eumanai",
   description:
-    "Talk to Equatoria about consent-based data sourcing, expert labeling, and LLM evaluations. Africa HQ in Lagos.",
+    "Talk to Eumanai about consent-based data sourcing, expert labeling, and LLM evaluations.",
 };
 
 export default function ContactPage() {
@@ -21,7 +21,7 @@ export default function ContactPage() {
           </div>
 
           <h1 className="mt-4 text-4xl font-extrabold tracking-tight sm:text-6xl">
-            Contact Equatoria
+            Contact Eumanai
           </h1>
 
           <p className="mt-4 text-gray-700">
@@ -39,9 +39,9 @@ export default function ContactPage() {
             Prefer email?{" "}
             <a
               className="underline hover:text-black"
-              href="mailto:hello@equatoria.ai"
+              href="mailto:hello@eumanai.com"
             >
-              hello@equatoria.ai
+              hello@eumanai.com
             </a>{" "}
             • Africa HQ: Lagos
           </p>

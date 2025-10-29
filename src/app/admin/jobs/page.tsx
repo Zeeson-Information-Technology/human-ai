@@ -43,7 +43,7 @@ export default async function AdminJobsPage() {
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Jobs</h1>
         <Link
-          href="/interviewer/start/admin"
+          href="/zuri/start/admin"
           className="rounded-xl bg-white px-4 py-2 font-medium 
           text-black bold hover:opacity-90"
         >
@@ -116,7 +116,7 @@ export default async function AdminJobsPage() {
                 Invite
               </Link>
               <Link
-                href={`/interviewer/start/admin?code=${j.code}`}
+                href={`/zuri/start/admin?code=${j.code}`}
                 className="rounded-lg border px-3 py-1 hover:bg-gray-50 dark:hover:bg-gray-800/60"
               >
                 Edit

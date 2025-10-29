@@ -1,0 +1,7 @@
+<svg width="160" height="40" viewBox="0 0 160 40" xmlns="http://www.w3.org/2000/svg">
+  <g fill="#0F172A">
+    <rect x="6" y="10" width="20" height="20" rx="5" fill="#06B6D4"/>
+    <path d="M10 14l12 12M22 14l-12 12" stroke="#fff" stroke-width="2" stroke-linecap="round" opacity=".75"/>
+    <text x="36" y="26" font-family="Inter, Arial, sans-serif" font-size="18" font-weight="700">Kora Health</text>
+  </g>
+</svg>

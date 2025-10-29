@@ -2,8 +2,6 @@
 // FILE: src/app/api/zuri/jobs/ai-jd/route.ts
 // ================================
 import { NextResponse } from "next/server";
-import { google } from "@ai-sdk/google";
-import { generateObject } from "ai";
 import { z } from "zod";
 
 export const runtime = "nodejs";
@@ -70,6 +68,19 @@ export async function POST(req: Request) {
       .filter(Boolean)
       .join(" | ");
 
+    // Load AI SDK lazily; return 501 if not installed
+    const dynImport = (m: string) => (Function("return import(m)") as any)(m);
+    let generateObject: any, google: any;
+    try {
+      ({ generateObject } = await dynImport("ai"));
+      ({ google } = await dynImport("@ai-sdk/google"));
+    } catch {
+      return NextResponse.json(
+        { ok: false, error: "AI SDK not installed on this deployment" },
+        { status: 501 }
+      );
+    }
+
     const { object } = await generateObject({
       model: google("gemini-2.5-flash"),
       schema: Obj,
@@ -111,21 +122,21 @@ export async function POST(req: Request) {
       object.summary,
       "",
       "Responsibilities:",
-      ...object.responsibilities.map((x) => `• ${x}`),
+      ...object.responsibilities.map((x: string) => `• ${x}`),
       "",
       "Required Skills:",
-      ...object.requiredSkills.map((x) => `• ${x}`),
+      ...object.requiredSkills.map((x: string) => `• ${x}`),
       object.niceToHaves.length
-        ? ["", "Nice-to-haves:", ...object.niceToHaves.map((x) => `• ${x}`)]
+        ? ["", "Nice-to-haves:", ...object.niceToHaves.map((x: string) => `• ${x}`)]
         : [],
       object.tooling.length
-        ? ["", "Tooling / Stack:", ...object.tooling.map((x) => `• ${x}`)]
+        ? ["", "Tooling / Stack:", ...object.tooling.map((x: string) => `• ${x}`)]
         : [],
       object.successMeasures.length
         ? [
             "",
             "How success is measured:",
-            ...object.successMeasures.map((x) => `• ${x}`),
+            ...object.successMeasures.map((x: string) => `• ${x}`),
           ]
         : [],
     ]

@@ -9,8 +9,8 @@ import { getSessionUser } from "@/lib/auth-utils";
 import AdminProfileClient from "./adminProfileClient";
 
 export default async function AdminProfilePage() {
-  const admin = getAdminFromCookies();
-  if (!admin) redirect("/interviewer/start/login?role=client");
+  const admin = await getAdminFromCookies();
+  if (!admin) redirect("/zuri/start/login?role=client");
 
   // IMPORTANT: load the SAME user record your update route updates
   await dbConnect();

@@ -21,22 +21,15 @@ export default function IntlPhoneInput({
   className = "",
 }: Props) {
   return (
-    <div className={["w-full", styles.phoneWrap, className].join(" ")}>
+    <div id={id} className={["w-full", styles.phoneWrap, className].join(" ")}>
       <PhoneInput
-        id={id}
         defaultCountry="us"
         value={value}
         onChange={onChange}
         placeholder={placeholder}
         hideDropdown={false}
-        separateDialCode
-        forceDialCode
         inputClassName="w-full bg-white text-gray-900"
         className={styles.phoneInner}
-        countrySelectorStyleOverrides={{
-          modalSearchStyle: { color: "#111" },
-          flagContainerStyle: { background: "#fff" },
-        }}
       />
     </div>
   );

@@ -1,8 +1,8 @@
 import Link from "next/link";
 
 export const metadata = {
-  title: "Privacy Policy — Equatoria",
-  description: "How Equatoria collects, uses, and protects your data.",
+  title: "Privacy Policy — Eumanai",
+  description: "How Eumanai collects, uses, and protects your data.",
 };
 
 export default function PrivacyPolicyPage() {
@@ -10,7 +10,7 @@ export default function PrivacyPolicyPage() {
     <div className="max-w-2xl mx-auto py-12 px-4">
       <h1 className="text-2xl font-bold mb-4">Privacy Policy</h1>
       <p className="mb-4 text-gray-700">
-        Equatoria (“we”, “us”, or “our”) is committed to protecting your
+        Eumanai (“we”, “us”, or “our”) is committed to protecting your
         privacy. This Privacy Policy explains how we collect, use, and safeguard
         your information when you use our website, platform, and AI services.
       </p>
@@ -54,8 +54,8 @@ export default function PrivacyPolicyPage() {
         </li>
         <li>
           Contact us at{" "}
-          <a href="mailto:privacy@equatoria.ai" className="underline">
-            privacy@equatoria.ai
+          <a href="mailto:privacy@eumanai.com" className="underline">
+            privacy@eumanai.com
           </a>
           .
         </li>
@@ -73,3 +73,4 @@ export default function PrivacyPolicyPage() {
     </div>
   );
 }
+

@@ -26,14 +26,15 @@ function normalizeCode(raw: string | null | undefined) {
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { code: string } }
+  ctx: { params: Promise<{ code: string }> }
 ) {
   try {
     if (!isAdmin(req)) return unauthorized();
 
     await dbConnect();
 
-    const code = normalizeCode(params.code);
+    const { code: raw } = await ctx.params;
+    const code = normalizeCode(raw);
     if (!code) {
       return NextResponse.json(
         { ok: false, error: "Missing code" },

@@ -10,11 +10,12 @@ export const dynamic = "force-dynamic";
 // GET /api/zuri/jobs/:id   (supports invite code OR ObjectId)
 export async function GET(
   _req: NextRequest,
-  { params }: { params: { id: string } }
+  ctx: { params: Promise<{ id: string }> }
 ) {
   try {
     await dbConnect();
-    const raw = (params.id || "").trim();
+    const { id: pid } = await ctx.params;
+    const raw = (pid || "").trim();
     if (!raw) {
       return NextResponse.json(
         { ok: false, error: "Missing code" },
@@ -61,11 +62,12 @@ const PatchSchema = z.object({
 
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  ctx: { params: Promise<{ id: string }> }
 ) {
   try {
     await dbConnect();
-    const raw = (params.id || "").trim();
+    const { id: pid } = await ctx.params;
+    const raw = (pid || "").trim();
     if (!raw) {
       return NextResponse.json(
         { ok: false, error: "Missing code" },

@@ -26,7 +26,7 @@ export default async function AdminInterviewDetail({
 }) {
   // Unified auth: only allow admin/company
   const admin = getAdminFromCookies();
-  if (!admin) redirect("/interviewer/start/login?role=client");
+  if (!admin) redirect("/zuri/start/login?role=client");
 
   const id = (params?.id || "").trim();
   if (!id || !Types.ObjectId.isValid(id)) notFound();
@@ -38,11 +38,19 @@ export default async function AdminInterviewDetail({
   const steps = Array.isArray(doc.steps) ? doc.steps : [];
   // Fetch presigned report links
   const base = process.env.APP_BASE_URL || "http://localhost:3000";
-  const reportsRes = await fetch(`${base}/api/admin/reports/${id}`, { cache: "no-store" }).catch(() => null);
-  const reports = reportsRes && reportsRes.ok ? await reportsRes.json().catch(() => ({})) : {};
+  const reportsRes = await fetch(`${base}/api/admin/reports/${id}`, {
+    cache: "no-store",
+  }).catch(() => null);
+  const reports =
+    reportsRes && reportsRes.ok
+      ? await reportsRes.json().catch(() => ({}))
+      : {};
   // Fetch snapshot list (optional route added below)
-  const snapsRes = await fetch(`${base}/api/admin/reports/${id}/snapshots`, { cache: "no-store" }).catch(() => null);
-  const snaps = snapsRes && snapsRes.ok ? await snapsRes.json().catch(() => ({})) : {};
+  const snapsRes = await fetch(`${base}/api/admin/reports/${id}/snapshots`, {
+    cache: "no-store",
+  }).catch(() => null);
+  const snaps =
+    snapsRes && snapsRes.ok ? await snapsRes.json().catch(() => ({})) : {};
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-8">
@@ -163,31 +171,41 @@ export default async function AdminInterviewDetail({
           <div className="text-sm font-medium">Reports</div>
           <div className="mt-2 text-sm text-gray-700 space-y-2">
             {reports?.jsonUrl ? (
-              <a className="underline" href={reports.jsonUrl} target="_blank">Summary JSON</a>
+              <a className="underline" href={reports.jsonUrl} target="_blank">
+                Summary JSON
+              </a>
             ) : (
               <div className="text-gray-500">No JSON yet</div>
             )}
             {reports?.pdfUrl ? (
-              <a className="underline block" href={reports.pdfUrl} target="_blank">Summary PDF</a>
+              <a
+                className="underline block"
+                href={reports.pdfUrl}
+                target="_blank"
+              >
+                Summary PDF
+              </a>
             ) : (
               <div className="text-gray-500">No PDF yet</div>
             )}
             {/* Inline preview for JSON */}
-            {reports?.jsonUrl && (
-              <ReportPreview url={reports.jsonUrl} />
-            )}
+            {reports?.jsonUrl && <ReportPreview url={reports.jsonUrl} />}
           </div>
         </div>
 
         <div className="rounded-2xl border p-4">
           <div className="text-sm font-medium">Anti‑cheat timeline</div>
           <div className="mt-2 text-sm text-gray-700 max-h-64 overflow-auto">
-            {Array.isArray((doc as any).antiCheatEvents) && (doc as any).antiCheatEvents.length > 0 ? (
+            {Array.isArray((doc as any).antiCheatEvents) &&
+            (doc as any).antiCheatEvents.length > 0 ? (
               <ul className="space-y-1">
                 {(doc as any).antiCheatEvents.map((e: any, i: number) => (
                   <li key={i} className="text-xs text-gray-600">
-                    <span className="text-gray-500">{fmt(e?.ts)}</span> — <span className="font-medium">{e?.type}</span>
-                    {e?.detail ? <span className="text-gray-500">: {e.detail}</span> : null}
+                    <span className="text-gray-500">{fmt(e?.ts)}</span> —{" "}
+                    <span className="font-medium">{e?.type}</span>
+                    {e?.detail ? (
+                      <span className="text-gray-500">: {e.detail}</span>
+                    ) : null}
                   </li>
                 ))}
               </ul>
@@ -204,7 +222,11 @@ export default async function AdminInterviewDetail({
           <div className="mt-3 grid grid-cols-2 sm:grid-cols-4 gap-3">
             {snaps.items.map((it: any) => (
               <a key={it.key} href={it.url} target="_blank" className="block">
-                <img src={it.url} alt="snapshot" className="h-32 w-full object-cover rounded-lg border" />
+                <img
+                  src={it.url}
+                  alt="snapshot"
+                  className="h-32 w-full object-cover rounded-lg border"
+                />
               </a>
             ))}
           </div>

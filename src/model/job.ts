@@ -1,14 +1,7 @@
 // ================================
 // FILE: src/model/job.ts
 // ================================
-import mongoose, {
-  Schema,
-  model,
-  models,
-  Types,
-  Document,
-  Model,
-} from "mongoose";
+import mongoose, { Schema, model, Document, Model, Types } from "mongoose";
 
 /* -------------------------------------------------------------------------- */
 /*                               Type Definitions                             */
@@ -240,8 +233,8 @@ try {
     mongoose.connection.deleteModel(MODEL_NAME);
   }
   // fallback for some mongoose versions
-  // @ts-ignore
-  if (mongoose.models[MODEL_NAME]) delete mongoose.models[MODEL_NAME];
+  const modelsObj = mongoose.models as unknown as Record<string, unknown>;
+  if (modelsObj[MODEL_NAME]) delete modelsObj[MODEL_NAME];
 } catch {
   /* noop */
 }

@@ -1,168 +1,143 @@
-import { useState, useCallback, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
-interface TranscribeConfig {
-  /** If you already have a mic stream (e.g., from Chime), pass it and we won't call getUserMedia */
-  inputStream?: MediaStream | null;
+type UseTranscribeOpts = {
   language?: string;
-  sampleRate?: number;
-  onTranscript?: (text: string) => void;
-  /** Called when a final (utterance-complete) transcript is produced */
+  // inputStream is accepted for API compatibility but not required for WebSpeech
+  inputStream?: MediaStream | null;
+  wsUrl?: string | undefined;
   onFinalTranscript?: (text: string) => void;
-  /** Optional WS URL to a real-time transcription backend; if omitted we try Web Speech API */
-  wsUrl?: string;
-}
+  onInterim?: (text: string) => void;
+  autoRestart?: boolean;
+};
 
-export function useTranscribe(config: TranscribeConfig = {}) {
+type SpeechRecognitionEventLike = {
+  resultIndex: number;
+  results: ArrayLike<{
+    isFinal: boolean;
+    0: { transcript?: string };
+  }>;
+};
+
+type BrowserSpeechRecognition = {
+  lang: string;
+  interimResults: boolean;
+  continuous: boolean;
+  onresult: (ev: SpeechRecognitionEventLike) => void;
+  onerror: (e: unknown) => void;
+  onend: () => void;
+  start: () => void;
+  stop: () => void;
+};
+
+export function useTranscribe(opts: UseTranscribeOpts = {}) {
+  const {
+    language = "en-US",
+    onFinalTranscript,
+    onInterim,
+    autoRestart = true,
+  } = opts;
   const [isTranscribing, setIsTranscribing] = useState(false);
   const [currentTranscript, setCurrentTranscript] = useState("");
   const [error, setError] = useState<Error | null>(null);
-
-  const streamRef = useRef<MediaStream | null>(null);
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-  const wsRef = useRef<WebSocket | null>(null);
-  const webSpeechStopRef = useRef<null | (() => void)>(null);
+  const recogRef = useRef<BrowserSpeechRecognition | null>(null);
+  const stoppedRef = useRef(false);
 
   const startTranscription = useCallback(async () => {
-    try {
-      setError(null);
-
-      // Reuse provided stream (from Chime) or capture a new one
-      let stream = config.inputStream || null;
-      if (!stream) {
-        stream = await navigator.mediaDevices.getUserMedia({
-          audio: true,
-          video: false,
-        });
-      }
-      streamRef.current = stream;
-
-      // If a WS endpoint is provided, send chunks there
-      if (config.wsUrl) {
-        const ws = new WebSocket(config.wsUrl);
-        wsRef.current = ws;
-
-        ws.onopen = () => {
-          // send an init message with metadata
-          ws.send(
-            JSON.stringify({
-              type: "init",
-              language: config.language || "en-GB",
-              sampleRate: config.sampleRate || 48000,
-            })
-          );
-        };
-
-        ws.onmessage = (ev) => {
-          try {
-            const msg = JSON.parse(ev.data);
-            if (msg.type === "partial" || msg.type === "final") {
-              setCurrentTranscript(msg.text || "");
-              config.onTranscript?.(msg.text || "");
-              if (msg.type === "final" && msg.text) {
-                config.onFinalTranscript?.(msg.text);
-              }
-            }
-          } catch {
-            // ignore text frames
-          }
-        };
-
-        ws.onerror = () => setError(new Error("Transcribe WS error"));
-        ws.onclose = () => {
-          /* noop */
-        };
-
-        // Record PCM/opus chunks and forward to WS
-        const mr = new MediaRecorder(stream!, {
-          mimeType: "audio/webm;codecs=opus",
-        });
-        mediaRecorderRef.current = mr;
-
-        mr.ondataavailable = (event) => {
-          if (event.data.size > 0 && ws.readyState === WebSocket.OPEN) {
-            ws.send(event.data);
-          }
-        };
-
-        mr.start(500); // 500ms chunks
-        setIsTranscribing(true);
-        return;
-      }
-
-      // Otherwise: try Web Speech API (browser STT) as a no-server fallback
-      const SpeechRecognition: any =
-        (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-      if (SpeechRecognition) {
-        const rec = new SpeechRecognition();
-        rec.lang = config.language || "en-GB";
-        rec.continuous = true;
-        rec.interimResults = true;
-
-        rec.onresult = (e: any) => {
-          for (let i = e.resultIndex; i < e.results.length; i++) {
-            const r = e.results[i];
-            const text = r[0]?.transcript || "";
-            setCurrentTranscript(text);
-            config.onTranscript?.(text);
-            if (r.isFinal && text.trim()) {
-              config.onFinalTranscript?.(text.trim());
-            }
-          }
-        };
-        rec.onerror = (ev: any) => {
-          console.warn("WebSpeech error", ev);
-          setError(new Error("WebSpeech error"));
-        };
-        rec.onend = () => {
-          // Keep running unless explicitly stopped
-          try {
-            rec.start();
-          } catch {}
-        };
-        rec.start();
-        webSpeechStopRef.current = () => {
-          try {
-            rec.onend = null;
-            rec.stop();
-          } catch {}
-        };
-        setIsTranscribing(true);
-        return;
-      }
-
-      // As a last resort, simple placeholder/mock (keeps UI responsive)
-      const mr = new MediaRecorder(stream!);
-      mediaRecorderRef.current = mr;
-      mr.ondataavailable = () => {
-        const msg = "Mic active (no STT backend)";
-        setCurrentTranscript(msg);
-        config.onTranscript?.(msg);
-      };
-      mr.start(1000);
-      setIsTranscribing(true);
-    } catch (err) {
-      console.error("Failed to start transcription:", err);
-      setError(err as Error);
+    setError(null);
+    stoppedRef.current = false;
+    // Prefer browser Web Speech API
+    const SpeechRecognition =
+      (window as unknown as { SpeechRecognition?: new () => BrowserSpeechRecognition; webkitSpeechRecognition?: new () => BrowserSpeechRecognition; }).SpeechRecognition ||
+      (window as unknown as { SpeechRecognition?: new () => BrowserSpeechRecognition; webkitSpeechRecognition?: new () => BrowserSpeechRecognition; }).webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      setError(new Error("SpeechRecognition not supported in this browser"));
+      return;
     }
-  }, [config]);
+
+    try {
+      const r = new SpeechRecognition();
+      r.lang = language;
+      r.interimResults = true;
+      r.continuous = true;
+
+      r.onresult = (ev: SpeechRecognitionEventLike) => {
+        let interim = "";
+        let final = "";
+        for (let i = ev.resultIndex; i < ev.results.length; ++i) {
+          const res = ev.results[i];
+          const txt = (res[0]?.transcript || "").trim();
+          if (res.isFinal) {
+            final += (final ? " " : "") + txt;
+          } else {
+            interim += (interim ? " " : "") + txt;
+          }
+        }
+        if (interim) {
+          setCurrentTranscript(interim);
+          onInterim?.(interim);
+        }
+        if (final) {
+          setCurrentTranscript(final);
+          onFinalTranscript?.(final);
+          // Clear interim after final
+          setCurrentTranscript("");
+        }
+      };
+
+      r.onerror = (e: unknown) => {
+        const msg = typeof e === 'object' && e && 'error' in (e as any) ? String((e as any).error) : 'recognition error';
+        setError(new Error(msg));
+      };
+
+      r.onend = () => {
+        setIsTranscribing(false);
+        if (autoRestart && !stoppedRef.current) {
+          try {
+            // Small delay avoids tight spin when Chrome auto-stops
+            setTimeout(() => {
+              try {
+                if (!stoppedRef.current) {
+                  r.start();
+                  setIsTranscribing(true);
+                }
+              } catch {}
+            }, 250);
+          } catch {}
+        }
+      };
+
+      recogRef.current = r;
+      r.start();
+      setIsTranscribing(true);
+    } catch (e: unknown) {
+      setError(e as Error);
+    }
+  }, [language, onFinalTranscript, onInterim, autoRestart]);
 
   const stopTranscription = useCallback(() => {
     try {
-      mediaRecorderRef.current?.stop();
-    } catch {}
-    try {
-      wsRef.current?.close();
-    } catch {}
-    try {
-      webSpeechStopRef.current?.();
-      webSpeechStopRef.current = null;
-    } catch {}
-    if (!config.inputStream && streamRef.current) {
-      // Only stop tracks if we created the stream ourselves
-      streamRef.current.getTracks().forEach((t) => t.stop());
+      stoppedRef.current = true;
+      const r = recogRef.current;
+      if (r) {
+        try {
+          r.stop();
+        } catch {}
+        recogRef.current = null;
+      }
+      setIsTranscribing(false);
+    } catch {
+      // ignore
     }
-    setIsTranscribing(false);
-  }, [config.inputStream]);
+  }, []);
+
+  useEffect(() => {
+    // cleanup on unmount
+    return () => {
+      try {
+        stopTranscription();
+      } catch {}
+    };
+  }, [stopTranscription]);
 
   return {
     isTranscribing,

@@ -34,13 +34,13 @@ async function getStats(rootId: string | undefined) {
 }
 
 export default async function AdminHomePage() {
-  const admin = getAdminFromCookies();
-  if (!admin) redirect("/interviewer/start/login?role=admin");
+  const admin = await getAdminFromCookies();
+  if (!admin) redirect("/zuri/start/login?role=admin");
 
   const me = await getOperatorFromCookies();
   // Only allow admin area roles
   if (!me || !isAdminAreaRole(me.role))
-    redirect("/interviewer/start/login?role=admin");
+    redirect("/zuri/start/login?role=admin");
 
   const rootId = companyRootIdOf(me);
   const stats = await getStats(rootId); // pass company scope
@@ -99,7 +99,7 @@ export default async function AdminHomePage() {
         <div className="text-sm font-medium">Quick actions</div>
         <div className="mt-3 flex flex-wrap gap-2">
           <Link
-            href="/interviewer/start"
+            href="/zuri/start"
             className="rounded-xl border px-3 py-2 text-sm hover:bg-gray-50"
           >
             + New JD

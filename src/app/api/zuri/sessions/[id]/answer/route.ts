@@ -20,12 +20,13 @@ const BodySchema = z.object({
 
 export async function POST(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  ctx: { params: Promise<{ id: string }> }
 ) {
   try {
     await dbConnect();
 
-    const id = (params.id || "").trim();
+    const { id: pid } = await ctx.params;
+    const id = (pid || "").trim();
     const token = (req.nextUrl.searchParams.get("t") || "").trim();
     if (!id || !Types.ObjectId.isValid(id)) {
       return NextResponse.json(

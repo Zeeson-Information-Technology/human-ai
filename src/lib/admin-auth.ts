@@ -36,12 +36,12 @@ export function canInviteSubUsers(user?: {
 }
 
 // Get the root company id for any user (company or sub-user)
-export function companyRootIdOf(user: any): string {
+export function companyRootIdOf(user: { parentCompanyId?: unknown; id?: unknown; _id?: unknown; userId?: unknown } | null | undefined): string {
   if (!user) return "";
   // If this is a sub-user, use their parentCompanyId; else use their own id
-  return user.parentCompanyId
-    ? String(user.parentCompanyId)
-    : String(user.id || user._id);
+  if (user.parentCompanyId) return String(user.parentCompanyId as string);
+  const primary = (user.id as string) || (user._id as string) || (user.userId as string);
+  return primary ? String(primary) : "";
 }
 
 /** Existing helper stays as-is, but export for convenience if not already exported. */

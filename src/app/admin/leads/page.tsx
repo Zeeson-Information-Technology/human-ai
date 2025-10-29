@@ -75,12 +75,12 @@ async function logout() {
     secure: process.env.NODE_ENV === "production",
     expires: new Date(0),
   });
-  redirect("/interviewer/start/login?role=client");
+  redirect("/zuri/start/login?role=client");
 }
 
 export default async function AdminLeadsPage() {
   // 🔒 Enforce auth on the server
-  const admin = getAdminFromCookies();
+  const admin = await getAdminFromCookies();
   if (!admin) redirect("/admin/login");
 
   const leads = await getLeads();

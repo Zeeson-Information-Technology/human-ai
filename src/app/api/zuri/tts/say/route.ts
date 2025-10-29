@@ -66,12 +66,13 @@ export async function GET(req: NextRequest) {
     });
   } catch (e: any) {
     console.error("TTS error:", e);
-    return new Response(
-      JSON.stringify({ ok: false, error: e?.message || "TTS failed" }),
-      {
-        status: 500,
-        headers: { "content-type": "application/json" },
-      }
-    );
+    const raw = String(e?.message || "");
+    const msg = /ENOTFOUND/i.test(raw)
+      ? `Network/DNS error contacting AWS Polly endpoint (region=${REGION}). Check internet/VPN and AWS credentials.`
+      : raw || "TTS failed";
+    return new Response(JSON.stringify({ ok: false, error: msg }), {
+      status: 500,
+      headers: { "content-type": "application/json" },
+    });
   }
 }

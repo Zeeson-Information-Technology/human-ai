@@ -43,7 +43,7 @@ export async function POST(req: Request) {
       name: user.name || user.email,
       url: `${
         process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"
-      }/interviewer/start/reset-password?token=${token}&email=${encodeURIComponent(
+      }/zuri/start/reset-password?token=${token}&email=${encodeURIComponent(
         user.email
       )}`,
       year: new Date().getFullYear(),

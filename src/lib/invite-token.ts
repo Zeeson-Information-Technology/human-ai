@@ -17,7 +17,7 @@ function b64u(input: Buffer | string) {
     .replace(/\//g, "_");
 }
 
-function b64uJson(obj: any) {
+function b64uJson(obj: Record<string, unknown>) {
   return b64u(JSON.stringify(obj));
 }
 

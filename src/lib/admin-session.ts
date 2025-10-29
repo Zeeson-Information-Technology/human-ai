@@ -22,11 +22,11 @@ export type AdminSession = {
  *
  * Intentionally synchronous to match usage in server components.
  */
-export function getAdminFromCookies(): AdminSession | null {
+export async function getAdminFromCookies(): Promise<AdminSession | null> {
   try {
-    const jar: any = (cookies as any)();
-    const adminCookie: string | undefined = jar?.get?.("admin_token")?.value;
-    const userCookie: string | undefined = jar?.get?.("token")?.value;
+    const jar = await cookies();
+    const adminCookie = jar.get("admin_token")?.value || "";
+    const userCookie = jar.get("token")?.value || "";
 
     const payload = verifyToken(adminCookie || userCookie || "");
     if (!payload || typeof payload === "string") return null;
@@ -36,7 +36,7 @@ export function getAdminFromCookies(): AdminSession | null {
 
     return {
       id: String(payload.userId || ""),
-      email: payload.email,
+      email: String(payload.email || ""),
       role: role as AdminSession["role"],
     };
   } catch {

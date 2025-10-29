@@ -1,0 +1,7 @@
+<svg width="160" height="40" viewBox="0 0 160 40" xmlns="http://www.w3.org/2000/svg">
+  <g>
+    <path d="M6 28L18 8l12 20H6z" fill="#10B981"/>
+    <path d="M18 14l7 14h-14l7-14z" fill="#059669" opacity=".7"/>
+    <text x="36" y="26" font-family="Inter, Arial, sans-serif" font-size="18" font-weight="700" fill="#0F172A">Apex Data</text>
+  </g>
+</svg>

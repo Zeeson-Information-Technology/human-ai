@@ -1,19 +1,19 @@
 export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
 import { NextRequest, NextResponse } from "next/server";
 import { Types } from "mongoose";
 import dbConnect from "@/lib/db-connect";
 import Session from "@/model/session";
 
-export const dynamic = "force-dynamic";
-
 export async function GET(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  ctx: { params: Promise<{ id: string }> } // 👈 Promise
 ) {
   try {
     await dbConnect();
-    const id = (params.id || "").trim();
+
+    const { id } = await ctx.params; // 👈 await
     const token = (req.nextUrl.searchParams.get("t") || "").trim();
 
     if (!id || !Types.ObjectId.isValid(id)) {
@@ -33,13 +33,11 @@ export async function GET(
       { _id: new Types.ObjectId(id), token },
       {}
     ).lean();
-
-    if (!session) {
+    if (!session)
       return NextResponse.json(
         { ok: false, error: "Not found" },
         { status: 404 }
       );
-    }
 
     return NextResponse.json({ ok: true, session }, { status: 200 });
   } catch (e) {

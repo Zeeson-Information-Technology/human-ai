@@ -39,9 +39,9 @@ export default function Page() {
               <div className="pointer-events-none mt-2 h-[3px] w-24 rounded-full bg-gradient-to-r from-emerald-400/70 to-cyan-400/20" />
 
               <p className="mt-4 max-w-xl text-gray-700">
-                Equatoria designs and runs consent-based data
-                pipelines—sourcing, labeling, and evaluation—so your LLMs ship
-                with measurable lift, lower risk, and clear provenance.
+                Euman designs and runs consent-based data pipelines—sourcing,
+                labeling, and evaluation—so your LLMs ship with measurable lift,
+                lower risk, and clear provenance.
               </p>
 
               {/* CTA row with stronger layering/contrast */}
@@ -91,7 +91,7 @@ export default function Page() {
 
               <Image
                 src="/equatoria-hero-brain-circle-clean.svg"
-                alt="Equatoria data-to-AI pipeline"
+                alt="Eumanai data-to-AI pipeline"
                 priority
                 width={720} // set to your SVG’s real size if known
                 height={720}
@@ -106,7 +106,7 @@ export default function Page() {
       <section className="border-b">
         <div className="mx-auto max-w-5xl px-4 py-6 text-center">
           <div className="text-xs font-medium uppercase tracking-wider text-gray-500">
-            Equatoria works with
+            Eumanai works with
           </div>
           <div className="mt-4 grid grid-cols-3 items-center gap-x-8 gap-y-3 opacity-70 grayscale sm:grid-cols-6">
             <div className="text-sm font-semibold text-gray-500">AI Labs</div>
@@ -246,7 +246,7 @@ export default function Page() {
             </a>
           </div>
           <p className="mt-3 text-sm text-gray-600">
-            Africa headquarters in Lagos • hello@equatoria.ai
+            Africa headquarters in Lagos • hello@eumanai.com
           </p>
         </div>
       </section>

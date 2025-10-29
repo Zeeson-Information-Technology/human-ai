@@ -1,4 +1,5 @@
 "use client";
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useCallback, useMemo, useRef, useState } from "react";
 import {
   SectionCard,
@@ -104,6 +105,11 @@ export default function MicStep({
               Continue
             </PrimaryButton>
           </div>
+          <p className="text-sm text-slate-400">
+            Tip: During the interview, speak in short turns and avoid long
+            pauses. If you need a moment, say “one moment” so the interviewer
+            waits.
+          </p>
           {!hasTested && (
             <p className="text-sm text-slate-400">
               Please test your microphone before continuing

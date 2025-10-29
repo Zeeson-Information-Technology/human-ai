@@ -22,8 +22,9 @@ export class HttpTurnTransport implements ZuriTurnTransport {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
     });
-    const j = await res.json().catch(() => ({}));
-    if (!res.ok || j?.ok === false) return { ok: false, error: j?.error || 'Turn failed' };
+    type MaybeTurn = Partial<ZuriTurnResponse>;
+    const j = (await res.json().catch(() => ({}))) as MaybeTurn;
+    if (!res.ok || j.ok === false) return { ok: false, error: j?.error || 'Turn failed' };
     return j as ZuriTurnResponse;
   }
 }
@@ -41,11 +42,14 @@ export class WsTurnTransport implements ZuriTurnTransport {
         const ws = new WebSocket(this.url);
         this.ws = ws;
         ws.onopen = () => ws.send(JSON.stringify({ type: 'turn', payload }));
-        ws.onmessage = (ev) => {
+        ws.onmessage = (ev: MessageEvent) => {
           try {
-            const msg = JSON.parse(String(ev.data));
+            const msg = JSON.parse(String(ev.data)) as Partial<ZuriTurnResponse>;
             if (msg?.ok) resolve(msg as ZuriTurnResponse);
-            else resolve({ ok: false, error: msg?.error || 'WS error' });
+            else {
+              const m = msg as { error?: string } | null;
+              resolve({ ok: false, error: (m && m.error) || 'WS error' });
+            }
           } catch {
             resolve({ ok: false, error: 'Bad WS message' });
           } finally {
@@ -53,8 +57,9 @@ export class WsTurnTransport implements ZuriTurnTransport {
           }
         };
         ws.onerror = () => resolve({ ok: false, error: 'WS error' });
-      } catch (e: any) {
-        resolve({ ok: false, error: e?.message || 'WS init error' });
+      } catch (e: unknown) {
+        const msg = (e as { message?: string } | undefined)?.message || 'WS init error';
+        resolve({ ok: false, error: msg });
       }
     });
   }
@@ -65,8 +70,8 @@ export class WsTurnTransport implements ZuriTurnTransport {
 
 export function createTurnTransport(): ZuriTurnTransport {
   // Switch to WS when API Gateway WebSocket is provisioned; env var can hold URL.
-  const url = (globalThis as any).ZURI_WS_URL || process.env.NEXT_PUBLIC_ZURI_WS_URL;
+  const g = globalThis as unknown as { ZURI_WS_URL?: unknown };
+  const url = (typeof g.ZURI_WS_URL === 'string' ? g.ZURI_WS_URL : undefined) || process.env.NEXT_PUBLIC_ZURI_WS_URL;
   if (typeof url === 'string' && url.startsWith('wss://')) return new WsTurnTransport(url);
   return new HttpTurnTransport();
 }
-

@@ -1,8 +1,8 @@
 import Link from "next/link";
 
 export const metadata = {
-  title: "AI Use Policy — Equatoria",
-  description: "How Equatoria manages responsible and ethical use of AI.",
+  title: "AI Use Policy — Eumanai",
+  description: "How Eumanai manages responsible and ethical use of AI.",
 };
 
 export default function AIUsePolicyPage() {
@@ -10,7 +10,7 @@ export default function AIUsePolicyPage() {
     <div className="max-w-2xl mx-auto py-12 px-4">
       <h1 className="text-2xl font-bold mb-4">AI Use Policy</h1>
       <p className="mb-4 text-gray-700">
-        Equatoria is committed to responsible and ethical use of AI. This policy
+        Euman is committed to responsible and ethical use of AI. This policy
         outlines our principles and practices for AI development and deployment.
       </p>
       <h2 className="font-semibold mt-6 mb-2">1. Responsible AI</h2>
@@ -42,8 +42,8 @@ export default function AIUsePolicyPage() {
       <ul className="list-disc pl-6 text-gray-700">
         <li>
           If you notice unexpected or unsafe AI behavior, please contact us at{" "}
-          <a href="mailto:ai@equatoria.ai" className="underline">
-            ai@equatoria.ai
+          <a href="mailto:ai@eumanai.com" className="underline">
+            ai@eumanai.com
           </a>
           .
         </li>

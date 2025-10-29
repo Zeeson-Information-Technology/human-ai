@@ -106,7 +106,7 @@ export async function POST(req: Request) {
   try {
     await sendEmail({
       to: email,
-      subject: "You've been invited to Equatoria",
+      subject: "You've been invited to Eumanai",
       template: "subuser-invite",
       replacements: {
         name: email,
@@ -115,7 +115,7 @@ export async function POST(req: Request) {
         role,
         url: `${
           process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"
-        }/interviewer/start/login`,
+        }/zuri/start/login`,
         year: new Date().getFullYear(),
       },
     });

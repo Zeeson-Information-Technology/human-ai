@@ -76,8 +76,8 @@ export default async function AdminInterviewsPage({
   searchParams?: SearchParams;
 }) {
   // Unified auth: only allow admin/company
-  const admin = getAdminFromCookies();
-  if (!admin) redirect("/interviewer/start/login?role=client");
+  const admin = await getAdminFromCookies();
+  if (!admin) redirect("zuri/start/login?role=client");
 
   const status = (searchParams?.status || "all") as
     | "all"

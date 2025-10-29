@@ -63,6 +63,7 @@ export default function JobApplyPage() {
   const [screenerAnswers, setScreenerAnswers] = useState<string[]>([]);
   const [hasResume, setHasResume] = useState(false);
   const [formErrors, setFormErrors] = useState<{ [key: string]: string }>({});
+  const [showChromeBanner, setShowChromeBanner] = useState(false);
 
   // Lock email when invite ties it to a specific address
   const emailLocked = useMemo(
@@ -74,10 +75,22 @@ export default function JobApplyPage() {
   useEffect(() => {
     if (!ivt && !sessionLoading) {
       if (!user || String(user?.role) !== "talent") {
-        router.replace("/interviewer/start/login?role=talent");
+        router.replace("/zuri/start/login?role=talent");
       }
     }
   }, [ivt, user, sessionLoading, router]);
+
+  // Recommend Chrome for best screen-sharing experience
+  useEffect(() => {
+    try {
+      const ua = navigator.userAgent || "";
+      const isChrome =
+        /Chrome\//.test(ua) && !/Edg\//.test(ua) && !/OPR\//.test(ua);
+      setShowChromeBanner(!isChrome);
+    } catch {
+      setShowChromeBanner(false);
+    }
+  }, []);
 
   // Fetch job (we do not auto-redirect on invite; creation happens on submit)
   useEffect(() => {
@@ -212,7 +225,7 @@ export default function JobApplyPage() {
       if (!res.ok || !j.ok)
         throw new Error(j.error || "Failed to create session");
 
-      window.location.href = `/interviewer/${j.id}?t=${j.token}`;
+      window.location.href = `/zuri/${j.id}?t=${j.token}`;
     } catch (e: any) {
       setErr(e.message || "Error");
     } finally {
@@ -227,6 +240,12 @@ export default function JobApplyPage() {
       <h1 className="text-2xl font-bold">
         {job?.title || "Apply / Start Interview"}
       </h1>
+
+      {showChromeBanner && (
+        <div className="mt-2 rounded-lg bg-amber-100 text-amber-900 p-3 text-sm">
+          For the best experience, we recommend using Google Chrome.
+        </div>
+      )}
 
       {ivt && (
         <div className="mt-2 text-sm text-gray-600">

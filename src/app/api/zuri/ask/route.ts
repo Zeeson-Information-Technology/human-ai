@@ -1,7 +1,5 @@
 // Server: returns { nextQuestion, followupHint?, rubric? }
 import { NextResponse } from "next/server";
-import { google } from "@ai-sdk/google";
-import { generateObject } from "ai";
 import { z } from "zod";
 
 export const runtime = "nodejs";
@@ -26,6 +24,19 @@ export async function POST(req: Request) {
     lastAnswerText = "",
     language = "en",
   } = body;
+
+  // Load AI SDK lazily; return 501 if not installed
+  const dynImport = (m: string) => (Function("return import(m)") as any)(m);
+  let generateObject: any, google: any;
+  try {
+    ({ generateObject } = await dynImport("ai"));
+    ({ google } = await dynImport("@ai-sdk/google"));
+  } catch {
+    return NextResponse.json(
+      { ok: false, error: "AI SDK not installed on this deployment" },
+      { status: 501 }
+    );
+  }
 
   const { object } = await generateObject({
     model: google("gemini-2.5-flash"),

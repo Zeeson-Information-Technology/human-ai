@@ -23,9 +23,11 @@ export async function POST(req: NextRequest) {
 
     // Attempt to sign using SignatureV4; if libs are missing, return an unsigned template for fallback.
     try {
-      const { SignatureV4 } = await import("@aws-sdk/signature-v4");
-      const { Sha256 } = await import("@aws-crypto/sha256-js");
-      const credsProvider = (await import("@aws-sdk/credential-providers")) as any;
+      // Use indirection to avoid bundlers eagerly resolving optional deps
+      const dynImport = (m: string) => (Function("return import(m)") as any)(m);
+      const { SignatureV4 } = await dynImport("@aws-sdk/signature-v4");
+      const { Sha256 } = await dynImport("@aws-crypto/sha256-js");
+      const credsProvider = (await dynImport("@aws-sdk/credential-providers")) as any;
       const credentials = await (credsProvider.defaultProvider?.() || credsProvider.defaultProvider)();
       const signer = new SignatureV4({ service: "transcribe", region, credentials, sha256: Sha256 as any });
 
@@ -61,4 +63,3 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: false, error: "Server error" }, { status: 500 });
   }
 }
-

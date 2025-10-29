@@ -88,7 +88,7 @@ export default function SettingsPage() {
           {/* Resume (reuse your ResumeCard or link to /talent/profile for talents) */}
           <div className="rounded-xl border p-4">
             <div className="text-sm font-semibold mb-2">Resume</div>
-            {user?.role === "talent" ? (
+            {String(user?.role||"") === "talent" ? (
               <Link
                 href="/talent/profile"
                 className="underline text-emerald-700 text-sm"

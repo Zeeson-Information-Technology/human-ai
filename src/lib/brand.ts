@@ -1,9 +1,16 @@
+// Central brand constants for easy updates
+export const BRAND_COMPANY = "eumanai";
+export const BRAND_PRODUCT = "Zuri";
+export const BRAND_FULL = `${BRAND_COMPANY} • ${BRAND_PRODUCT}`;
+export const BRAND_DOMAIN = "eumanai.com";
+export const BRAND_CONTACT_EMAIL = `hello@${BRAND_DOMAIN}`;
+
+// Legacy object shape used by footer and possibly other components
 export const brand = {
-  name: "Equatoria",
-  email: "hello@equatoria.ai", // update if you use a different inbox
+  name: BRAND_COMPANY,
+  product: BRAND_PRODUCT,
+  full: BRAND_FULL,
+  domain: BRAND_DOMAIN,
+  email: BRAND_CONTACT_EMAIL,
   locations: "Lagos",
-  tagline: "Africa-focused • Enterprise-grade • Neutral & ethical",
-  heroLine: "Data that sets the horizon for your AI.",
-  subHero:
-    "Consent-based data sourcing, meticulous labeling, safety evaluations, and secure handover — built in Africa, serving the world.",
 };

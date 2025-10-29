@@ -6,11 +6,11 @@ import { Types } from "mongoose";
 // POST /api/zuri/sessions/:id/finish?t=TOKEN
 export async function POST(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  ctx: { params: Promise<{ id: string }> }
 ) {
   try {
     await dbConnect();
-    const id = params.id;
+    const { id } = await ctx.params;
     const token = req.nextUrl.searchParams.get("t");
 
     if (!Types.ObjectId.isValid(id))

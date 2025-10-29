@@ -16,7 +16,7 @@ export const dynamic = "force-dynamic";
 // ----- GET -----
 export async function GET(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  ctx: { params: Promise<{ id: string }> }
 ) {
   try {
     if (!isAdmin(req)) {
@@ -26,7 +26,8 @@ export async function GET(
       );
     }
     await dbConnect();
-    const id = (params.id || "").trim();
+    const { id: pid } = await ctx.params;
+    const id = (pid || "").trim();
     if (!id || !Types.ObjectId.isValid(id)) {
       return NextResponse.json({ ok: false, error: "Bad id" }, { status: 400 });
     }
@@ -106,7 +107,7 @@ const PatchSchema = BasePatchSchema.extend({
 
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  ctx: { params: Promise<{ id: string }> }
 ) {
   try {
     if (!isAdmin(req)) {
@@ -117,7 +118,8 @@ export async function PATCH(
     }
     await dbConnect();
 
-    const id = (params.id || "").trim();
+    const { id: pid } = await ctx.params;
+    const id = (pid || "").trim();
     if (!id || !Types.ObjectId.isValid(id)) {
       return NextResponse.json({ ok: false, error: "Bad id" }, { status: 400 });
     }

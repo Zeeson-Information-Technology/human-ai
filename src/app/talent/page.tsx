@@ -54,8 +54,8 @@ export default function TalentDashboardPage() {
     // gate by role
     if (!loading) {
       if (!user) {
-        router.replace("/interviewer/start/login?role=talent");
-      } else if (user.role !== "talent") {
+        router.replace("/zuri/start/login?role=talent");
+      } else if (String(user.role) !== "talent") {
         router.replace("/admin"); // non-talent goes to admin area
       }
     }
