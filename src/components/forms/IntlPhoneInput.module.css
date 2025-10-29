@@ -1,0 +1,38 @@
+.phoneWrap :global(.react-international-phone-country-selector) {
+  height: 48px;
+  display: flex;
+  align-items: center;
+}
+
+.phoneWrap :global(.react-international-phone-country-selector-button) {
+  height: 48px;
+  padding: 0 12px;
+  background: #ffffff;
+  color: #111827; /* gray-900 */
+  border: 1px solid #d1d5db; /* gray-300 */
+  border-right: 0;
+  border-radius: 12px 0 0 12px; /* rounded-l-xl */
+  font-size: 1rem; /* text-base */
+  line-height: 1.5rem;
+}
+
+.phoneWrap :global(.react-international-phone-input) {
+  height: 48px;
+  padding: 12px;
+  background: #ffffff;
+  color: #111827; /* gray-900 */
+  border: 1px solid #d1d5db; /* gray-300 */
+  border-left: 0;
+  border-radius: 0 12px 12px 0; /* rounded-r-xl */
+  font-size: 1rem;
+  line-height: 1.5rem;
+}
+
+.phoneWrap :global(.react-international-phone-input:focus) {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(52, 211, 153, 0.5); /* emerald-400 ring */
+}
+
+.phoneInner {
+  width: 100%;
+}

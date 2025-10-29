@@ -1,0 +1,7 @@
+<svg width="160" height="40" viewBox="0 0 160 40" xmlns="http://www.w3.org/2000/svg">
+  <g fill="#0F172A">
+    <path d="M16 8l10 28H6L16 8z" fill="#22D3EE"/>
+    <path d="M16 14l6 16H10l6-16z" fill="#0EA5A6" opacity=".7"/>
+    <text x="36" y="26" font-family="Inter, Arial, sans-serif" font-size="18" font-weight="700">Atlas Bank</text>
+  </g>
+</svg>

@@ -1,0 +1,9 @@
+<svg width="160" height="40" viewBox="0 0 160 40" xmlns="http://www.w3.org/2000/svg">
+  <g>
+    <circle cx="16" cy="20" r="7" fill="#F59E0B"/>
+    <g stroke="#F59E0B" stroke-width="2" opacity=".7">
+      <path d="M16 6v6M16 28v6M6 20h6M26 20h6M8 12l4 4M24 24l4 4M8 28l4-4M24 16l4-4"/>
+    </g>
+    <text x="36" y="26" font-family="Inter, Arial, sans-serif" font-size="18" font-weight="700" fill="#0F172A">Helio Labs</text>
+  </g>
+</svg>

@@ -74,3 +74,6 @@ export default async function sendEmail({
 
   return info;
 }
+
+// Add a template named "verify-email" in your email-templates folder
+// and handle it in your sendEmail function.

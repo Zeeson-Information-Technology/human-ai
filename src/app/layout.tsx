@@ -9,20 +9,20 @@ const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
-  title: "Equatoria — Human-in-the-loop AI data & evaluations",
+  title: "eumanai — Human-in-the-loop AI data & evaluations",
   description:
     "Consent-based data sourcing, meticulous labeling, safety evaluations, and secure handover — built in Africa, serving the world.",
   openGraph: {
-    title: "Equatoria",
+    title: "eumanai",
     description:
       "Enterprise-grade data, evaluations, and secure handover for AI labs and regulated industries.",
     url: siteUrl,
-    siteName: "Equatoria",
+    siteName: "eumanai",
     images: [{ url: "/og-image.png", width: 1200, height: 630 }],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Equatoria",
+    title: "eumanai",
     description:
       "Enterprise-grade data, evaluations, and secure handover for AI.",
     images: ["/og-image.png"],
@@ -46,11 +46,14 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className="scroll-smooth">
-      <body className="min-h-screen bg-white text-gray-900 antialiased">
+    <html lang="en" className="scroll-smooth" suppressHydrationWarning>
+      {/* Extension-injected attributes (e.g., Grammarly) can differ on the client */}
+      <body
+        className="min-h-screen bg-white text-gray-900 antialiased"
+        suppressHydrationWarning
+      >
         <RouteProgress />
-        <main className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          {/* Wrap client hooks (useSearchParams/usePathname) in Suspense */}
+        <main>
           <Suspense fallback={null}>
             <HashScroll />
           </Suspense>

@@ -1,0 +1,7 @@
+<svg width="160" height="40" viewBox="0 0 160 40" xmlns="http://www.w3.org/2000/svg">
+  <g>
+    <path d="M8 28l8-16 8 16H8z" fill="#334155"/>
+    <path d="M12 28l4-8 4 8h-8z" fill="#64748B"/>
+    <text x="36" y="26" font-family="Inter, Arial, sans-serif" font-size="18" font-weight="700" fill="#0F172A">Granite</text>
+  </g>
+</svg>

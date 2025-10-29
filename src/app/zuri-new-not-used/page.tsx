@@ -1,11 +1,11 @@
-// src/app/interviewer/page.tsx
+// src/app/zuri/page.tsx
 import Nav from "@/components/nav";
 import Footer from "@/components/footer";
 import Link from "next/link";
 import Image from "next/image";
 
 export const metadata = {
-  title: "Zuri — AI Interviewer by Equatoria",
+  title: "Zuri — AI Interviewer by Eumanai",
   description:
     "Multilingual, accent-fair AI interviewer. English plus local languages (Yorùbá, Hausa, Igbo, Pidgin). Structured rubrics, calibrated scorecards, clips, and transcripts.",
 };
@@ -39,17 +39,10 @@ export default function ZuriPage() {
 
               <div className="mt-6 flex flex-wrap items-center gap-3">
                 <Link
-                  href="/contact"
-                  className="inline-flex items-center gap-2 rounded-xl bg-black px-5 py-3 font-medium text-white shadow-xl ring-1 ring-black/10 hover:bg-gray-900 hover:shadow-2xl transition"
+                  href="/zuri/start"
+                  className="rounded-xl bg-emerald-600 px-5 py-3 font-medium text-white hover:bg-emerald-700"
                 >
-                  Book a pilot
-                  <svg
-                    className="h-4 w-4"
-                    viewBox="0 0 20 20"
-                    fill="currentColor"
-                  >
-                    <path d="M7 4l6 6-6 6" />
-                  </svg>
+                  Start an interview
                 </Link>
                 <Link
                   href="/demo"
@@ -88,7 +81,7 @@ export default function ZuriPage() {
       <section className="border-b">
         <div className="mx-auto max-w-5xl px-4 py-6 text-center">
           <div className="text-xs font-medium uppercase tracking-wider text-gray-500">
-            Built by Equatoria — Africa-native • Enterprise-grade •
+            Built by Eumanai — Africa-native • Enterprise-grade •
             Human-in-the-loop
           </div>
         </div>
@@ -300,7 +293,7 @@ export default function ZuriPage() {
             </Link>
           </div>
           <p className="mt-3 text-sm text-gray-600">
-            Africa HQ in Lagos • hello@equatoria.ai
+            eumanai • hello@eumanai.com
           </p>
         </div>
       </section>

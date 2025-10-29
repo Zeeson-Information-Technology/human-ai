@@ -1,0 +1,7 @@
+<svg width="160" height="40" viewBox="0 0 160 40" xmlns="http://www.w3.org/2000/svg">
+  <g fill="#0F172A">
+    <circle cx="18" cy="20" r="10" fill="#10B981"/>
+    <path d="M18 7v26" stroke="#0F172A" stroke-width="2" opacity=".15"/>
+    <text x="36" y="26" font-family="Inter, Arial, sans-serif" font-size="18" font-weight="700" letter-spacing=".5">Acme AI</text>
+  </g>
+</svg>
