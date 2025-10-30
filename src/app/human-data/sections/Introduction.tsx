@@ -2,7 +2,7 @@ export default function Introduction() {
   return (
     <div className="prose prose-slate max-w-none">
       <p>
-        This guide outlines the human-in-the-loop process we use at Eumanai to
+        This guide outlines the human-in-the-loop process we use at Euman AI to
         produce high-quality human data for fine-tuning, post-training
         alignment, and evaluation. Our goals are two-fold:
       </p>
@@ -17,7 +17,7 @@ export default function Introduction() {
         </li>
       </ol>
       <p>
-        Eumanai operates an Africa-first network of experts — domain
+        Euman AI operates an Africa-first network of experts — domain
         specialists, linguists, and annotators — organized into pods with peer
         review and QA loops. Parts of this platform are available via API; fully
         managed programs are scoped in a short call.

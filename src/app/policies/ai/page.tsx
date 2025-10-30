@@ -1,8 +1,8 @@
 import Link from "next/link";
 
 export const metadata = {
-  title: "AI Use Policy — Eumanai",
-  description: "How Eumanai manages responsible and ethical use of AI.",
+  title: "AI Use Policy — Euman AI",
+  description: "How Euman AI manages responsible and ethical use of AI.",
 };
 
 export default function AIUsePolicyPage() {
@@ -42,8 +42,8 @@ export default function AIUsePolicyPage() {
       <ul className="list-disc pl-6 text-gray-700">
         <li>
           If you notice unexpected or unsafe AI behavior, please contact us at{" "}
-          <a href="mailto:ai@eumanai.com" className="underline">
-            ai@eumanai.com
+          <a href="mailto:hello@eumanai.com" className="underline">
+            hello@eumanai.com
           </a>
           .
         </li>

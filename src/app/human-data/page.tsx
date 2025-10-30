@@ -9,7 +9,7 @@ import ClientContent from "./ClientContent";
 export const metadata: Metadata = {
   title: `Human Data — ${brand.name}`,
   description:
-    "How Eumanai sources, vets, trains, and manages expert talent to produce high-quality human data for AI. Africa-first network, global delivery.",
+    "How Euman AI sources, vets, trains, and manages expert talent to produce high-quality human data for AI. Africa-first network, global delivery.",
 };
 
 export default function HumanDataPage() {
@@ -26,7 +26,7 @@ export default function HumanDataPage() {
                 Human Data
               </h1>
               <p className="mt-2 max-w-2xl text-gray-400">
-                Eumanai’s human data playbook: Africa-first talent, global
+                Euman AI’s human data playbook: Africa-first talent, global
                 delivery. Our approach to sourcing, vetting, training, and
                 managing experts to produce reliable post-training data for AI
                 systems.

@@ -1,8 +1,8 @@
 import Link from "next/link";
 
 export const metadata = {
-  title: "Privacy Policy — Eumanai",
-  description: "How Eumanai collects, uses, and protects your data.",
+  title: "Privacy Policy — Euman AI",
+  description: "How Euman AI collects, uses, and protects your data.",
 };
 
 export default function PrivacyPolicyPage() {
@@ -10,9 +10,9 @@ export default function PrivacyPolicyPage() {
     <div className="max-w-2xl mx-auto py-12 px-4">
       <h1 className="text-2xl font-bold mb-4">Privacy Policy</h1>
       <p className="mb-4 text-gray-700">
-        Eumanai (“we”, “us”, or “our”) is committed to protecting your
-        privacy. This Privacy Policy explains how we collect, use, and safeguard
-        your information when you use our website, platform, and AI services.
+        Euman AI (“we”, “us”, or “our”) is committed to protecting your privacy.
+        This Privacy Policy explains how we collect, use, and safeguard your
+        information when you use our website, platform, and AI services.
       </p>
       <h2 className="font-semibold mt-6 mb-2">1. Information We Collect</h2>
       <ul className="list-disc pl-6 text-gray-700">
@@ -54,8 +54,8 @@ export default function PrivacyPolicyPage() {
         </li>
         <li>
           Contact us at{" "}
-          <a href="mailto:privacy@eumanai.com" className="underline">
-            privacy@eumanai.com
+          <a href="mailto:hello@eumanai.com" className="underline">
+            hello@eumanai.com
           </a>
           .
         </li>
@@ -73,4 +73,3 @@ export default function PrivacyPolicyPage() {
     </div>
   );
 }
-

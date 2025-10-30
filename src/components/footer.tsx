@@ -42,7 +42,7 @@ export default function Footer() {
           <div className="sm:-mt-4">
             <Image
               src="/euman-logo.png"
-              alt="Eumanai"
+              alt="Euman AI"
               className="h-auto w-auto"
               width={137}
               height={32}
@@ -118,7 +118,7 @@ export default function Footer() {
                   >
                     {brand.email}
                   </Link>
-                  </li>
+                </li>
               </ul>
             </div>
           </div>

@@ -537,7 +537,7 @@ export default function LangCollectPage() {
 
             <div className="p-6">
               <div className="inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs text-gray-700">
-                eumanai Voice Lab — Speech &amp; Translation
+                Euman AI Voice Lab — Speech &amp; Translation
               </div>
 
               <h1 className="mt-4 text-2xl font-bold">

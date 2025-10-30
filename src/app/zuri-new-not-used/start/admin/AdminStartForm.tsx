@@ -1344,7 +1344,7 @@ export default function AdminStartForm() {
                 </div>
                 <div className="rounded-lg border border-dashed p-4 text-xs text-gray-500 bg-gray-50">
                   This section will show recommended candidates certified by
-                  Eumanai based on advanced vetting and skills matching.
+                  Euman AI based on advanced vetting and skills matching.
                 </div>
               </div>
             </div>

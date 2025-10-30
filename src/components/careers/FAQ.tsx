@@ -1,8 +1,8 @@
 const faqs = [
   {
-    question: "How does Eumanai work?",
+    question: "How does Euman AI work?",
     answer:
-      "Eumanai is an AI-powered recruitment platform to connect software engineers, subject matter experts, and other professionals to their dream jobs. We match candidates through a combination of manual matching processes and candidate-initiated applications. Our system automatically matches your skillset with companies looking to hire, or you can search our job board and apply for roles you think are a good fit for you. Once you apply to a job and get certified, you get added to our talent pool and opportunities will come to you.",
+      "Euman AI is an AI-powered recruitment platform to connect software engineers, subject matter experts, and other professionals to their dream jobs. We match candidates through a combination of manual matching processes and candidate-initiated applications. Our system automatically matches your skillset with companies looking to hire, or you can search our job board and apply for roles you think are a good fit for you. Once you apply to a job and get certified, you get added to our talent pool and opportunities will come to you.",
   },
   {
     question: "What are the benefits?",

@@ -6,7 +6,7 @@ const features = [
   "Access unlimited educational courses",
   "Competitive & stable income",
   "Wellness and other benefit incentives",
-  "Join the Eumanai experts community",
+  "Join the Euman AI experts community",
 ];
 
 export default function WhyJoinUs() {
@@ -15,7 +15,7 @@ export default function WhyJoinUs() {
       <div className="mx-auto max-w-5xl px-4">
         <div className="text-center">
           <h2 className="text-3xl font-extrabold tracking-tight sm:text-4xl">
-            Why the best talent joins Eumanai
+            Why the best talent joins Euman AI
           </h2>
         </div>
         <div className="mt-12 grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3">

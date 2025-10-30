@@ -31,13 +31,13 @@ export default function Hero() {
         </div>
 
         <h1 className="mt-4 text-4xl font-extrabold tracking-tight sm:text-6xl">
-          World-class talent loves Eumanai
+          World-class talent loves Euman AI
         </h1>
 
         <p className="mx-auto mt-3 max-w-2xl text-gray-700">
           Hear reviews from top professionals who’ve applied, interviewed with
           <span className="font-semibold"> Zuri</span>, and joined new roles
-          with Eumanai’s help.
+          with our help.
         </p>
 
         <div className="mx-auto mt-6 flex flex-wrap items-center justify-center gap-3">
