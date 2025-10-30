@@ -1,0 +1,59 @@
+<svg width="800" height="500" viewBox="0 0 800 500" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+  <defs>
+    <linearGradient id="chipStroke" x1="0" y1="0" x2="1" y2="0">
+      <stop stop-color="#22D3EE"/>
+      <stop offset="1" stop-color="#06B6D4"/>
+    </linearGradient>
+    <filter id="chipShadow" x="-50%" y="-50%" width="200%" height="200%">
+      <feDropShadow dx="0" dy="5" stdDeviation="6" flood-color="#000" flood-opacity="0.35"/>
+    </filter>
+  </defs>
+
+  <!-- background -->
+  <rect width="800" height="500" fill="transparent"/>
+
+  <!-- glowing gradient orb -->
+  <radialGradient id="orb" cx="0" cy="0" r="1" gradientTransform="translate(400 250) rotate(90) scale(240 340)" gradientUnits="userSpaceOnUse">
+    <stop stop-color="#14B8A6" stop-opacity="0.25"/>
+    <stop offset="1" stop-color="#14B8A6" stop-opacity="0"/>
+  </radialGradient>
+  <ellipse cx="400" cy="250" rx="340" ry="240" fill="url(#orb)"/>
+
+  <!-- Language chips -->
+  <g font-family="Inter, system-ui, sans-serif" font-size="18" font-weight="600">
+    <!-- Yorùbá -->
+    <g transform="translate(160,120)" filter="url(#chipShadow)">
+      <rect width="180" height="38" rx="19" fill="rgba(34,211,238,0.12)" stroke="url(#chipStroke)"/>
+      <circle cx="22" cy="19" r="5" fill="url(#chipStroke)"/>
+      <text x="45" y="25" fill="#A7F3D0">Yorùbá</text>
+    </g>
+
+    <!-- Hausa -->
+    <g transform="translate(480,130)" filter="url(#chipShadow)">
+      <rect width="160" height="38" rx="19" fill="rgba(34,211,238,0.12)" stroke="url(#chipStroke)"/>
+      <circle cx="22" cy="19" r="5" fill="url(#chipStroke)"/>
+      <text x="45" y="25" fill="#A7F3D0">Hausa</text>
+    </g>
+
+    <!-- Kiswahili -->
+    <g transform="translate(280,210)" filter="url(#chipShadow)">
+      <rect width="200" height="38" rx="19" fill="rgba(34,211,238,0.12)" stroke="url(#chipStroke)"/>
+      <circle cx="22" cy="19" r="5" fill="url(#chipStroke)"/>
+      <text x="45" y="25" fill="#A7F3D0">Kiswahili</text>
+    </g>
+
+    <!-- Igbo -->
+    <g transform="translate(180,310)" filter="url(#chipShadow)">
+      <rect width="160" height="38" rx="19" fill="rgba(34,211,238,0.12)" stroke="url(#chipStroke)"/>
+      <circle cx="22" cy="19" r="5" fill="url(#chipStroke)"/>
+      <text x="45" y="25" fill="#A7F3D0">Igbo</text>
+    </g>
+
+    <!-- Zulu -->
+    <g transform="translate(460,310)" filter="url(#chipShadow)">
+      <rect width="150" height="38" rx="19" fill="rgba(34,211,238,0.12)" stroke="url(#chipStroke)"/>
+      <circle cx="22" cy="19" r="5" fill="url(#chipStroke)"/>
+      <text x="45" y="25" fill="#A7F3D0">Zulu</text>
+    </g>
+  </g>
+</svg>
