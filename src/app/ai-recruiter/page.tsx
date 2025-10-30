@@ -2,8 +2,8 @@ import Nav from "@/components/nav";
 import Footer from "@/components/footer";
 
 export const metadata = {
-  title: "AI Recruiter — Eumanai",
-  description: "AI Recruiter by Eumanai.",
+  title: "AI Recruiter — Euman AI",
+  description: "AI Recruiter by Euman AI.",
 };
 
 export default function AIRecruiterPage() {

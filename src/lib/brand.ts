@@ -1,5 +1,5 @@
 // Central brand constants for easy updates
-export const BRAND_COMPANY = "eumanai";
+export const BRAND_COMPANY = "Euman AI";
 export const BRAND_PRODUCT = "Zuri";
 export const BRAND_FULL = `${BRAND_COMPANY} • ${BRAND_PRODUCT}`;
 export const BRAND_DOMAIN = "eumanai.com";

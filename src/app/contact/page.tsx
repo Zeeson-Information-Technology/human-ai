@@ -3,9 +3,9 @@ import Footer from "@/components/footer";
 import CTA from "@/components/cta";
 
 export const metadata = {
-  title: "Contact — Eumanai",
+  title: "Contact — Euman AI",
   description:
-    "Talk to Eumanai about consent-based data sourcing, expert labeling, and LLM evaluations.",
+    "Talk to us about consent-based data sourcing, expert labeling, and LLM evaluations.",
 };
 
 export default function ContactPage() {
@@ -21,7 +21,7 @@ export default function ContactPage() {
           </div>
 
           <h1 className="mt-4 text-4xl font-extrabold tracking-tight sm:text-6xl">
-            Contact Eumanai
+            Contact Euman AI
           </h1>
 
           <p className="mt-4 text-gray-700">

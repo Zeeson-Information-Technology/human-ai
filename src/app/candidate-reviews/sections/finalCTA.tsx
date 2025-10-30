@@ -26,7 +26,7 @@ export default function FinalCTA() {
           </Link>
         </div>
         <p className="mt-3 text-sm text-gray-600">
-          eumanai • hello@eumanai.com
+          Euman AI • hello@eumanai.com
         </p>
       </div>
     </section>

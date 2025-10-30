@@ -5,7 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 
 export const metadata = {
-  title: "Zuri — AI Interviewer by Eumanai",
+  title: "Zuri — AI Interviewer by Euman AI",
   description:
     "Multilingual, accent-fair AI interviewer. English plus local languages (Yorùbá, Hausa, Igbo, Pidgin). Structured rubrics, calibrated scorecards, clips, and transcripts.",
 };
@@ -81,7 +81,7 @@ export default function ZuriPage() {
       <section className="border-b">
         <div className="mx-auto max-w-5xl px-4 py-6 text-center">
           <div className="text-xs font-medium uppercase tracking-wider text-gray-500">
-            Built by Eumanai — Africa-native • Enterprise-grade •
+            Built by Euman AI — Africa-native • Enterprise-grade •
             Human-in-the-loop
           </div>
         </div>
@@ -293,7 +293,7 @@ export default function ZuriPage() {
             </Link>
           </div>
           <p className="mt-3 text-sm text-gray-600">
-            eumanai • hello@eumanai.com
+            Euman AI • hello@eumanai.com
           </p>
         </div>
       </section>

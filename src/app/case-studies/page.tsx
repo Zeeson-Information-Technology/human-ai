@@ -7,7 +7,7 @@ import Link from "next/link";
 import ClientsCarousel from "@/app/candidate-reviews/sections/clientCarousel";
 
 export const metadata: Metadata = {
-  title: "Case Studies — Eumanai",
+  title: "Case Studies — Euman AI",
   description:
     "How leading African enterprises ship faster with human-in-the-loop AI. Real outcomes across customer support, sales, and operations.",
 };
@@ -43,8 +43,7 @@ const STUDIES: Study[] = [
       { label: "Accuracy (QA)", value: "+3.1pp" },
     ],
     quote: {
-      text:
-        "We moved from weekly backlogs to same‑day KYC—without sacrificing compliance.",
+      text: "We moved from weekly backlogs to same‑day KYC—without sacrificing compliance.",
       author: "Head of Compliance",
       role: "Atlas Bank",
     },
@@ -68,8 +67,7 @@ const STUDIES: Study[] = [
       { label: "CSAT", value: "+18%" },
     ],
     quote: {
-      text:
-        "Language stopped being a barrier for triage. Our nurses stay focused on care.",
+      text: "Language stopped being a barrier for triage. Our nurses stay focused on care.",
       author: "Clinical Ops Lead",
       role: "Kora Health",
     },
@@ -93,8 +91,7 @@ const STUDIES: Study[] = [
       { label: "QA reject", value: "< 2%" },
     ],
     quote: {
-      text:
-        "Quality finally met timelines. Our training runs converged with fewer iterations.",
+      text: "Quality finally met timelines. Our training runs converged with fewer iterations.",
       author: "Data Platform Manager",
       role: "Apex Data",
     },
@@ -118,8 +115,7 @@ const STUDIES: Study[] = [
       { label: "A/B quality", value: "+2.6×" },
     ],
     quote: {
-      text:
-        "The co‑pilot replaced slide‑making. Reps spend time on conversations, not formatting.",
+      text: "The co‑pilot replaced slide‑making. Reps spend time on conversations, not formatting.",
       author: "SDR Manager",
       role: "Nimbus Cloud",
     },
@@ -138,9 +134,7 @@ function Hero() {
               "radial-gradient(60% 50% at 100% 50%, rgba(16,185,129,0.25) 0%, rgba(16,185,129,0.12) 35%, rgba(16,185,129,0) 70%)",
           }}
         />
-        <div
-          className="absolute left-[6%] top-[52%] h-[14px] w-[70%] -translate-y-1/2 rounded-full bg-gradient-to-r from-white/80 via-emerald-200/60 to-transparent blur-md opacity-60"
-        />
+        <div className="absolute left-[6%] top-[52%] h-[14px] w-[70%] -translate-y-1/2 rounded-full bg-gradient-to-r from-white/80 via-emerald-200/60 to-transparent blur-md opacity-60" />
       </div>
 
       <div className="mx-auto max-w-4xl px-4 py-16 text-center sm:py-24">
@@ -151,8 +145,8 @@ function Hero() {
           Real outcomes, shipped to production
         </h1>
         <p className="mx-auto mt-3 max-w-2xl text-gray-700">
-          See how teams deploy Zuri for multilingual support, compliant operations,
-          and measurable impact—always with human oversight.
+          See how teams deploy Zuri for multilingual support, compliant
+          operations, and measurable impact—always with human oversight.
         </p>
         <div className="mx-auto mt-6 flex flex-wrap items-center justify-center gap-3">
           <Link
@@ -195,7 +189,9 @@ function StudyCard({ study }: { study: Study }) {
               {study.sector}
             </span>
           </div>
-          <h3 className="mt-3 text-lg font-semibold leading-snug text-gray-100">{study.title}</h3>
+          <h3 className="mt-3 text-lg font-semibold leading-snug text-gray-100">
+            {study.title}
+          </h3>
           <p className="mt-2 text-sm text-gray-300">{study.summary}</p>
           {study.details?.length ? (
             <ul className="mt-3 grid list-disc gap-1 pl-5 text-sm text-gray-200">
@@ -206,7 +202,9 @@ function StudyCard({ study }: { study: Study }) {
           ) : null}
           {study.quote?.text ? (
             <figure className="mt-4 rounded-xl border border-white/10 bg-white/5 p-3">
-              <blockquote className="text-sm text-gray-100">“{study.quote.text}”</blockquote>
+              <blockquote className="text-sm text-gray-100">
+                “{study.quote.text}”
+              </blockquote>
               {(study.quote.author || study.quote.role) && (
                 <figcaption className="mt-1 text-xs text-gray-400">
                   {study.quote.author}
@@ -242,9 +240,14 @@ function StudyCard({ study }: { study: Study }) {
             </div>
             <ul className="mt-3 grid gap-2">
               {study.highlights.map((h) => (
-                <li key={h.label} className="rounded-lg border border-white/10 bg-white/5 px-3 py-2">
+                <li
+                  key={h.label}
+                  className="rounded-lg border border-white/10 bg-white/5 px-3 py-2"
+                >
                   <div className="text-xs text-gray-400">{h.label}</div>
-                  <div className="text-base font-semibold text-gray-100">{h.value}</div>
+                  <div className="text-base font-semibold text-gray-100">
+                    {h.value}
+                  </div>
                 </li>
               ))}
             </ul>
@@ -263,7 +266,9 @@ function StudiesGrid() {
           <div className="text-xs font-medium uppercase tracking-wider text-gray-500">
             Selected work
           </div>
-          <h2 className="mt-2 text-2xl font-bold">Deploying human‑in‑the‑loop at scale</h2>
+          <h2 className="mt-2 text-2xl font-bold">
+            Deploying human‑in‑the‑loop at scale
+          </h2>
         </div>
         <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
           {STUDIES.map((s) => (
@@ -281,8 +286,8 @@ function FinalCTA() {
       <div className="mx-auto max-w-5xl px-4 py-12 text-center">
         <h2 className="text-2xl font-bold">Bring this to your team</h2>
         <p className="mx-auto mt-2 max-w-2xl text-gray-700">
-          We partner with product, ops and data leaders to ship reliable AI systems—
-          with the right human guardrails from day one.
+          We partner with product, ops and data leaders to ship reliable AI
+          systems— with the right human guardrails from day one.
         </p>
         <div className="mt-6 flex items-center justify-center gap-3">
           <Link

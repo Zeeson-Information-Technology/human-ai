@@ -2,7 +2,7 @@
 import Link from "next/link";
 
 export const metadata = {
-  title: "Demo Exports — eumanai",
+  title: "Demo Exports — Euman AI",
   description: "Download CSVs from demo contributions.",
   robots: { index: false, follow: false }, // operator-only feel for MVP
 };
@@ -25,7 +25,7 @@ export default function DemoExports() {
           {/* Audio samples export */}
           <div className="rounded-2xl border p-5 shadow-sm">
             <div className="font-semibold">
-              eumanai Voice Lab — Audio samples
+              Euman AI Voice Lab — Audio samples
             </div>
             <p className="mt-1 text-sm text-gray-600">
               Voice recordings + written translations (CSV).

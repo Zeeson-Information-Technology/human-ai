@@ -13,17 +13,17 @@ export default function Nav() {
             "backdrop-blur-md supports-[backdrop-filter]:backdrop-blur-md",
             "shadow-[0_8px_30px_rgba(0,0,0,0.25)] ring-1 ring-white/10",
           ].join(" ")}
-          aria-label="Eumanai Home"
+          aria-label="Euman AI Home"
         >
           {/* Brand */}
           <Link
             href="/"
             className="flex items-center gap-2 text-white"
-            aria-label="Eumanai Home"
+            aria-label="Euman AI Home"
           >
             <Image
               src="/euman-logo.png"
-              alt="Eumanai"
+              alt="Euman AI"
               className="h-auto w-auto"
               width={137}
               height={32}
@@ -51,7 +51,7 @@ export default function Nav() {
                 className="flex cursor-pointer select-none items-center gap-1 text-white/85 outline-none hover:text-white focus:text-white"
                 aria-haspopup="true"
                 aria-expanded="false"
-                aria-label="Eumanai Home"
+                aria-label="Euman AI Home"
               >
                 <span>Solutions</span>
                 <svg
@@ -75,7 +75,7 @@ export default function Nav() {
                   "group-focus-within:visible group-focus-within:translate-y-0 group-focus-within:opacity-100",
                 ].join(" ")}
                 role="menu"
-                aria-label="Eumanai Home"
+                aria-label="Euman AI Home"
               >
                 <SolutionsDropdown />
               </div>
@@ -85,7 +85,7 @@ export default function Nav() {
             <Link
               href="/demo"
               className="text-white/85 hover:text-white"
-              aria-label="Eumanai Home"
+              aria-label="Euman AI Home"
             >
               Demo
             </Link>
@@ -98,7 +98,7 @@ export default function Nav() {
             <Link
               href="/contact"
               className="rounded-lg bg-white px-3 py-2 font-medium text-slate-900 hover:bg-slate-100"
-              aria-label="Eumanai Home"
+              aria-label="Euman AI Home"
             >
               Book a demo
             </Link>
@@ -109,7 +109,7 @@ export default function Nav() {
             <Link
               href="/demo"
               className="rounded-lg bg-white px-3 py-2 text-sm font-medium text-slate-900"
-              aria-label="Eumanai Home"
+              aria-label="Euman AI Home"
             >
               Demo
             </Link>

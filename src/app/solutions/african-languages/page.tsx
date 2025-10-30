@@ -6,7 +6,7 @@ import Section from "@/components/section";
 import Image from "next/image";
 
 export const metadata = {
-  title: "African languages — Eumanai",
+  title: "African languages — Euman AI",
   description:
     "Speech, text, and evaluation services across major African languages with human-in-the-loop quality controls.",
 };
@@ -29,14 +29,20 @@ export default function AfricanLanguagesPage() {
               </h1>
               <p className="mt-4 max-w-xl text-gray-700">
                 Speech and text datasets, translation QA, and evaluation suites
-                across Yoruba, Hausa, Igbo, Amharic, Kiswahili, and Naija-Pidgin —
-                delivered with reviewer calibration and transparent quality.
+                across Yoruba, Hausa, Igbo, Amharic, Kiswahili, and Naija-Pidgin
+                — delivered with reviewer calibration and transparent quality.
               </p>
               <div className="mt-6 flex flex-wrap items-center gap-3">
-                <Link href="/contact" className="rounded-xl bg-black px-5 py-3 font-medium text-white hover:opacity-90">
+                <Link
+                  href="/contact"
+                  className="rounded-xl bg-black px-5 py-3 font-medium text-white hover:opacity-90"
+                >
                   Contact us
                 </Link>
-                <Link href="/whitepaper" className="rounded-xl border px-5 py-3 font-medium hover:bg-gray-50">
+                <Link
+                  href="/whitepaper"
+                  className="rounded-xl border px-5 py-3 font-medium hover:bg-gray-50"
+                >
                   Read research
                 </Link>
               </div>
@@ -44,7 +50,10 @@ export default function AfricanLanguagesPage() {
 
             {/* Visual */}
             <div className="relative isolate overflow-visible">
-              <div aria-hidden className="pointer-events-none absolute inset-0 -z-10 overflow-visible">
+              <div
+                aria-hidden
+                className="pointer-events-none absolute inset-0 -z-10 overflow-visible"
+              >
                 <div
                   className="absolute right-[-20%] top-1/2 h-[170%] w-[90%] -translate-y-1/2 blur-3xl opacity-60"
                   style={{
@@ -83,10 +92,22 @@ export default function AfricanLanguagesPage() {
         <div className="grid gap-6 sm:grid-cols-3">
           {[
             { t: "Yoruba (yo)", s: "Nigeria, diaspora; tone-aware text QA." },
-            { t: "Hausa (ha)", s: "Nigeria, Niger; ASR corpora and IVR intents." },
-            { t: "Igbo (ig)", s: "Nigeria; conversational and formal registers." },
-            { t: "Naija-Pidgin (pcm)", s: "Call-center speech and chat intents." },
-            { t: "Kiswahili (sw)", s: "East Africa; dialectal variants noted." },
+            {
+              t: "Hausa (ha)",
+              s: "Nigeria, Niger; ASR corpora and IVR intents.",
+            },
+            {
+              t: "Igbo (ig)",
+              s: "Nigeria; conversational and formal registers.",
+            },
+            {
+              t: "Naija-Pidgin (pcm)",
+              s: "Call-center speech and chat intents.",
+            },
+            {
+              t: "Kiswahili (sw)",
+              s: "East Africa; dialectal variants noted.",
+            },
             { t: "Amharic (am)", s: "Ethiopia; script handling and OCR QA." },
           ].map((i) => (
             <div key={i.t} className="rounded-2xl border p-6">
@@ -105,12 +126,30 @@ export default function AfricanLanguagesPage() {
       >
         <div className="grid gap-6 sm:grid-cols-3">
           {[
-            { t: "Multilingual ASR datasets", s: "Call-center and in-person speech with calibrated transcripts." },
-            { t: "TTS voices (pilot)", s: "Speaker collection and studio-quality capture with consent flows." },
-            { t: "Translation QA", s: "Bidirectional QA with error taxonomy and gold seeds." },
-            { t: "NLP entity corpora", s: "Domain terms and named entities with adjudication." },
-            { t: "Evaluation suites", s: "Task-specific evals with reproducible scoring scripts." },
-            { t: "Safety & bias checks", s: "Culturally-aware scenarios and red-team prompts." },
+            {
+              t: "Multilingual ASR datasets",
+              s: "Call-center and in-person speech with calibrated transcripts.",
+            },
+            {
+              t: "TTS voices (pilot)",
+              s: "Speaker collection and studio-quality capture with consent flows.",
+            },
+            {
+              t: "Translation QA",
+              s: "Bidirectional QA with error taxonomy and gold seeds.",
+            },
+            {
+              t: "NLP entity corpora",
+              s: "Domain terms and named entities with adjudication.",
+            },
+            {
+              t: "Evaluation suites",
+              s: "Task-specific evals with reproducible scoring scripts.",
+            },
+            {
+              t: "Safety & bias checks",
+              s: "Culturally-aware scenarios and red-team prompts.",
+            },
           ].map((m) => (
             <div key={m.t} className="rounded-2xl border p-6 shadow-sm">
               <div className="font-semibold">{m.t}</div>
@@ -121,14 +160,33 @@ export default function AfricanLanguagesPage() {
       </Section>
 
       {/* Process */}
-      <Section id="process" title="How a pilot runs" subtitle="Fast, auditable, and secure.">
+      <Section
+        id="process"
+        title="How a pilot runs"
+        subtitle="Fast, auditable, and secure."
+      >
         <ol className="grid list-decimal gap-6 pl-5 sm:grid-cols-3">
           {[
-            { t: "Scope & NDA", s: "Objectives, privacy, residency, and retention windows." },
-            { t: "Design & sample", s: "Schemas, rubrics, gold seeds; language and accent mix." },
-            { t: "Calibration", s: "Reviewer training and inter-annotator agreement targets." },
-            { t: "Production", s: "Label/evaluate with live QC dashboards and sampling." },
-            { t: "Reporting", s: "Datasheets, coverage, error taxonomy, lineage & sign-offs." },
+            {
+              t: "Scope & NDA",
+              s: "Objectives, privacy, residency, and retention windows.",
+            },
+            {
+              t: "Design & sample",
+              s: "Schemas, rubrics, gold seeds; language and accent mix.",
+            },
+            {
+              t: "Calibration",
+              s: "Reviewer training and inter-annotator agreement targets.",
+            },
+            {
+              t: "Production",
+              s: "Label/evaluate with live QC dashboards and sampling.",
+            },
+            {
+              t: "Reporting",
+              s: "Datasheets, coverage, error taxonomy, lineage & sign-offs.",
+            },
             { t: "Scale", s: "Expand languages or move to continuous evals." },
           ].map((i, idx) => (
             <li key={idx} className="relative rounded-2xl border p-6">
@@ -142,12 +200,25 @@ export default function AfricanLanguagesPage() {
       </Section>
 
       {/* Quality & security */}
-      <Section id="quality" title="Quality & security" subtitle="Evidence-first, privacy by design.">
+      <Section
+        id="quality"
+        title="Quality & security"
+        subtitle="Evidence-first, privacy by design."
+      >
         <div className="grid gap-6 sm:grid-cols-3">
           {[
-            { t: "Agreement & calibration", s: "IAA metrics, adjudication rates, reviewer drift monitoring." },
-            { t: "Gold & reproducibility", s: "Seeded checks, replayable scoring, change logs and leak tests." },
-            { t: "Access control", s: "Least-privilege roles, background-checked reviewers, audit logs." },
+            {
+              t: "Agreement & calibration",
+              s: "IAA metrics, adjudication rates, reviewer drift monitoring.",
+            },
+            {
+              t: "Gold & reproducibility",
+              s: "Seeded checks, replayable scoring, change logs and leak tests.",
+            },
+            {
+              t: "Access control",
+              s: "Least-privilege roles, background-checked reviewers, audit logs.",
+            },
           ].map((q) => (
             <div key={q.t} className="rounded-2xl border p-6">
               <div className="font-semibold">{q.t}</div>
@@ -161,4 +232,3 @@ export default function AfricanLanguagesPage() {
     </div>
   );
 }
-

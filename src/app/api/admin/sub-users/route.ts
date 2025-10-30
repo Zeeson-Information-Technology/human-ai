@@ -106,7 +106,7 @@ export async function POST(req: Request) {
   try {
     await sendEmail({
       to: email,
-      subject: "You've been invited to Eumanai",
+      subject: "You've been invited to Euman AI",
       template: "subuser-invite",
       replacements: {
         name: email,

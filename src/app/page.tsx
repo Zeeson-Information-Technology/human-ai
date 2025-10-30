@@ -91,7 +91,7 @@ export default function Page() {
 
               <Image
                 src="/equatoria-hero-brain-circle-clean.svg"
-                alt="Eumanai data-to-AI pipeline"
+                alt="Euman AI data-to-AI pipeline"
                 priority
                 width={720} // set to your SVG’s real size if known
                 height={720}
@@ -106,7 +106,7 @@ export default function Page() {
       <section className="border-b">
         <div className="mx-auto max-w-5xl px-4 py-6 text-center">
           <div className="text-xs font-medium uppercase tracking-wider text-gray-500">
-            Eumanai works with
+            Euman AI works with
           </div>
           <div className="mt-4 grid grid-cols-3 items-center gap-x-8 gap-y-3 opacity-70 grayscale sm:grid-cols-6">
             <div className="text-sm font-semibold text-gray-500">AI Labs</div>
@@ -246,7 +246,7 @@ export default function Page() {
             </a>
           </div>
           <p className="mt-3 text-sm text-gray-600">
-            Africa headquarters in Lagos • hello@eumanai.com
+            Euman AI • hello@eumanai.com
           </p>
         </div>
       </section>

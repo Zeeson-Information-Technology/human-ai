@@ -6,9 +6,9 @@ import Section from "../../components/section";
 import Image from "next/image";
 
 export const metadata = {
-  title: "Data Engine — eumanai",
+  title: "Data Engine — euman AI",
   description:
-    "eumanai’s consent-based Data Engine: sourcing, curation, labeling, LLM evaluations, and secure handover.",
+    "Euman AI’s consent-based Data Engine: sourcing, curation, labeling, LLM evaluations, and secure handover.",
 };
 
 export default function DataEnginePage() {
@@ -27,7 +27,7 @@ export default function DataEnginePage() {
               </div>
 
               <h1 className="mt-4 text-4xl font-extrabold tracking-tight sm:text-6xl">
-                eumanai data engine
+                Euman AI data engine
               </h1>
 
               <p className="mt-4 max-w-xl text-gray-700">

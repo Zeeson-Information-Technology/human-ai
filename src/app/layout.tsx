@@ -9,20 +9,20 @@ const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
-  title: "eumanai — Human-in-the-loop AI data & evaluations",
+  title: "Euman AI — Human-in-the-loop AI data & evaluations",
   description:
     "Consent-based data sourcing, meticulous labeling, safety evaluations, and secure handover — built in Africa, serving the world.",
   openGraph: {
-    title: "eumanai",
+    title: "Euman AI",
     description:
       "Enterprise-grade data, evaluations, and secure handover for AI labs and regulated industries.",
     url: siteUrl,
-    siteName: "eumanai",
+    siteName: "Euman AI",
     images: [{ url: "/og-image.png", width: 1200, height: 630 }],
   },
   twitter: {
     card: "summary_large_image",
-    title: "eumanai",
+    title: "Euman AI",
     description:
       "Enterprise-grade data, evaluations, and secure handover for AI.",
     images: ["/og-image.png"],

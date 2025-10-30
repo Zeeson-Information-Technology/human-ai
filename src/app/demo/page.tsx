@@ -2,7 +2,7 @@
 import Link from "next/link";
 
 export const metadata = {
-  title: "eumanai — Demo",
+  title: "Euman AI — Demo",
   description: "Quick demos showing the Data Engine in action.",
 };
 
@@ -37,11 +37,11 @@ export default function DemoHub() {
           <Link
             href="/demo/lang-collect"
             className="block rounded-2xl border p-5 shadow-sm transition hover:-translate-y-0.5 hover:bg-gray-50"
-            aria-label="Open eumanai Voice Lab (Speech & Translation) demo"
+            aria-label="Open Euman AI Voice Lab (Speech & Translation) demo"
           >
             <div className="flex items-center justify-between">
               <div className="font-semibold">
-                eumanai Voice Lab — Speech &amp; Translation
+                Euman AI Voice Lab — Speech &amp; Translation
               </div>
               <span className="rounded-full border px-2 py-0.5 text-xs text-gray-600">
                 Yoruba • Hausa • Igbo • Pidgin • Ibibio

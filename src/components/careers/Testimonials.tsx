@@ -15,7 +15,7 @@ const testimonials = [
     name: "Muhammad A",
     title: "Developer",
     quote:
-      "Eumanai has changed my life. Ever since I discover them and sign up, they have provided me with 5 different software engineering opportunities. I am forever grateful for them.",
+      "Euman AI has changed my life. Ever since I discover them and sign up, they have provided me with 5 different software engineering opportunities. I am forever grateful for them.",
   },
   {
     name: "Amisha Parkhe",
@@ -31,7 +31,7 @@ export default function Testimonials() {
       <div className="mx-auto max-w-5xl px-4">
         <div className="text-center">
           <h2 className="text-3xl font-extrabold tracking-tight sm:text-4xl">
-            Hear from Eumanai talent
+            Hear from Euman AI talent
           </h2>
         </div>
         <div className="mt-12 grid grid-cols-1 gap-8 sm:grid-cols-2">

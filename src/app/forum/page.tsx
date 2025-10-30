@@ -2,8 +2,8 @@ import Nav from "@/components/nav";
 import Footer from "@/components/footer";
 
 export const metadata = {
-  title: "Forum — Eumanai",
-  description: "Forum by Eumanai.",
+  title: "Forum — Euman AI",
+  description: "Forum by Euman AI.",
 };
 
 export default function ForumPage() {

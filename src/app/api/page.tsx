@@ -2,8 +2,8 @@ import Nav from "@/components/nav";
 import Footer from "@/components/footer";
 
 export const metadata = {
-  title: "API — Eumanai",
-  description: "API by Eumanai.",
+  title: "API — Euman AI",
+  description: "API by Euman AI.",
 };
 
 export default function APIPage() {
