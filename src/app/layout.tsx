@@ -4,6 +4,7 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 import HashScroll from "../components/hash-scroll";
 import RouteProgress from "@/components/route-progress";
+import Watermark from "@/components/Watermark";
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
 
@@ -59,6 +60,7 @@ export default function RootLayout({
           </Suspense>
           {children}
         </main>
+        <Watermark />
       </body>
     </html>
   );
