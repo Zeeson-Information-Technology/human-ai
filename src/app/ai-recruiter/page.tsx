@@ -18,7 +18,7 @@ export default function AIRecruiterPage() {
             AI Recruiter
           </h1>
 
-          <p className="mt-4 text-gray-700">
+          <p className="mt-4 text-gray-600">
             This is a placeholder page for AI Recruiter.
           </p>
         </div>

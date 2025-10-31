@@ -30,7 +30,7 @@ export default function PublicSectorPage() {
                 Data operations for citizen services, safety, and trust
               </h1>
 
-              <p className="mt-4 max-w-xl text-gray-700">
+              <p className="mt-4 max-w-xl text-gray-500">
                 We build datasets and evaluation suites that power multilingual
                 digital services, records digitization and OCR, safety and
                 policy compliance checks, and evidence-ready reporting—delivered

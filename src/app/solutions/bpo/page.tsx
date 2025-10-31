@@ -30,7 +30,7 @@ export default function BPOPage() {
                 Higher-quality ops with data you can trust
               </h1>
 
-              <p className="mt-4 max-w-xl text-gray-700">
+              <p className="mt-4 max-w-xl text-gray-500">
                 We build speech and text datasets, evaluation rubrics, and QA
                 pipelines for service, sales, and risk ops—covering regional
                 accents and languages. Measure containment, resolution, and
@@ -105,14 +105,14 @@ export default function BPOPage() {
         <div className="grid gap-6 sm:grid-cols-2">
           <div className="rounded-2xl border p-6">
             <h3 className="font-semibold">ASR & intent corpora</h3>
-            <p className="mt-2 text-sm text-gray-700">
+            <p className="mt-2 text-sm text-gray-500">
               Call transcription datasets across accents; intent/entity schemas
               tuned to your queues and KPIs.
             </p>
           </div>
           <div className="rounded-2xl border p-6">
             <h3 className="font-semibold">QA & compliance evals</h3>
-            <p className="mt-2 text-sm text-gray-700">
+            <p className="mt-2 text-sm text-gray-500">
               Rubrics for empathy, policy adherence, and resolution; automated
               checks plus SME review.
             </p>

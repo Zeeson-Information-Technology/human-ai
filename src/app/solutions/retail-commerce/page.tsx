@@ -30,7 +30,7 @@ export default function RetailCommercePage() {
                 Cleaner catalogs, smarter search, faster support
               </h1>
 
-              <p className="mt-4 max-w-xl text-gray-700">
+              <p className="mt-4 max-w-xl text-gray-500">
                 We build product and customer datasets, OCR flows for receipts
                 and invoices, and evaluation suites for search/recommendations.
                 Multilingual support corpora help reduce handle time while

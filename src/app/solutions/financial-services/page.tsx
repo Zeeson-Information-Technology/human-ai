@@ -30,7 +30,7 @@ export default function FinancialServicesPage() {
                 Data operations for banks, fintech, and insurers
               </h1>
 
-              <p className="mt-4 max-w-xl text-gray-700">
+              <p className="mt-4 max-w-xl text-gray-500">
                 We build the datasets and evaluations that power document
                 processing, customer support automation, fraud detection, and
                 compliance. Multilingual by default for African markets.

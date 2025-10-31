@@ -30,7 +30,7 @@ export default function ZuriPage() {
               </h1>
               <div className="mt-2 h-[3px] w-24 rounded-full bg-gradient-to-r from-emerald-400/70 to-cyan-400/20" />
 
-              <p className="mt-4 max-w-xl text-gray-700">
+              <p className="mt-4 max-w-xl text-gray-500">
                 Structured interviews in English and local languages (Yorùbá,
                 Hausa, Igbo, Pidgin). Zuri scores what candidates say—not how
                 they sound—and delivers calibrated scorecards with clips and
