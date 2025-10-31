@@ -102,13 +102,12 @@ export default function WhitepaperPage() {
             {/* Sections */}
             <Section id="overview" title="1) Overview">
               <p>
-                Euman delivers enterprise-grade data operations for AI teams:
+                Euman AI delivers enterprise-grade data operations for AI teams:
                 consent-based data sourcing, meticulous human-in-the-loop
                 labeling, rigorous model evaluations, and secure handover with
                 complete provenance. We specialize in multilingual coverage and
-                regulated industries, operating with an{" "}
-                <strong>Africa-native network (HQ Lagos)</strong> to bring new
-                breadth and depth to training data and evaluations.
+                regulated industries. We bring new breadth and depth to training
+                data and evaluations.
               </p>
               <ul className="mt-3 list-disc pl-5">
                 <li>

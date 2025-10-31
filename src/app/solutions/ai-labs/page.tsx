@@ -30,7 +30,7 @@ export default function AiLabsPage() {
                 Frontier evaluations, RLHF & safety
               </h1>
 
-              <p className="mt-4 max-w-xl text-gray-700">
+              <p className="mt-4 max-w-xl text-gray-500">
                 We design and run rigorous evaluations, preference datasets, and
                 red-team suites that lift win-rate, reliability, and safety.
                 Multilingual by default, with auditable reports and secure

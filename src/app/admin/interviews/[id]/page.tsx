@@ -117,7 +117,7 @@ export default async function AdminInterviewDetail({
               {doc.focusAreasSnapshot.map((f: string) => (
                 <span
                   key={f}
-                  className="rounded-full border bg-white px-2 py-0.5 text-xs text-gray-700"
+                  className="rounded-full border bg-white px-2 py-0.5 text-xs text-gray-600"
                 >
                   {f}
                 </span>

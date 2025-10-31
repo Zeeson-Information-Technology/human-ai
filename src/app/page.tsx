@@ -27,7 +27,7 @@ export default function Page() {
           <div className="grid items-center gap-8 py-14 sm:grid-cols-2 sm:gap-10 sm:py-20">
             {/* Copy (left) — lighting removed here */}
             <div className="relative isolate overflow-visible">
-              <div className="inline-flex items-center gap-2 rounded-full border bg-white/70 px-3 py-1 text-xs font-medium text-gray-700 backdrop-blur">
+              <div className="inline-flex items-center gap-2 rounded-full border bg-white/70 px-3 py-1 text-xs font-medium text-gray-600 backdrop-blur">
                 Africa-native • Enterprise-grade • Human-in-the-loop
               </div>
 
@@ -38,8 +38,8 @@ export default function Page() {
               {/* Tiny brand underline */}
               <div className="pointer-events-none mt-2 h-[3px] w-24 rounded-full bg-gradient-to-r from-emerald-400/70 to-cyan-400/20" />
 
-              <p className="mt-4 max-w-xl text-gray-700">
-                Euman designs and runs consent-based data pipelines—sourcing,
+              <p className="mt-4 max-w-xl text-gray-400">
+                Euman AI designs and runs consent-based data pipelines—sourcing,
                 labeling, and evaluation—so your LLMs ship with measurable lift,
                 lower risk, and clear provenance.
               </p>

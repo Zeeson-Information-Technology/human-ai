@@ -27,7 +27,7 @@ export default function AfricanLanguagesPage() {
               <h1 className="mt-4 text-4xl font-extrabold tracking-tight sm:text-6xl">
                 Human-in-the-loop for African languages
               </h1>
-              <p className="mt-4 max-w-xl text-gray-700">
+              <p className="mt-4 max-w-xl text-gray-500">
                 Speech and text datasets, translation QA, and evaluation suites
                 across Yoruba, Hausa, Igbo, Amharic, Kiswahili, and Naija-Pidgin
                 — delivered with reviewer calibration and transparent quality.

@@ -64,7 +64,7 @@ export default async function AdminProfilePage() {
 
         <h2 className="text-xl font-bold mb-4">Profile Settings</h2>
 
-        <div className="mb-4 rounded-xl border bg-white p-4 text-sm text-gray-700 space-y-1">
+        <div className="mb-4 rounded-xl border bg-white p-4 text-sm text-gray-600 space-y-1">
           <div>
             <span className="text-gray-500">Name:</span> {initial.name || "—"}
           </div>

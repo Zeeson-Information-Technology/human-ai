@@ -22,7 +22,7 @@ export default function DataEnginePage() {
           <div className="grid items-center gap-8 py-14 sm:grid-cols-2 sm:gap-10 sm:py-20">
             {/* Copy (left) */}
             <div>
-              <div className="inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-medium text-gray-700">
+              <div className="inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-medium text-gray-600">
                 Data that sets the horizon
               </div>
 
@@ -30,7 +30,7 @@ export default function DataEnginePage() {
                 Euman AI data engine
               </h1>
 
-              <p className="mt-4 max-w-xl text-gray-700">
+              <p className="mt-4 max-w-xl text-gray-500">
                 Consent-based sourcing, expert labeling, rigorous LLM
                 evaluations, and secure handover — delivered with measurable
                 quality and full provenance.
@@ -116,7 +116,7 @@ export default function DataEnginePage() {
         <div className="grid gap-6 sm:grid-cols-2">
           <div className="rounded-2xl border p-6">
             <h3 className="font-semibold">End-to-end, but modular</h3>
-            <p className="mt-2 text-sm text-gray-700">
+            <p className="mt-2 text-sm text-gray-500">
               Use the whole pipeline or pick a module: sourcing, curation,
               labeling, evaluations, or handover. Everything is documented and
               auditable.
@@ -124,7 +124,7 @@ export default function DataEnginePage() {
           </div>
           <div className="rounded-2xl border p-6">
             <h3 className="font-semibold">Africa-native coverage</h3>
-            <p className="mt-2 text-sm text-gray-700">
+            <p className="mt-2 text-sm text-gray-500">
               Deep multilingual expertise and accents (Yorùbá, Hausa, Igbo,
               Swahili, Amharic, isiZulu, and more) to reduce bias and improve
               robustness.

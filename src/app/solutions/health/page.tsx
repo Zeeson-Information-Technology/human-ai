@@ -30,7 +30,7 @@ export default function HealthPage() {
                 Reliable data for safer, smarter healthcare AI
               </h1>
 
-              <p className="mt-4 max-w-xl text-gray-700">
+              <p className="mt-4 max-w-xl text-gray-500">
                 We build clinical and operational datasets, evaluation suites,
                 and document OCR pipelines—covering local languages and accents—
                 to improve patient support, reduce admin friction, and enable

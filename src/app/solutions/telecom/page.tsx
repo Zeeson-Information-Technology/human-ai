@@ -30,7 +30,7 @@ export default function TelecomPage() {
                 Data operations for telcos and connectivity platforms
               </h1>
 
-              <p className="mt-4 max-w-xl text-gray-700">
+              <p className="mt-4 max-w-xl text-gray-500">
                 We build the datasets and evaluations behind voice & chat
                 automation, SIM/KYC onboarding, spam and fraud detection, and
                 device-support copilots. Multilingual by default for African
