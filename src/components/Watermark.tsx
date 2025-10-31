@@ -30,7 +30,7 @@ export default function Watermark() {
       <div
         ref={wrapRef}
         className="relative mx-auto w-[calc(100vw+2rem)] -mx-4 max-w-none overflow-hidden \
-                   h-72 sm:h-96 md:h-[28rem] lg:h-[34rem] xl:h-[40rem] 2xl:h-[48rem] opacity-10"
+                   h-72 sm:h-96 md:h-[28rem] lg:h-[34rem] xl:h-[40rem] 2xl:h-[48rem] opacity-5"
         style={{
           transform:
             "translate(var(--pointer-x,0), var(--pointer-y,0)) translateZ(0)",
@@ -53,11 +53,11 @@ export default function Watermark() {
           className="hidden lg:block absolute -left-[200px] -top-[150px] h-[300px] w-[300px] rounded-full"
           style={{
             backgroundImage:
-              "radial-gradient(circle closest-side at 50% 50%, rgba(255,255,255,0.6), rgba(255,255,255,0))",
+              "radial-gradient(circle closest-side at 50% 50%, rgba(255,255,255,0.35), rgba(255,255,255,0))",
             transform:
               "translate(var(--pointer-x,0), var(--pointer-y,0)) translateZ(0)",
             transition: "opacity .6s ease-in-out",
-            opacity: 0.6,
+            opacity: 0.15,
           }}
         />
       </div>
