@@ -35,6 +35,7 @@ export default function LoginPage() {
   const [role, setRole] = useState<"admin" | "company" | "talent">("admin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [remember, setRemember] = useState<boolean>(true);
   const [err, setErr] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [toast, setToast] = useState<{
@@ -102,7 +103,7 @@ export default function LoginPage() {
       const res = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ role, email, password }),
+        body: JSON.stringify({ role, email, password, remember }),
       });
 
       let data: any = null;
@@ -223,6 +224,15 @@ export default function LoginPage() {
             onChange={(e) => setPassword(e.target.value)}
             placeholder="Password"
           />
+          <label className="flex items-center gap-2 text-sm text-gray-700">
+            <input
+              type="checkbox"
+              checked={remember}
+              onChange={(e) => setRemember(e.target.checked)}
+              className="h-4 w-4 accent-emerald-600"
+            />
+            Remember me (keep me signed in)
+          </label>
           <button
             type="submit"
             className={[

@@ -140,6 +140,8 @@ export async function POST(req: NextRequest) {
       company,
       roleId: role?._id,
       roleName: role?.name || roleName,
+      ownerId: new (await import('mongoose')).Types.ObjectId(user.id),
+      ownerEmail: user.email || undefined,
       languages,
       jdText,
 

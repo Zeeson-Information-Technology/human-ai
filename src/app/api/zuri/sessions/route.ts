@@ -34,6 +34,25 @@ const CreateSessionSchema = z.object({
       fileName: z.string().trim().optional(),
     })
     .optional(),
+  screeners: z
+    .object({
+      legacy: z
+        .array(z.object({ question: z.string(), answer: z.any() }))
+        .optional()
+        .default([]),
+      rules: z
+        .array(
+          z.object({
+            question: z.string(),
+            kind: z.string().optional(),
+            category: z.string().optional(),
+            answer: z.any(),
+          })
+        )
+        .optional()
+        .default([]),
+    })
+    .optional(),
 });
 
 export async function POST(req: NextRequest) {
@@ -57,6 +76,7 @@ export async function POST(req: NextRequest) {
       ivt,
       candidate,
       resume,
+      screeners,
     } = parsed.data;
 
     // Normalize inputs
@@ -125,6 +145,114 @@ export async function POST(req: NextRequest) {
       }));
     }
 
+    // ----- Evaluate screener rules (soft) using the Job definition -----
+    function coerceBool(v: any): boolean | undefined {
+      if (typeof v === "boolean") return v;
+      if (typeof v === "string") {
+        if (v.toLowerCase() === "true") return true;
+        if (v.toLowerCase() === "false") return false;
+      }
+      return undefined;
+    }
+    function coerceNum(v: any): number | undefined {
+      const n = typeof v === "number" ? v : Number(v);
+      return Number.isFinite(n) ? n : undefined;
+    }
+    type Qual = "lt" | "lte" | "eq" | "gte" | "gt" | "neq" | "in" | "nin";
+    function evalRule(
+      jobRule: any,
+      ans: any
+    ): boolean | undefined {
+      if (!jobRule || !jobRule.qualifying) return undefined; // only evaluate qualifying rules
+      const when: Qual | undefined = jobRule.qualifyWhen;
+      const qv = jobRule.qualifyValue;
+      if (!when || typeof qv === "undefined" || qv === null) return undefined;
+
+      const kind: string = jobRule.kind;
+
+      if (kind === "number" || kind === "currency") {
+        const a = coerceNum(ans);
+        const b = coerceNum(qv);
+        if (typeof a === "undefined") return false; // invalid numeric answer fails
+        if (typeof b === "undefined") return false; // invalid threshold
+        switch (when) {
+          case "lt":
+            return a < b;
+          case "lte":
+            return a <= b;
+          case "eq":
+            return a === b;
+          case "gte":
+            return a >= b;
+          case "gt":
+            return a > b;
+          case "neq":
+            return a !== b;
+          default:
+            return undefined;
+        }
+      }
+
+      if (kind === "boolean") {
+        const a = coerceBool(ans);
+        const b = coerceBool(qv);
+        if (typeof a === "undefined" || typeof b === "undefined") return false;
+        switch (when) {
+          case "eq":
+            return a === b;
+          case "neq":
+            return a !== b;
+          default:
+            return undefined;
+        }
+      }
+
+      // default to string/select comparison
+      const a = String(ans ?? "");
+      if (when === "in") {
+        const arr = Array.isArray(qv) ? qv : String(qv).split(",").map((x) => String(x).trim()).filter(Boolean);
+        return arr.includes(a);
+      }
+      if (when === "nin") {
+        const arr = Array.isArray(qv) ? qv : String(qv).split(",").map((x) => String(x).trim()).filter(Boolean);
+        return !arr.includes(a);
+      }
+      if (when === "eq") return a === String(qv);
+      if (when === "neq") return a !== String(qv);
+      return undefined;
+    }
+
+    const jobRules: any[] = Array.isArray(job?.screenerRules) ? (job!.screenerRules as any[]) : [];
+    const incomingRules: any[] = Array.isArray(screeners?.rules) ? (screeners!.rules as any[]) : [];
+    const rulesMerged = incomingRules.map((r, i) => {
+      const j = jobRules[i] || jobRules.find((x) => String(x?.question || "") === String(r?.question || "")) || {};
+      const pass = evalRule(j, r?.answer);
+      return {
+        question: String(r?.question || j?.question || ""),
+        kind: String(r?.kind || j?.kind || ""),
+        category: String(r?.category || j?.category || ""),
+        answer: r?.answer ?? "",
+        qualifying: !!j?.qualifying,
+        qualifyWhen: j?.qualifyWhen,
+        qualifyValue: typeof j?.qualifyValue === "undefined" ? undefined : j?.qualifyValue,
+        min: typeof j?.min === "number" ? j.min : undefined,
+        max: typeof j?.max === "number" ? j.max : undefined,
+        options: Array.isArray(j?.options) ? j.options : undefined,
+        currency: j?.currency,
+        unit: j?.unit,
+        pass: typeof pass === "boolean" ? pass : undefined,
+      };
+    });
+
+    const qualifyingTotal = rulesMerged.filter((x) => x.qualifying).length;
+    const qualifyingPassed = rulesMerged.filter((x) => x.qualifying && x.pass === true).length;
+    const summary = {
+      total: rulesMerged.length,
+      qualifyingTotal,
+      qualifyingPassed,
+      qualifies: qualifyingTotal === 0 ? true : qualifyingPassed === qualifyingTotal,
+    };
+
     // Create Session (token auto-generated by schema)
     const doc = await Session.create({
       status: "running",
@@ -137,6 +265,7 @@ export async function POST(req: NextRequest) {
       company: job?.company || undefined,
       roleName: job?.roleName || roleName || "Candidate",
       language,
+      ownerId: job?.ownerId || undefined,
       languagesAllowed:
         Array.isArray(job?.languages) && job?.languages.length
           ? job.languages
@@ -161,6 +290,22 @@ export async function POST(req: NextRequest) {
 
       // Steps
       steps,
+      // Screeners captured on apply page + server-evaluated pass/fail
+      screeners: {
+        legacy: Array.isArray(screeners?.legacy)
+          ? screeners!.legacy
+              .filter((x: any) => x && String(x.question || "").trim())
+              .map((x: any) => ({
+                question: String(x.question || "").trim(),
+                answer:
+                  typeof x.answer === "string"
+                    ? x.answer
+                    : JSON.stringify(x.answer ?? ""),
+              }))
+          : [],
+        rules: rulesMerged,
+      },
+      screenersSummary: summary,
       // scorecard will be added at finalize
     });
 

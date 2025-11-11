@@ -1,18 +1,18 @@
-// DELETE THIS FILE. Interviews should be accessed via jobs/candidates, not a standalone admin interviews page.
 import dbConnect from "@/lib/db-connect";
 import Session from "@/model/session";
 import Link from "next/link";
 import { getAdminFromCookies } from "@/lib/admin-session";
 import { redirect } from "next/navigation";
+import { getOperatorFromCookies } from "@/lib/get-operator";
 
-// ✅ Force dynamic rendering so search params always refresh the list
+// Force dynamic rendering so search params always refresh the list
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
 type SearchParams = { status?: string; q?: string };
 
 function fmt(dt?: string | Date) {
-  if (!dt) return "—";
+  if (!dt) return "-";
   const d = typeof dt === "string" ? new Date(dt) : dt;
   try {
     return new Intl.DateTimeFormat("en-NG", {
@@ -26,8 +26,11 @@ function fmt(dt?: string | Date) {
 
 async function getSessions({ status, q }: SearchParams) {
   await dbConnect();
+  const me = await getOperatorFromCookies();
+  const isAdmin = me?.role === "admin";
+  const ownerFilter = !isAdmin && me?.id ? { ownerId: new (await import("mongoose")).Types.ObjectId(me.id) } : {};
 
-  const match: any = {};
+  const match: any = { ...(ownerFilter as any) };
   if (status && status !== "all") match.status = status;
 
   if (q) {
@@ -47,14 +50,12 @@ async function getSessions({ status, q }: SearchParams) {
     .limit(150)
     .lean();
 
-  // Guard: ensure client list matches selected status even if anything drifts
   const filteredDocs =
-    status && status !== "all"
-      ? docs.filter((d: any) => d.status === status)
-      : docs;
+    status && status !== "all" ? docs.filter((d: any) => d.status === status) : docs;
 
   return filteredDocs.map((d: any) => ({
     id: String(d._id),
+    ownerId: d.ownerId ? String(d.ownerId) : "",
     status: d.status as string,
     jobCode: d.jobCode || "",
     jobTitle: d.jobTitle || "",
@@ -77,7 +78,8 @@ export default async function AdminInterviewsPage({
 }) {
   // Unified auth: only allow admin/company
   const admin = await getAdminFromCookies();
-  if (!admin) redirect("zuri/start/login?role=client");
+  if (!admin) redirect("/zuri/start/login?role=client");
+  const me = await getOperatorFromCookies();
 
   const status = (searchParams?.status || "all") as
     | "all"
@@ -98,32 +100,26 @@ export default async function AdminInterviewsPage({
       <div className="flex items-center justify-between gap-3">
         <h1 className="text-2xl font-bold">Interviews</h1>
         <div className="flex items-center gap-2 text-sm">
-          <Link
-            href="/admin/leads"
-            className="rounded-lg border px-3 py-1 hover:bg-gray-50"
-          >
+          <Link href="/admin/leads" className="rounded-lg border px-3 py-1 hover:bg-gray-50">
             Leads
           </Link>
-          <Link
-            href="/admin/jobs"
-            className="rounded-lg border px-3 py-1 hover:bg-gray-50"
-          >
+          <Link href="/admin/jobs" className="rounded-lg border px-3 py-1 hover:bg-gray-50">
             Jobs
           </Link>
         </div>
       </div>
 
+      {/* Current user (debug/visibility) */}
+      <div className="mt-2 text-xs text-gray-500">
+        Signed in as {me?.email} (role: {me?.role}) • id: {me?.id}
+      </div>
+
       {/* Filters */}
-      <form
-        className="mt-4 flex flex-wrap items-center gap-3"
-        action="/admin/interviews"
-        method="GET"
-      >
+      <form className="mt-4 flex flex-wrap items-center gap-3" action="/admin/interviews" method="GET">
         <div className="relative">
           <select
             name="status"
             defaultValue={status}
-            // Force light/dark form-control rendering + visible text
             className="appearance-none rounded-lg border border-gray-300 px-3 py-2 pr-9 text-sm
                        bg-white text-gray-900 [color-scheme:light]
                        dark:bg-gray-900 dark:text-gray-100 dark:border-gray-600 dark:[color-scheme:dark]
@@ -157,17 +153,13 @@ export default async function AdminInterviewsPage({
                      focus:outline-none focus:ring-2 focus:ring-black/10"
         />
 
-        <button
-          type="submit"
-          className="rounded-lg bg-black px-4 py-2 text-sm font-medium text-white hover:opacity-90"
-        >
+        <button type="submit" className="rounded-lg bg-black px-4 py-2 text-sm font-medium text-white hover:opacity-90">
           Apply
         </button>
 
         <Link
           href="/admin/interviews"
-          className="rounded-lg border border-gray-300 px-3 py-2 text-sm hover:bg-gray-50
-                     dark:border-gray-600 dark:hover:bg-gray-800"
+          className="rounded-lg border border-gray-300 px-3 py-2 text-sm hover:bg-gray-50 dark:border-gray-600 dark:hover:bg-gray-800"
         >
           Reset
         </Link>
@@ -193,7 +185,7 @@ export default async function AdminInterviewsPage({
                 <div className="truncate font-semibold">
                   {s.jobTitle || s.roleName || "Interview"}{" "}
                   <span className="text-gray-500">
-                    {s.company ? `• ${s.company}` : ""}
+                    {s.company ? ` • ${s.company}` : ""}
                     {s.jobCode ? ` • ${s.jobCode}` : ""}
                   </span>
                 </div>
@@ -201,8 +193,9 @@ export default async function AdminInterviewsPage({
                   <span>
                     {s.candidateName} &lt;{s.candidateEmail}&gt;
                   </span>
-                  <span>� Lang: {s.language}</span>
-                  <span>� Steps: {s.stepsCount}</span>
+                  <span>Lang: {s.language}</span>
+                  <span>Steps: {s.stepsCount}</span>
+                  <span className="text-gray-400">Owner: {s.ownerId || "-"}</span>
                   {s.status === "finished" && (
                     <span className="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] text-emerald-700 border-emerald-300 bg-emerald-50">
                       Report
@@ -228,9 +221,7 @@ export default async function AdminInterviewsPage({
                   {s.status}
                 </div>
                 <div className="mt-1 text-gray-600 dark:text-gray-400">
-                  {s.status === "finished"
-                    ? `Score: ${s.score ?? "—"}`
-                    : fmt(s.startedAt)}
+                  {s.status === "finished" ? `Score: ${s.score ?? "-"}` : fmt(s.startedAt)}
                 </div>
               </div>
             </div>
@@ -246,3 +237,4 @@ export default async function AdminInterviewsPage({
     </div>
   );
 }
+

@@ -4,6 +4,7 @@
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { useSession } from "@/lib/use-session";
 
 // Add validation helpers
@@ -61,6 +62,7 @@ export default function JobApplyPage() {
 
   const [language, setLanguage] = useState<string>("en");
   const [screenerAnswers, setScreenerAnswers] = useState<string[]>([]);
+  const [screenerRuleAnswers, setScreenerRuleAnswers] = useState<any[]>([]);
   const [hasResume, setHasResume] = useState(false);
   const [formErrors, setFormErrors] = useState<{ [key: string]: string }>({});
   const [showChromeBanner, setShowChromeBanner] = useState(false);
@@ -109,6 +111,16 @@ export default function JobApplyPage() {
 
         if (Array.isArray(job?.screenerQuestions)) {
           setScreenerAnswers(Array(job.screenerQuestions.length).fill(""));
+        }
+        if (Array.isArray(job?.screenerRules)) {
+          setScreenerRuleAnswers(
+            job.screenerRules.map((r: any) => ({
+              question: r.question,
+              kind: r.kind,
+              category: r.category,
+              answer: "",
+            }))
+          );
         }
 
         const jobLangs: string[] = Array.isArray(job?.languages)
@@ -168,6 +180,32 @@ export default function JobApplyPage() {
         "Please enter a valid LinkedIn profile URL (e.g., linkedin.com/in/username)";
     }
 
+    // Validate screeners
+    if (Array.isArray(job?.screenerQuestions)) {
+      job.screenerQuestions.forEach((q: string, idx: number) => {
+        if (!String(screenerAnswers[idx] || "").trim()) {
+          errors[`screener_${idx}`] = "Required";
+        }
+      });
+    }
+    if (Array.isArray(job?.screenerRules)) {
+      job.screenerRules.forEach((r: any, idx: number) => {
+        const ans = screenerRuleAnswers[idx]?.answer;
+        if (r.kind === "boolean") {
+          if (
+            ans !== true &&
+            ans !== false &&
+            ans !== "true" &&
+            ans !== "false"
+          ) {
+            errors[`rule_${idx}`] = "Please select Yes or No";
+          }
+        } else if (!String(ans ?? "").trim()) {
+          errors[`rule_${idx}`] = "Required";
+        }
+      });
+    }
+
     if (Object.keys(errors).length > 0) {
       setFormErrors(errors);
       return;
@@ -218,6 +256,22 @@ export default function JobApplyPage() {
           inviteToken: ivt || undefined,
           candidate: { name, email, phone, linkedin },
           resume: { url: resumeUrlToUse },
+          screeners: {
+            legacy: Array.isArray(job?.screenerQuestions)
+              ? screenerAnswers.map((a, i) => ({
+                  question: job.screenerQuestions[i],
+                  answer: a,
+                }))
+              : [],
+            rules: Array.isArray(job?.screenerRules)
+              ? job.screenerRules.map((r: any, i: number) => ({
+                  question: r.question,
+                  kind: r.kind,
+                  category: r.category,
+                  answer: screenerRuleAnswers[i]?.answer,
+                }))
+              : [],
+          },
         }),
       });
 
@@ -236,7 +290,7 @@ export default function JobApplyPage() {
   const langs: string[] = Array.isArray(job?.languages) ? job.languages : [];
 
   return (
-    <div className="mx-auto max-w-2xl px-4 py-8">
+    <div className="relative mx-auto max-w-2xl px-4 py-8">
       <h1 className="text-2xl font-bold">
         {job?.title || "Apply / Start Interview"}
       </h1>
@@ -249,13 +303,15 @@ export default function JobApplyPage() {
 
       {ivt && (
         <div className="mt-2 text-sm text-gray-600">
-          You’re starting an interview via an invite link. No account required.
+          You’re starting an interview via an invite link.
         </div>
       )}
 
       {/* Instructions / Checks */}
       <div className="mt-4 rounded-2xl border p-4 bg-white">
-        <div className="text-sm font-medium">Before you begin</div>
+        <div className="text-sm text-gray-600 font-medium">
+          Before you begin
+        </div>
         <ul className="mt-2 list-disc pl-5 text-sm text-gray-700 space-y-1">
           <li>Keep your camera and microphone available.</li>
           <li>Be ready to share your screen if asked.</li>
@@ -373,10 +429,123 @@ export default function JobApplyPage() {
                       setScreenerAnswers(arr);
                     }}
                     placeholder={q}
-                    className="mb-2 w-full rounded-lg border p-2 cursor-pointer"
+                    className={`mb-2 w-full rounded-lg border p-2 ${
+                      formErrors[`screener_${idx}`] ? "border-red-500" : ""
+                    }`}
                     required
                   />
                 ))}
+              </div>
+            )}
+
+          {Array.isArray((job as any)?.screenerRules) &&
+            (job as any).screenerRules.length > 0 && (
+              <div className="rounded-xl border p-3 mt-4">
+                <div className="font-semibold text-sm mb-2">
+                  Screening Questions
+                </div>
+                <div className="grid gap-3">
+                  {(job as any).screenerRules.map((r: any, idx: number) => {
+                    const errKey = `rule_${idx}`;
+                    const hasErr = !!formErrors[errKey];
+                    const setAns = (val: any) => {
+                      setScreenerRuleAnswers((prev) => {
+                        const next = [...prev];
+                        next[idx] = {
+                          question: r.question,
+                          kind: r.kind,
+                          category: r.category,
+                          answer: val,
+                        };
+                        return next;
+                      });
+                    };
+                    return (
+                      <div key={idx} className="grid gap-1">
+                        <label className="text-sm font-medium">
+                          {r.question}
+                        </label>
+                        {r.kind === "select" && Array.isArray(r.options) && (
+                          <select
+                            value={String(
+                              screenerRuleAnswers[idx]?.answer ?? ""
+                            )}
+                            onChange={(e) => setAns(e.target.value)}
+                            className={`rounded-xl border p-2 ${
+                              hasErr ? "border-red-500" : ""
+                            }`}
+                          >
+                            <option value="">Select…</option>
+                            {r.options.map((o: string) => (
+                              <option key={o} value={o}>
+                                {o}
+                              </option>
+                            ))}
+                          </select>
+                        )}
+                        {(r.kind === "number" || r.kind === "currency") && (
+                          <div className="relative">
+                            <input
+                              value={String(
+                                screenerRuleAnswers[idx]?.answer ?? ""
+                              )}
+                              onChange={(e) =>
+                                setAns(e.target.value.replace(/[^0-9]/g, ""))
+                              }
+                              className={`w-full rounded-xl border p-2 pr-16 ${
+                                hasErr ? "border-red-500" : ""
+                              }`}
+                              type="text"
+                              inputMode="numeric"
+                              pattern="[0-9]*"
+                              placeholder={
+                                r.unit ||
+                                (r.kind === "currency" ? r.currency || "" : "")
+                              }
+                            />
+                            {r.kind === "currency" && (
+                              <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm text-neutral-500">
+                                {r.currency || ""}
+                              </span>
+                            )}
+                          </div>
+                        )}
+                        {r.kind === "boolean" && (
+                          <select
+                            value={String(
+                              screenerRuleAnswers[idx]?.answer ?? ""
+                            )}
+                            onChange={(e) => setAns(e.target.value === "true")}
+                            className={`rounded-xl border p-2 ${
+                              hasErr ? "border-red-500" : ""
+                            }`}
+                          >
+                            <option value="">Select…</option>
+                            <option value="true">Yes</option>
+                            <option value="false">No</option>
+                          </select>
+                        )}
+                        {r.kind === "text" && (
+                          <input
+                            value={String(
+                              screenerRuleAnswers[idx]?.answer ?? ""
+                            )}
+                            onChange={(e) => setAns(e.target.value)}
+                            className={`rounded-xl border p-2 ${
+                              hasErr ? "border-red-500" : ""
+                            }`}
+                            placeholder="Your answer"
+                          />
+                        )}
+                        {hasErr && (
+                          <div className="text-xs text-red-600">
+                            {formErrors[errKey]}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
             )}
 
@@ -437,6 +606,54 @@ export default function JobApplyPage() {
         <div className="mt-6 rounded-xl border bg-gray-50 p-4 text-center text-gray-700">
           Thank you for applying! We&apos;ll review your application and get
           back to you soon.
+        </div>
+      )}
+
+      {(sessionLoading || loadingJob) && (
+        <div
+          className="fixed inset-0 z-[60] grid place-items-center bg-black/40 backdrop-blur-sm"
+          role="status"
+          aria-live="polite"
+          aria-label="Loading interview form"
+        >
+          <div className="flex flex-col items-center gap-4">
+            <div className="relative grid h-12 w-auto place-items-center">
+              <Image
+                src="/euman-logo.png"
+                alt="Euman AI"
+                width={160}
+                height={36}
+                priority
+                className="h-9 w-auto animate-pulse"
+              />
+            </div>
+            <div className="text-white/90 text-sm">
+              Preparing your interview…
+            </div>
+          </div>
+        </div>
+      )}
+
+      {busy && (
+        <div
+          className="fixed inset-0 z-[60] grid place-items-center bg-black/40 backdrop-blur-sm"
+          role="status"
+          aria-live="polite"
+          aria-label="Starting interview"
+        >
+          <div className="flex flex-col items-center gap-4">
+            <div className="relative grid h-12 w-auto place-items-center">
+              <Image
+                src="/euman-logo.png"
+                alt="Euman AI"
+                width={160}
+                height={36}
+                priority
+                className="h-9 w-auto animate-pulse"
+              />
+            </div>
+            <div className="text-white/90 text-sm">Starting your session…</div>
+          </div>
         </div>
       )}
     </div>

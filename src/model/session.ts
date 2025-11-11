@@ -65,6 +65,60 @@ const StepSchema = new Schema(
   { _id: false }
 );
 
+// Screener responses (as provided on apply page)
+const LegacyScreenerSchema = new Schema(
+  {
+    question: { type: String, trim: true },
+    answer: { type: String, trim: true },
+  },
+  { _id: false }
+);
+
+const RuleScreenerSchema = new Schema(
+  {
+    question: { type: String, trim: true },
+    kind: { type: String, trim: true },
+    category: { type: String, trim: true },
+    answer: { type: Schema.Types.Mixed },
+    // Server-evaluated fields (snapshotted from Job at apply-time)
+    qualifying: { type: Boolean, default: undefined },
+    qualifyWhen: {
+      type: String,
+      enum: ["lt", "lte", "eq", "gte", "gt", "neq", "in", "nin"],
+      required: false,
+    },
+    qualifyValue: { type: Schema.Types.Mixed },
+    // Optional context for display
+    min: { type: Number },
+    max: { type: Number },
+    options: [{ type: String }],
+    currency: { type: String },
+    unit: { type: String },
+    // Evaluation outcome (only meaningful when qualifying === true)
+    pass: { type: Boolean },
+  },
+  { _id: false }
+);
+
+const ScreenerResponsesSchema = new Schema(
+  {
+    legacy: { type: [LegacyScreenerSchema], default: [] },
+    rules: { type: [RuleScreenerSchema], default: [] },
+  },
+  { _id: false }
+);
+
+// Aggregated evaluation summary for screeners
+const ScreenerSummarySchema = new Schema(
+  {
+    total: { type: Number, default: 0 },
+    qualifyingTotal: { type: Number, default: 0 },
+    qualifyingPassed: { type: Number, default: 0 },
+    qualifies: { type: Boolean, default: true },
+  },
+  { _id: false }
+);
+
 const CompetencySchema = new Schema(
   {
     name: { type: String, required: true },
@@ -109,6 +163,7 @@ const SessionSchema = new Schema(
     jobTitle: { type: String }, // e.g., "Procurement Expert"
     company: { type: String },
     roleName: { type: String }, // e.g., "Customer Support"
+    ownerId: { type: Schema.Types.ObjectId, index: true }, // creator/owner of the job/session (company/admin)
     language: { type: String, default: "en", index: true }, // "en" | "yo" | "ha" | "ig" | "pcm"
     languagesAllowed: { type: [String], default: [] },
 
@@ -122,6 +177,11 @@ const SessionSchema = new Schema(
 
     // Steps (questions + answers, fully denormalized)
     steps: { type: [StepSchema], default: [] },
+
+    // Candidate screener responses captured at apply-time
+    screeners: { type: ScreenerResponsesSchema },
+    // Soft-gate summary (no blocking)
+    screenersSummary: { type: ScreenerSummarySchema },
 
     // Outcome
     scorecard: { type: ScorecardSchema },

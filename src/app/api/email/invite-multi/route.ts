@@ -211,7 +211,7 @@ export async function POST(req: NextRequest) {
 
         const rawRes = (await sendEmail({
           to,
-          subject,
+          subject: `${resolvedCompany} invited you to AI interview`,
           template: "zuri-invite",
           replacements,
           replyTo: process.env.CONTACT_TO_EMAIL || undefined,

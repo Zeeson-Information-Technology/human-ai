@@ -9,6 +9,7 @@ import { Types } from "mongoose";
 import dbConnect from "@/lib/db-connect";
 import Session from "@/model/session";
 import { isAdmin } from "@/lib/admin-auth";
+import { verifyToken } from "@/lib/auth";
 import { z } from "zod";
 
 export const dynamic = "force-dynamic";
@@ -39,6 +40,21 @@ export async function GET(
         { ok: false, error: "Not found" },
         { status: 404 }
       );
+
+    // Scope: allow platform admin or the company owner of this session
+    try {
+      const adminCookie = req.cookies.get("admin_token")?.value || "";
+      const userCookie = req.cookies.get("token")?.value || "";
+      const payload = verifyToken(adminCookie || userCookie || "");
+      const role = String(payload?.role || "");
+      if (role !== "admin") {
+        if (!session.ownerId || String(session.ownerId) !== String(payload?.userId || "")) {
+          return NextResponse.json({ ok: false, error: "Forbidden" }, { status: 403 });
+        }
+      }
+    } catch {
+      return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
+    }
 
     return NextResponse.json({ ok: true, session }, { status: 200 });
   } catch (e) {
@@ -173,6 +189,24 @@ export async function PATCH(
         { ok: false, error: "No changes" },
         { status: 400 }
       );
+    }
+
+    // AuthZ: ensure non-admin can only modify their own session
+    try {
+      const adminCookie = req.cookies.get("admin_token")?.value || "";
+      const userCookie = req.cookies.get("token")?.value || "";
+      const payload = verifyToken(adminCookie || userCookie || "");
+      const role = String(payload?.role || "");
+      if (role !== "admin") {
+        const current = await Session.findById(new Types.ObjectId(id)).lean();
+        if (!current)
+          return NextResponse.json({ ok: false, error: "Not found" }, { status: 404 });
+        if (!current.ownerId || String(current.ownerId) !== String(payload?.userId || "")) {
+          return NextResponse.json({ ok: false, error: "Forbidden" }, { status: 403 });
+        }
+      }
+    } catch {
+      return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
     }
 
     const updated = await Session.findByIdAndUpdate(

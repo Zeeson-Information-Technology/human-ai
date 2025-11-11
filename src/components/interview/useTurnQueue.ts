@@ -1,5 +1,5 @@
 import { useRef } from "react";
-import { bedrockTurn } from "./services/bedrockTurn";
+import { bedrockTurn, bedrockTurnStream } from "./services/bedrockTurn";
 import type { ZuriHistoryTurn, ZuriTurnResponse } from "@/lib/zuri-transport";
 
 export function useTurnQueue({
@@ -8,12 +8,14 @@ export function useTurnQueue({
   jobContext,
   resumeSummary,
   onAssistant,
+  onAssistantStream,
 }: {
   sessionId: string;
   token: string;
   jobContext?: string;
   resumeSummary?: string;
   onAssistant: (text: string, followups?: string[]) => void;
+  onAssistantStream?: (delta: string) => void;
 }) {
   const cooldownRef = useRef(false);
   const inFlightRef = useRef(false);
@@ -41,22 +43,36 @@ export function useTurnQueue({
 
     inFlightRef.current = true;
     try {
-      const { ok, next, error } = (await bedrockTurn({
-        sessionId,
-        token,
-        jobContext,
-        resumeSummary,
-        history,
-        answer: t,
-      })) as ZuriTurnResponse;
-      if (!ok) throw new Error(error || "turn failed");
-      lastHashRef.current = h;
-      if (next?.text) onAssistant(next.text, next.followups);
+      if (onAssistantStream) {
+        let full = "";
+        const { ok, text, error } = await bedrockTurnStream(
+          { sessionId, token, jobContext, resumeSummary, history, answer: t },
+          (delta) => {
+            full += delta;
+            try { onAssistantStream(delta); } catch {}
+          }
+        );
+        if (!ok) throw new Error(error || "turn failed");
+        lastHashRef.current = h;
+        if (full.trim()) onAssistant(full.trim());
+      } else {
+        const { ok, next, error } = (await bedrockTurn({
+          sessionId,
+          token,
+          jobContext,
+          resumeSummary,
+          history,
+          answer: t,
+        })) as ZuriTurnResponse;
+        if (!ok) throw new Error(error || "turn failed");
+        lastHashRef.current = h;
+        if (next?.text) onAssistant(next.text, next.followups);
+      }
     } finally {
       inFlightRef.current = false;
       cooldownRef.current = true;
       // Align with server minGap (2500ms) to avoid bursts
-      setTimeout(() => (cooldownRef.current = false), 2500);
+      setTimeout(() => (cooldownRef.current = false), onAssistantStream ? 1500 : 2500);
     }
   }
 

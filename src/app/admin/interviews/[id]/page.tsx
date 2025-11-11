@@ -5,9 +5,10 @@ import { Types } from "mongoose";
 import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import { getAdminFromCookies } from "@/lib/admin-session";
+import { getOperatorFromCookies } from "@/lib/get-operator";
 
 function fmt(dt?: string | Date | null) {
-  if (!dt) return "—";
+  if (!dt) return "-";
   const d = typeof dt === "string" ? new Date(dt) : dt;
   try {
     return new Intl.DateTimeFormat("en-NG", {
@@ -25,8 +26,9 @@ export default async function AdminInterviewDetail({
   params: { id: string };
 }) {
   // Unified auth: only allow admin/company
-  const admin = getAdminFromCookies();
+  const admin = await getAdminFromCookies();
   if (!admin) redirect("/zuri/start/login?role=client");
+  const me = await getOperatorFromCookies();
 
   const id = (params?.id || "").trim();
   if (!id || !Types.ObjectId.isValid(id)) notFound();
@@ -34,6 +36,13 @@ export default async function AdminInterviewDetail({
   await dbConnect();
   const doc = await Session.findById(id).lean();
   if (!doc) notFound();
+
+  // Scope: company users must own the session; admins can view all
+  if (me?.role !== "admin") {
+    if (!doc.ownerId || String(doc.ownerId) !== String(me?.id || "")) {
+      notFound();
+    }
+  }
 
   const steps = Array.isArray(doc.steps) ? doc.steps : [];
   // Fetch presigned report links
@@ -69,12 +78,12 @@ export default async function AdminInterviewDetail({
           {doc.jobTitle ? (
             <>
               Job: <span className="font-medium">{doc.jobTitle}</span>{" "}
-              {doc.company ? <>• {doc.company}</> : null}{" "}
-              {doc.jobCode ? <>• {doc.jobCode}</> : null}
+              {doc.company ? <> • {doc.company}</> : null}{" "}
+              {doc.jobCode ? <> • {doc.jobCode}</> : null}
               {" • "}
             </>
           ) : null}
-          Role: <span className="font-medium">{doc.roleName || "—"}</span> •
+          Role: <span className="font-medium">{doc.roleName || "-"}</span> •
           Language: <span className="font-medium">{doc.language}</span> •
           Status: <span className="font-medium uppercase">{doc.status}</span>
         </div>
@@ -97,6 +106,97 @@ export default async function AdminInterviewDetail({
                 {doc.scorecard.summary}
               </p>
             )}
+          </div>
+        )}
+
+        {/* Screening responses */}
+        {doc.screeners && (
+          <div className="mt-4 rounded-xl border p-4">
+            <div className="flex items-center justify-between">
+              <div className="text-sm font-medium">Screening Responses</div>
+              {doc.screenersSummary && (
+                <div className="text-xs text-gray-600">
+                  <span
+                    className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 ${
+                      doc.screenersSummary.qualifies
+                        ? "bg-emerald-600 text-white"
+                        : "bg-red-600 text-white"
+                    }`}
+                  >
+                    {doc.screenersSummary.qualifies ? "Qualified" : "Not qualified"}
+                  </span>
+                  <span className="ml-2">
+                    {doc.screenersSummary.qualifyingPassed}/{doc.screenersSummary.qualifyingTotal} qualifying passed
+                  </span>
+                </div>
+              )}
+            </div>
+
+            {/* Legacy */}
+            {Array.isArray((doc as any).screeners?.legacy) &&
+              (doc as any).screeners.legacy.length > 0 && (
+                <div className="mt-3">
+                  <div className="text-xs text-gray-500">Legacy questions</div>
+                  <div className="mt-2 grid gap-2">
+                    {(doc as any).screeners.legacy.map((x: any, i: number) => (
+                      <div key={i} className="rounded-lg border p-3 text-sm">
+                        <div className="font-medium">{x.question}</div>
+                        <div className="mt-1 text-gray-700 whitespace-pre-wrap">{x.answer || "-"}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+            {/* Rules */}
+            {Array.isArray((doc as any).screeners?.rules) &&
+              (doc as any).screeners.rules.length > 0 && (
+                <div className="mt-3">
+                  <div className="text-xs text-gray-500">Structured screeners</div>
+                  <div className="mt-2 grid gap-2">
+                    {(doc as any).screeners.rules.map((r: any, i: number) => (
+                      <div key={i} className="rounded-lg border p-3 text-sm">
+                        <div className="flex items-center justify-between">
+                          <div className="font-medium mr-3">
+                            {r.question}
+                          </div>
+                          {r.qualifying && (
+                            <span
+                              className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs ${
+                                r.pass === true
+                                  ? "bg-emerald-600 text-white"
+                                  : "bg-red-600 text-white"
+                              }`}
+                            >
+                              {r.pass === true ? "Pass" : "Fail"}
+                            </span>
+                          )}
+                        </div>
+                        <div className="mt-1">
+                          <span className="text-gray-500">Answer:</span>{" "}
+                          <span className="text-gray-800">
+                            {typeof r.answer === "boolean"
+                              ? String(r.answer)
+                              : String(r.answer ?? "-")}
+                          </span>
+                        </div>
+                        {(typeof r.min === "number" || typeof r.max === "number" || r.qualifyWhen) && (
+                          <div className="mt-1 text-xs text-gray-500">
+                            {typeof r.min === "number" ? `Min ${r.min}${r.unit ? ` ${r.unit}` : ""}` : ""}
+                            {typeof r.min === "number" && typeof r.max === "number" ? " • " : ""}
+                            {typeof r.max === "number" ? `Max ${r.max}${r.unit ? ` ${r.unit}` : ""}` : ""}
+                            {r.qualifyWhen && (
+                              <span className="ml-1">
+                                ({r.qualifyWhen} {Array.isArray(r.qualifyValue) ? r.qualifyValue.join(", ") : String(r.qualifyValue ?? "")})
+                              </span>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
           </div>
         )}
 
@@ -152,7 +252,7 @@ export default async function AdminInterviewDetail({
             )}
             <div className="mt-2 text-xs text-gray-500">
               Duration:{" "}
-              {s.durationMs ? `${(s.durationMs / 1000).toFixed(1)}s` : "—"}
+              {s.durationMs ? `${(s.durationMs / 1000).toFixed(1)}s` : "-"}
             </div>
           </div>
         ))}
@@ -194,14 +294,14 @@ export default async function AdminInterviewDetail({
         </div>
 
         <div className="rounded-2xl border p-4">
-          <div className="text-sm font-medium">Anti‑cheat timeline</div>
+          <div className="text-sm font-medium">Anti-cheat timeline</div>
           <div className="mt-2 text-sm text-gray-700 max-h-64 overflow-auto">
             {Array.isArray((doc as any).antiCheatEvents) &&
             (doc as any).antiCheatEvents.length > 0 ? (
               <ul className="space-y-1">
                 {(doc as any).antiCheatEvents.map((e: any, i: number) => (
                   <li key={i} className="text-xs text-gray-600">
-                    <span className="text-gray-500">{fmt(e?.ts)}</span> —{" "}
+                    <span className="text-gray-500">{fmt(e?.ts)}</span> •{" "}
                     <span className="font-medium">{e?.type}</span>
                     {e?.detail ? (
                       <span className="text-gray-500">: {e.detail}</span>

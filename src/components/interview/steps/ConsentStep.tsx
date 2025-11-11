@@ -33,6 +33,7 @@ export default function ConsentStep({
             type="checkbox"
             checked={agree}
             onChange={(e) => onAgree(e.target.checked)}
+            className="h-4 w-4 accent-blue-600 dark:accent-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/40 rounded"
           />
           <span className="text-slate-300 cursor-pointer">
             I agree to the <a className="underline">terms</a> &{" "}

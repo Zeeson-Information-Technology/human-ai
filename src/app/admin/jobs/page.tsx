@@ -1,12 +1,19 @@
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 import dbConnect from "@/lib/db-connect";
 import { Job } from "@/model/job";
+import { getOperatorFromCookies } from "@/lib/get-operator";
 import Link from "next/link";
 import { revalidatePath } from "next/cache";
 
 // Server loader (no fetch)
 async function getJobs() {
   await dbConnect();
-  const docs = await Job.find({}).sort({ createdAt: -1 }).lean();
+  const me = await getOperatorFromCookies();
+  const isAdmin = me?.role === "admin";
+  const ownerFilter = !isAdmin && me?.id ? { ownerId: new (await import("mongoose")).Types.ObjectId(me.id) } : {};
+  const docs = await Job.find(ownerFilter as any).sort({ createdAt: -1 }).lean();
   return docs.map((d: any) => ({
     id: String(d._id),
     title: d.title,
@@ -40,12 +47,20 @@ export default async function AdminJobsPage() {
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-8">
+      <div className="mb-2">
+        <Link
+          href="/admin"
+          className="inline-flex items-center gap-1 rounded-lg border px-3 py-1 text-sm hover:bg-gray-50"
+          aria-label="Back to Admin Dashboard"
+        >
+          ← Back
+        </Link>
+      </div>
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Jobs</h1>
         <Link
           href="/zuri/start/admin"
-          className="rounded-xl bg-white px-4 py-2 font-medium 
-          text-black bold hover:opacity-90"
+          className="rounded-xl bg-white px-4 py-2 font-medium text-black hover:opacity-90"
         >
           Create Job
         </Link>

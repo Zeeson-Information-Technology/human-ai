@@ -1,27 +1,16 @@
 import { NextRequest } from "next/server";
 import {
-  PollyClient,
   SynthesizeSpeechCommand,
   type VoiceId,
-  type LanguageCode,
+  type SynthesizeSpeechCommandInput,
 } from "@aws-sdk/client-polly";
-import { fromEnv } from "@aws-sdk/credential-providers";
 
-function need(name: string, fallback?: string) {
-  const v = process.env[name] ?? fallback;
-  if (!v) throw new Error(`Missing env: ${name}`);
-  return v;
-}
+// Reuse shared Polly client (env/default chain)
+import { polly as getPolly } from "@/lib/aws-polly";
 
-const REGION = need("AWS_REGION", "us-east-1");
-const VOICE: VoiceId = (process.env.ZURI_TTS_VOICE as VoiceId) || "Amy";
-const LANGUAGE: LanguageCode =
-  (process.env.TRANSCRIBE_LANGUAGE_CODE as LanguageCode) || "en-GB";
-
-const polly = new PollyClient({
-  region: REGION,
-  credentials: fromEnv(),
-});
+const REGION = process.env.AWS_REGION || "us-east-1";
+const DEFAULT_VOICE: VoiceId =
+  ((process.env.ZURI_TTS_VOICE as VoiceId) || "Joanna") as VoiceId;
 
 export const runtime = "nodejs";
 
@@ -29,6 +18,8 @@ export async function GET(req: NextRequest) {
   try {
     const url = new URL(req.url);
     const text = url.searchParams.get("text") || "";
+    const voiceParam = (url.searchParams.get("voice") || "").trim();
+    const voice: VoiceId = (voiceParam as VoiceId) || DEFAULT_VOICE;
     if (!text.trim()) {
       return new Response(
         JSON.stringify({ ok: false, error: "Missing text" }),
@@ -39,36 +30,74 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    const cmd = new SynthesizeSpeechCommand({
-      OutputFormat: "mp3",
-      Text: text,
-      VoiceId: VOICE,
-      Engine: "neural", // falls back if not available for the voice
-      LanguageCode: LANGUAGE,
-      TextType: "text",
-    });
+    // Build a resilient call strategy: try neural w/o LanguageCode, then fallback
+    const client = await getPolly(REGION);
+    const attempts: SynthesizeSpeechCommandInput[] = [
+      // Most compatible: let Polly infer language from voice; request neural engine
+      {
+        OutputFormat: "mp3",
+        Text: text,
+        VoiceId: voice,
+        Engine: "neural",
+        TextType: "text",
+      },
+      // Fallback to standard engine
+      { OutputFormat: "mp3", Text: text, VoiceId: voice, TextType: "text" },
+    ];
 
-    const data = await polly.send(cmd);
-    if (!data.AudioStream) {
-      return new Response(JSON.stringify({ ok: false, error: "No audio" }), {
-        status: 500,
-        headers: { "content-type": "application/json" },
-      });
+    let lastErr: any = null;
+    for (const input of attempts) {
+      try {
+        const data = await client.send(new SynthesizeSpeechCommand(input));
+        if (!data.AudioStream) continue;
+
+        // Normalize to bytes for consistent streaming
+        let bytes: Uint8Array | null = null;
+        const stream: any = data.AudioStream as any;
+        if (stream?.transformToByteArray) {
+          bytes = await stream.transformToByteArray();
+        }
+        if (bytes && bytes.length > 0) {
+          return new Response(Buffer.from(bytes), {
+            status: 200,
+            headers: {
+              "content-type": "audio/mpeg",
+              "cache-control": "no-store",
+            },
+          });
+        }
+        // If we can't transform, return raw stream (Node runtime)
+        return new Response(data.AudioStream as any, {
+          status: 200,
+          headers: {
+            "content-type": "audio/mpeg",
+            "cache-control": "no-store",
+          },
+        });
+      } catch (e: any) {
+        lastErr = e;
+        // Retry next attempt on known engine/language validation errors
+        const msg = String(e?.message || "");
+        if (/Engine|neural|LanguageCode|Unsupported|ValidationException/i.test(msg)) {
+          continue;
+        }
+        // For other errors, break and report
+        break;
+      }
     }
 
-    // data.AudioStream is a stream; return directly as MP3
-    return new Response(data.AudioStream as any, {
-      status: 200,
-      headers: {
-        "content-type": "audio/mpeg",
-        "cache-control": "no-store",
-      },
+    const errMsg = lastErr?.message || "TTS failed";
+    return new Response(JSON.stringify({ ok: false, error: errMsg }), {
+      status: 500,
+      headers: { "content-type": "application/json" },
     });
   } catch (e: any) {
     console.error("TTS error:", e);
     const raw = String(e?.message || "");
-    const msg = /ENOTFOUND/i.test(raw)
+    const msg = /ENOTFOUND|getaddrinfo|dns/i.test(raw)
       ? `Network/DNS error contacting AWS Polly endpoint (region=${REGION}). Check internet/VPN and AWS credentials.`
+      : /ERR_INVALID_CHAR/i.test(raw)
+      ? "Invalid AWS credentials format. Remove quotes/newlines around AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY."
       : raw || "TTS failed";
     return new Response(JSON.stringify({ ok: false, error: msg }), {
       status: 500,

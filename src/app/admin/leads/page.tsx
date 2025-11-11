@@ -79,9 +79,11 @@ async function logout() {
 }
 
 export default async function AdminLeadsPage() {
-  // 🔒 Enforce auth on the server
+  // Enforce auth on the server
   const admin = await getAdminFromCookies();
-  if (!admin) redirect("/admin/login");
+  if (!admin) redirect("/zuri/start/login?role=admin");
+  // Strict: only platform admins may view leads
+  if (admin.role !== "admin") redirect("/admin");
 
   const leads = await getLeads();
 
@@ -136,3 +138,4 @@ export default async function AdminLeadsPage() {
     </div>
   );
 }
+
