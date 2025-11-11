@@ -205,7 +205,12 @@ export default function AdminStartForm() {
       };
       const j = await apiFetch<{ ok: boolean; jdText?: string; error?: string }>(
         "/api/zuri/jobs/ai-jd",
-        { method: "POST", body, retries: 1 }
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+          retries: 1,
+        }
       );
       if (!j?.ok) throw new Error(j?.error || "AI JD failed");
       setJdText(String(j.jdText || ""));
@@ -243,7 +248,12 @@ export default function AdminStartForm() {
       };
       const j = await apiFetch<{ ok: boolean; code: string; error?: string }>(
         "/api/zuri/jobs",
-        { method: "POST", body: payload, retries: 1 }
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+          retries: 1,
+        }
       );
       if (!j?.ok) throw new Error(j?.error || "Create failed");
       setJobCreated({ code: j.code });
@@ -305,7 +315,8 @@ export default function AdminStartForm() {
         "/api/email/invite-multi",
         {
           method: "POST",
-          body: { jobCode: jobCreated.code, emails: inviteEmails.filter((e) => e.trim()) },
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ jobCode: jobCreated.code, emails: inviteEmails.filter((e) => e.trim()) }),
           retries: 1,
         }
       );

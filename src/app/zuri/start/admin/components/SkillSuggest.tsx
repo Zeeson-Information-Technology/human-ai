@@ -39,7 +39,8 @@ export default function SkillSuggest({
         setLoading(true);
         const res = await apiFetch<{ ok: boolean; groups: Groups }>("/api/suggest/skills", {
           method: "POST",
-          body: { title: tval }, // title-only to preserve tokens
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ title: tval }), // title-only to preserve tokens
           retries: 0,
         });
         if (res?.ok) {

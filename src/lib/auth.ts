@@ -1,15 +1,20 @@
 // src/lib/auth.ts
-import jwt, { JwtPayload } from "jsonwebtoken";
+import jwt, { JwtPayload, type Secret, type SignOptions } from "jsonwebtoken";
 
-const JWT_SECRET = process.env.JWT_SECRET || "changeme";
+const JWT_SECRET: Secret = (process.env.JWT_SECRET as string) || "changeme";
 
 export function signToken(
-  payload: object,
+  payload: string | Buffer | object,
   opts?: {
     expiresIn?: string | number;
   }
 ) {
-  return jwt.sign(payload, JWT_SECRET, { expiresIn: opts?.expiresIn ?? "1h" });
+  const options: SignOptions = {};
+  if (typeof opts?.expiresIn !== "undefined") {
+    // jsonwebtoken@9 types use a branded StringValue; coerce safely
+    options.expiresIn = opts.expiresIn as any;
+  }
+  return jwt.sign(payload as any, JWT_SECRET, options);
 }
 
 export interface TokenPayload extends JwtPayload {
@@ -20,7 +25,7 @@ export interface TokenPayload extends JwtPayload {
 
 export function verifyToken(token: string): TokenPayload | null {
   try {
-    const decoded = jwt.verify(token, JWT_SECRET);
+    const decoded = jwt.verify(token, JWT_SECRET as Secret);
     if (!decoded || typeof decoded === "string") {
       return null; // reject string payloads
     }

@@ -1,3 +1,6 @@
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 import dbConnect from "@/lib/db-connect";
 import { Job } from "@/model/job";
 import { getOperatorFromCookies } from "@/lib/get-operator";

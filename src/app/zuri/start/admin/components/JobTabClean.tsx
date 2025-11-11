@@ -173,7 +173,12 @@ export default function JobTab(props: JobTabProps) {
               setTitleBusy(true);
               apiFetch<{ ok: boolean; suggestion: string; alternates: string[]; confidence: number }>(
                 "/api/suggest/title",
-                { method: "POST", body: { text: tval }, retries: 0 }
+                {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ text: tval }),
+                  retries: 0,
+                }
               )
                 .then((res) => {
                   if (res?.ok) {
@@ -521,7 +526,7 @@ export default function JobTab(props: JobTabProps) {
           />
           <button
             type="button"
-            onClick={onAddSkill}
+            onClick={() => onAddSkill()}
             className="rounded-xl border px-4 py-2 text-sm bg-white text-black hover:bg-gray-50 min-w-[140px] shadow-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/40 cursor-pointer"
           >
             Add Skill

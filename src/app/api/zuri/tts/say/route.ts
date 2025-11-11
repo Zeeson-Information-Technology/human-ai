@@ -1,5 +1,9 @@
 import { NextRequest } from "next/server";
-import { SynthesizeSpeechCommand, type VoiceId } from "@aws-sdk/client-polly";
+import {
+  SynthesizeSpeechCommand,
+  type VoiceId,
+  type SynthesizeSpeechCommandInput,
+} from "@aws-sdk/client-polly";
 
 // Reuse shared Polly client (env/default chain)
 import { polly as getPolly } from "@/lib/aws-polly";
@@ -28,9 +32,15 @@ export async function GET(req: NextRequest) {
 
     // Build a resilient call strategy: try neural w/o LanguageCode, then fallback
     const client = await getPolly(REGION);
-    const attempts: Array<Record<string, any>> = [
+    const attempts: SynthesizeSpeechCommandInput[] = [
       // Most compatible: let Polly infer language from voice; request neural engine
-      { OutputFormat: "mp3", Text: text, VoiceId: voice, Engine: "neural", TextType: "text" },
+      {
+        OutputFormat: "mp3",
+        Text: text,
+        VoiceId: voice,
+        Engine: "neural",
+        TextType: "text",
+      },
       // Fallback to standard engine
       { OutputFormat: "mp3", Text: text, VoiceId: voice, TextType: "text" },
     ];

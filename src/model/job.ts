@@ -223,8 +223,7 @@ const JobSchema = new Schema<JobDoc>(
   { timestamps: true }
 );
 
-// keep one unique index for code
-JobSchema.index({ code: 1 }, { unique: true });
+// 'code' already has unique: true on the schema path; avoid duplicate index
 JobSchema.index({ ownerId: 1, createdAt: -1 });
 
 /* -------------------------------------------------------------------------- */
