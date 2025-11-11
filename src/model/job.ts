@@ -123,6 +123,8 @@ export interface JobDoc extends Document {
   company?: string;
   roleId?: Types.ObjectId;
   roleName?: string;
+  ownerId?: Types.ObjectId; // company/admin user who created the job
+  ownerEmail?: string;
   languages: string[];
   jdText: string;
 
@@ -170,6 +172,8 @@ const JobSchema = new Schema<JobDoc>(
     company: { type: String },
     roleId: { type: Schema.Types.ObjectId, ref: "Role" },
     roleName: { type: String },
+    ownerId: { type: Schema.Types.ObjectId, index: true },
+    ownerEmail: { type: String },
     languages: [{ type: String, required: true }],
     jdText: { type: String, required: true },
 
@@ -221,6 +225,7 @@ const JobSchema = new Schema<JobDoc>(
 
 // keep one unique index for code
 JobSchema.index({ code: 1 }, { unique: true });
+JobSchema.index({ ownerId: 1, createdAt: -1 });
 
 /* -------------------------------------------------------------------------- */
 /*                             HMR-Safe Model Export                          */

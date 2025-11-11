@@ -147,6 +147,8 @@ export default function ClientJobManager({
   const [inviteEmails, setInviteEmails] = useState<string[]>([""]);
   const [inviteBusy, setInviteBusy] = useState(false);
   const [inviteMsg, setInviteMsg] = useState<string | null>(null);
+  // UI: copied state for candidate link
+  const [linkCopied, setLinkCopied] = useState(false);
 
   // Derived
   const jdChars = (job.jdText || "").trim().length;
@@ -270,19 +272,32 @@ export default function ClientJobManager({
         <div className="flex items-center gap-2">
           <button
             onClick={toggleActive}
-            className={`rounded-lg px-3 py-1 text-sm font-medium ${
+            className={`rounded-lg px-3 py-1 text-sm font-medium cursor-pointer ${
               job.active ? "bg-emerald-600 text-white" : "bg-black text-white"
             }`}
           >
             {job.active ? "Active" : "Activate"}
           </button>
-          <a
-            href={`/jobs/apply?code=${job.code}`}
-            className="rounded-lg border px-3 py-1 text-sm hover:bg-gray-50"
-            target="_blank"
+          <button
+            type="button"
+            className="rounded-lg border px-3 py-1 text-sm hover:bg-gray-50 cursor-pointer"
+            onClick={() => {
+              try {
+                const origin = typeof window !== "undefined" ? window.location.origin : "";
+                const url = `${origin}/jobs/apply?code=${job.code}`;
+                navigator.clipboard.writeText(url);
+                setLinkCopied(true);
+                window.setTimeout(() => setLinkCopied(false), 2000);
+              } catch {}
+            }}
+            title="Copy public candidate apply link"
+            aria-label="Copy public candidate apply link"
           >
-            Candidate link
-          </a>
+            {linkCopied ? "Copied!" : "Copy candidate link"}
+          </button>
+          {linkCopied && (
+            <span className="text-xs text-emerald-700" aria-live="polite">Link copied</span>
+          )}
         </div>
       </div>
 

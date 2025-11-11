@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "@/lib/use-session";
+import BrandLoader from "@/components/brand-loader";
 import AdminStartForm from "./AdminStartForm";
 
 export default function InterviewAdminStartPage() {
@@ -18,8 +19,8 @@ export default function InterviewAdminStartPage() {
 
   const allowed = user && (user.role === "admin" || user.role === "company");
 
-  // Stable placeholder until we know
-  if (loading || !allowed) return null;
+  // Premium loader while resolving auth/redirect
+  if (loading || !allowed) return <BrandLoader />;
 
   return <AdminStartForm />;
 }

@@ -19,3 +19,38 @@ export async function bedrockTurn(payload: ZuriTurnPayload): Promise<ZuriTurnRes
     attempt++;
   }
 }
+
+// Streaming variant: calls /api/zuri/bedrock/stream and emits deltas via onDelta.
+export async function bedrockTurnStream(
+  payload: ZuriTurnPayload,
+  onDelta: (chunk: string) => void
+): Promise<{ ok: boolean; text: string; error?: string }> {
+  try {
+    const r = await fetch("/api/zuri/bedrock/stream", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    if (!r.ok || !r.body) {
+      const errTxt = await r.text().catch(() => "stream failed");
+      return { ok: false, text: "", error: errTxt };
+    }
+    const reader = r.body.getReader();
+    const dec = new TextDecoder();
+    let full = "";
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      if (value && value.length) {
+        const s = dec.decode(value, { stream: true });
+        if (s) {
+          full += s;
+          onDelta(s);
+        }
+      }
+    }
+    return { ok: true, text: full };
+  } catch (e: any) {
+    return { ok: false, text: "", error: e?.message || "stream error" };
+  }
+}

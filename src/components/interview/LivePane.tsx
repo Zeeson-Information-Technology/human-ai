@@ -155,11 +155,32 @@ export default function LivePane({
     onAssistant: async (text: string, followups?: string[]) => {
       const t = (text || "").trim();
       if (!t) return;
-      setMessages((prev) => [...prev, { role: "assistant", content: t }]);
+      // If streaming already created an assistant message, replace its content; else append new
+      setMessages((prev) => {
+        if (prev.length && prev[prev.length - 1]?.role === "assistant") {
+          const copy = [...prev];
+          copy[copy.length - 1] = { role: "assistant", content: t } as any;
+          return copy;
+        }
+        return [...prev, { role: "assistant", content: t }];
+      });
       try {
         await appendAIStep(t, followups?.[0]);
       } catch {}
       await speak(t);
+    },
+    onAssistantStream: (delta: string) => {
+      const d = (delta || "").toString();
+      if (!d) return;
+      setMessages((prev) => {
+        if (prev.length === 0 || prev[prev.length - 1].role !== "assistant") {
+          return [...prev, { role: "assistant", content: d }];
+        }
+        const copy = [...prev];
+        const last = copy[copy.length - 1] as { role: "assistant" | "user"; content: string };
+        copy[copy.length - 1] = { ...last, content: last.content + d } as any;
+        return copy as any;
+      });
     },
   });
 

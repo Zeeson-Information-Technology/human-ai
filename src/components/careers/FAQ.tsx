@@ -18,18 +18,25 @@ const faqs = [
 
 export default function FAQ() {
   return (
-    <section className="py-12 sm:py-16 bg-gray-50">
+    <section className="py-16 sm:py-20">
       <div className="mx-auto max-w-5xl px-4">
         <div className="text-center">
-          <h2 className="text-3xl font-extrabold tracking-tight sm:text-4xl">
+          <h2 className="text-3xl font-extrabold tracking-tight sm:text-4xl text-neutral-900 dark:text-neutral-100">
             Frequently asked questions
           </h2>
         </div>
-        <div className="mt-12">
+        <div className="mt-12 grid gap-4">
           {faqs.map((faq) => (
-            <div key={faq.question} className="mb-8">
-              <h3 className="text-xl font-semibold">{faq.question}</h3>
-              <p className="mt-2 text-lg text-gray-700">{faq.answer}</p>
+            <div
+              key={faq.question}
+              className="rounded-2xl border border-black/10 bg-white p-6 shadow-sm dark:border-white/10 dark:bg-neutral-900"
+            >
+              <h3 className="text-lg font-semibold text-neutral-900 dark:text-neutral-100">
+                {faq.question}
+              </h3>
+              <p className="mt-2 text-base leading-7 text-neutral-800 dark:text-neutral-200">
+                {faq.answer}
+              </p>
             </div>
           ))}
         </div>
@@ -37,3 +44,4 @@ export default function FAQ() {
     </section>
   );
 }
+

@@ -12,11 +12,9 @@ import FAQ from "@/components/careers/FAQ";
 async function getOpenJobs() {
   const res = await fetch(
     `${process.env.NEXT_PUBLIC_SITE_URL || ""}/api/public/jobs`,
-    {
-      cache: "no-store",
-    }
+    { cache: "no-store" }
   );
-  if (!res.ok) return [];
+  if (!res.ok) return [] as any[];
   const { jobs } = await res.json();
   return jobs || [];
 }
@@ -32,46 +30,64 @@ export default async function JobsPage() {
       <Nav />
 
       {/* Hero */}
-      <section className="pt-10 text-center">
+      <section className="pt-24 md:pt-32 text-center">
         <div className="mx-auto max-w-3xl px-4">
-          <h1 className="mt-4 text-4xl font-extrabold tracking-tight sm:text-6xl">
-            Work with top Silicon Valley companies remotely
+          <h1 className="mt-2 text-4xl font-extrabold tracking-tight sm:text-6xl">
+            Find your next role across Africa and the world
           </h1>
 
           <p className="mt-4 text-gray-700">
-            Define your own rate, get bi-weekly pay, and long term engagements
+            Discover opportunities with trusted companies. Apply in minutes,
+            complete a simple screening, and get timely updates. Remote and
+            on‑site roles — fair, transparent, and people‑first.
           </p>
-          <div className="mt-6">
+          <div className="mt-6 flex items-center justify-center gap-3">
             <Link
               href="/jobs#job-listings"
-              className="rounded-xl bg-black px-6 py-3 text-white font-medium hover:opacity-90"
+              className="inline-flex items-center 
+              justify-center rounded-2xl px-6 py-3 text-white 
+              font-semibold bg-gradient-to-r from-emerald-600 
+              via-teal-600 to-sky-600 shadow-lg 
+              shadow-emerald-500/20 hover:shadow-emerald-600/30 
+              hover:opacity-95 transition-transform hover:-translate-y-0.5 
+              min-w-[220px] md:min-w-[260px]"
+              aria-label="Get hired: browse open roles"
             >
               Get hired
+            </Link>
+            <Link
+              href="/zuri/start/login?role=talent"
+              className="rounded-xl border px-6 py-3 
+              font-medium hover:bg-gray-50"
+            >
+              Create your profile
             </Link>
           </div>
         </div>
       </section>
 
+      {/* Value sections */}
       <WhyJoinUs />
       <HowItWorks />
       <Testimonials />
       <FAQ />
 
+      {/* Listings */}
       <div id="job-listings" className="mx-auto max-w-5xl px-4 py-10">
-        <div className="flex items-center justify-between mb-4">
-          <h1 className="text-2xl font-bold">Open Jobs</h1>
+        <div className="mb-4 flex items-center justify-between">
+          <h2 className="text-2xl font-bold">Open Jobs</h2>
           {user && (
             <Link
               href="/talent"
               className="text-sm text-gray-600 hover:text-gray-800"
             >
-              ← Back to Dashboard
+              Back to dashboard
             </Link>
           )}
         </div>
 
         <p className="mb-6 text-gray-600">
-          Browse open roles and apply to start your AI interview.
+          Browse active roles and apply to start your screening.
         </p>
 
         <div className="grid gap-6">
@@ -89,17 +105,18 @@ export default async function JobsPage() {
               <div>
                 <div className="font-semibold text-lg">{job.title}</div>
                 <div className="text-sm text-gray-600">
-                  {job.company || "—"} • {job.languages.join(", ")} • Code:{" "}
-                  {job.code}
+                  {job.company || "-"} -{" "}
+                  {Array.isArray(job.languages) ? job.languages.join(", ") : ""}{" "}
+                  - Code: {job.code}
                 </div>
                 <div className="mt-2 text-xs text-gray-500">
-                  {job.jdText?.slice(0, 120)}...
+                  {(job.jdText || "").slice(0, 140)}
+                  {(job.jdText || "").length > 140 ? "..." : ""}
                 </div>
               </div>
               <Link
-                href={`/jobs/apply?code=${job.code}`}
-                className="rounded-xl bg-white px-4 py-2 text-black
-              font-medium hover:opacity-90 cursor-pointer"
+                href={`/jobs/apply?code=${encodeURIComponent(job.code)}`}
+                className="rounded-xl bg-white px-4 py-2 text-black font-medium hover:opacity-90 cursor-pointer"
               >
                 Apply / Start Interview
               </Link>

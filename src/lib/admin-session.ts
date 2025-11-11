@@ -28,7 +28,9 @@ export async function getAdminFromCookies(): Promise<AdminSession | null> {
     const adminCookie = jar.get("admin_token")?.value || "";
     const userCookie = jar.get("token")?.value || "";
 
-    const payload = verifyToken(adminCookie || userCookie || "");
+    // Prefer admin cookie if valid; else fall back to user cookie
+    let payload = adminCookie ? verifyToken(adminCookie) : null;
+    if (!payload && userCookie) payload = verifyToken(userCookie);
     if (!payload || typeof payload === "string") return null;
 
     const role = String(payload.role || "");

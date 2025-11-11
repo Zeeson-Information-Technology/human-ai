@@ -6,25 +6,51 @@ import { redirect } from "next/navigation";
 import { getAdminFromCookies } from "@/lib/admin-session";
 import DashboardShell from "@/components/dashboardBar";
 import { getOperatorFromCookies } from "@/lib/get-operator";
-import { isAdminAreaRole, companyRootIdOf } from "@/lib/admin-auth";
+import { isAdminAreaRole } from "@/lib/admin-auth";
 import { Types } from "mongoose";
 
-async function getStats(rootId: string | undefined) {
+// Dashboard summary counts
+// - Admin: global
+// - Company: sessions they created OR sessions for jobs they own
+async function getStats(me?: { id?: string; role?: string }) {
   await dbConnect();
-  // Guard: only query if rootId is defined and valid
-  if (!rootId || !Types.ObjectId.isValid(rootId)) {
+  const isAdmin = me?.role === "admin";
+  if (isAdmin) {
+    const [jobs, totalSessions, finishedSessions] = await Promise.all([
+      Job.countDocuments({}),
+      Session.countDocuments({}),
+      Session.countDocuments({ status: "finished" }),
+    ]);
+    return {
+      jobs,
+      totalSessions,
+      finishedSessions,
+      runningSessions: Math.max(totalSessions - finishedSessions, 0),
+    };
+  }
+
+  const meId = me?.id ? new Types.ObjectId(me.id) : null;
+  if (!meId)
     return {
       jobs: 0,
       totalSessions: 0,
       finishedSessions: 0,
       runningSessions: 0,
     };
-  }
+
+  const jobIds = (await Job.find({ ownerId: meId }).distinct(
+    "_id"
+  )) as unknown as Types.ObjectId[];
+  const sessionFilter = {
+    $or: [{ ownerId: meId }, { jobId: { $in: jobIds } }],
+  } as any;
+
   const [jobs, totalSessions, finishedSessions] = await Promise.all([
-    Job.countDocuments({ roleId: rootId }),
-    Session.countDocuments({ companyRootId: rootId }),
-    Session.countDocuments({ companyRootId: rootId, status: "finished" }),
+    Job.countDocuments({ ownerId: meId }),
+    Session.countDocuments(sessionFilter),
+    Session.countDocuments({ ...sessionFilter, status: "finished" }),
   ]);
+
   return {
     jobs,
     totalSessions,
@@ -42,12 +68,15 @@ export default async function AdminHomePage() {
   if (!me || !isAdminAreaRole(me.role))
     redirect("/zuri/start/login?role=admin");
 
-  const rootId = companyRootIdOf(me);
-  const stats = await getStats(rootId); // pass company scope
+  const stats = await getStats(me);
 
   return (
     <DashboardShell
-      user={{ name: me.name || "Admin", email: me.email, role: me.role as any }}
+      user={{
+        name: me.email ?? "Admin",
+        email: me.email,
+        role: me.role as any,
+      }}
       title="Admin"
       nav={[
         { href: "/admin", label: "Dashboard", exact: true },
@@ -78,9 +107,7 @@ export default async function AdminHomePage() {
           <div className="mt-1 text-2xl font-semibold">
             {stats.totalSessions}
           </div>
-          <div className="mt-2 text-sm text-gray-600">
-            {stats.finishedSessions} finished • {stats.runningSessions} running
-          </div>
+          <div className="mt-2 text-sm text-gray-600">{`${stats.finishedSessions} finished | ${stats.runningSessions} running`}</div>
         </Link>
 
         <Link

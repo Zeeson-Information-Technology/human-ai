@@ -3,8 +3,13 @@ import jwt, { JwtPayload } from "jsonwebtoken";
 
 const JWT_SECRET = process.env.JWT_SECRET || "changeme";
 
-export function signToken(payload: object) {
-  return jwt.sign(payload, JWT_SECRET, { expiresIn: "1h" });
+export function signToken(
+  payload: object,
+  opts?: {
+    expiresIn?: string | number;
+  }
+) {
+  return jwt.sign(payload, JWT_SECRET, { expiresIn: opts?.expiresIn ?? "1h" });
 }
 
 export interface TokenPayload extends JwtPayload {

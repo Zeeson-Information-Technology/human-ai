@@ -23,6 +23,9 @@ export async function GET(
       company: job.company || "",
       languages: job.languages || [],
       jdText: job.jdText || "",
+      screenerQuestions: Array.isArray(job.screenerQuestions) ? job.screenerQuestions : [],
+      screenerRules: Array.isArray(job.screenerRules) ? job.screenerRules : [],
+      interviewOnApply: job.interviewOnApply ?? true,
       createdAt: job.createdAt?.toISOString?.() || "",
     },
   });

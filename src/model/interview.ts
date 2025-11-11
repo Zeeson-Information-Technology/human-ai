@@ -210,7 +210,7 @@ const InterviewSessionSchema = new Schema<InterviewSessionDoc>(
     steps: { type: [StepAnswerSchema], default: [] },
     scores: { type: Map, of: Number, default: undefined },
     notes: { type: String, default: "" },
-    token: { type: String, required: true, index: true },
+    token: { type: String, required: true },
   },
   { timestamps: true }
 );

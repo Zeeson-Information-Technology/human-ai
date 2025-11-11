@@ -1,51 +1,55 @@
 const testimonials = [
   {
-    name: "Mark Esposito",
-    title: "PhD, Harvard",
+    name: "Amina Bello",
+    title: "PhD, Ahmadu Bello University",
     quote:
-      "One of the best firm for data management, data science and human data. Excellent team, excellent ethos and just great folks to work with !",
+      "Euman AI opened doors for my research and consulting beyond Nigeria. The process is respectful, clear, and focused on real outcomes.",
   },
   {
-    name: "Zack Michaelson",
-    title: "PhD, NYU",
+    name: "Chinedu Okafor",
+    title: "Senior Software Engineer, Lagos",
     quote:
-      "Having worked in AI and tech consulting for decades, I'm really impressed by how they are able to close deals with the top clients and retain them through relationship management. They are delivering work that would be the dream of their much larger competitors. It's a testament to being on to a new model for delivering expert-driven tech consulting. Amazing how they've been able to build it so successfully and quickly! Great job Ali, Neet, and team!",
+      "I value how transparent the projects are and how quickly the team pays. I choose remote roles that fit my schedule and still grow my skills.",
   },
   {
-    name: "Muhammad A",
-    title: "Developer",
+    name: "Zainab Yusuf",
+    title: "Data Scientist, Abuja",
     quote:
-      "Euman AI has changed my life. Ever since I discover them and sign up, they have provided me with 5 different software engineering opportunities. I am forever grateful for them.",
+      "From screening to onboarding, it was smooth. I now work with teams building products used across Africa, and my work is fairly measured and rewarded.",
   },
   {
-    name: "Amisha Parkhe",
-    title: "Developer",
+    name: "Kofi Mensah",
+    title: "ML Engineer, Accra",
     quote:
-      "I was honestly surprised by how seamless the whole process was. No unnecessary steps, no confusion—just clear communication and solid support all the way through.",
+      "Strong communication, realistic scopes, and a community that helps. It feels like a platform designed for African talent to thrive globally.",
+  },
+  {
+    name: "Lerato M.",
+    title: "NLP Researcher, University of Cape Town",
+    quote:
+      "Projects that respect linguistics and real-world context. I contribute in local languages and see the impact in production systems.",
   },
 ];
 
 export default function Testimonials() {
   return (
-    <section className="py-12 sm:py-16">
+    <section className="py-16 sm:py-20">
       <div className="mx-auto max-w-5xl px-4">
         <div className="text-center">
-          <h2 className="text-3xl font-extrabold tracking-tight sm:text-4xl">
+          <h2 className="text-3xl font-extrabold tracking-tight sm:text-4xl text-neutral-900 dark:text-neutral-100">
             Hear from Euman AI talent
           </h2>
         </div>
-        <div className="mt-12 grid grid-cols-1 gap-8 sm:grid-cols-2">
-          {testimonials.map((testimonial) => (
+        <div className="mt-12 grid grid-cols-1 gap-6 sm:grid-cols-2">
+          {testimonials.map((t) => (
             <div
-              key={testimonial.name}
-              className="rounded-2xl border bg-gray-50 p-6"
+              key={t.name}
+              className="rounded-2xl border border-black/10 bg-white p-6 shadow-sm dark:border-white/10 dark:bg-neutral-900"
             >
-              <p className="text-lg text-gray-700">{testimonial.quote}</p>
-              <div className="mt-6 flex items-center">
-                <div>
-                  <p className="font-semibold">{testimonial.name}</p>
-                  <p className="text-sm text-gray-600">{testimonial.title}</p>
-                </div>
+              <p className="text-base leading-7 text-neutral-800 dark:text-neutral-200">{t.quote}</p>
+              <div className="mt-5">
+                <p className="font-semibold text-neutral-900 dark:text-neutral-100">{t.name}</p>
+                <p className="text-sm text-neutral-600 dark:text-neutral-400">{t.title}</p>
               </div>
             </div>
           ))}

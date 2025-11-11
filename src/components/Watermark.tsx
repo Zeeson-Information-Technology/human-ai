@@ -30,7 +30,7 @@ export default function Watermark() {
       <div
         ref={wrapRef}
         className="relative mx-auto w-[calc(100vw+2rem)] -mx-4 max-w-none overflow-hidden \
-                   h-72 sm:h-96 md:h-[28rem] lg:h-[34rem] xl:h-[40rem] 2xl:h-[48rem] opacity-5"
+                   h-72 sm:h-96 md:h-[28rem] lg:h-[34rem] xl:h-[40rem] 2xl:h-[48rem] opacity-[0.03]"
         style={{
           transform:
             "translate(var(--pointer-x,0), var(--pointer-y,0)) translateZ(0)",
@@ -57,7 +57,7 @@ export default function Watermark() {
             transform:
               "translate(var(--pointer-x,0), var(--pointer-y,0)) translateZ(0)",
             transition: "opacity .6s ease-in-out",
-            opacity: 0.15,
+            opacity: 0.1,
           }}
         />
       </div>
