@@ -38,6 +38,7 @@ export async function bedrockTurnStream(
     const reader = r.body.getReader();
     const dec = new TextDecoder();
     let full = "";
+    let sawErrorPrefix = false;
     while (true) {
       const { value, done } = await reader.read();
       if (done) break;
@@ -45,9 +46,34 @@ export async function bedrockTurnStream(
         const s = dec.decode(value, { stream: true });
         if (s) {
           full += s;
+          const start = full.trimStart();
+          if (!sawErrorPrefix && start.startsWith("[error]")) {
+            sawErrorPrefix = true;
+            // Suppress emitting error text to UI; continue reading to finish
+            continue;
+          }
+          // Suppress JSON scaffolding during stream; defer clean question to final
+          const chunkTrim = s.trimStart();
+          if (chunkTrim.startsWith("{") || /"text"\s*:\s*"/i.test(chunkTrim)) {
+            continue;
+          }
           onDelta(s);
         }
       }
+    }
+    if (sawErrorPrefix) {
+      const cleaned = full.replace(/^\s*\[error\]\s*/i, "").trim();
+      return { ok: false, text: "", error: cleaned || "stream error" };
+    }
+    // If the provider returned a JSON wrapper like {"text":"...","followups":[]}, extract .text
+    const trimmed = full.trim();
+    if (/^\{[\s\S]*\}$/.test(trimmed)) {
+      try {
+        const obj = JSON.parse(trimmed);
+        if (obj && typeof obj.text === "string") {
+          return { ok: true, text: String(obj.text || "").trim() };
+        }
+      } catch {}
     }
     return { ok: true, text: full };
   } catch (e: any) {

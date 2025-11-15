@@ -1,5 +1,5 @@
 const assert = require('node:assert');
-const { chooseProviderName, isThrottleOrQuota } = require('../src/lib/llm/provider');
+const { chooseProviderName, isThrottleOrQuota } = require('../src/lib/llm/provider-test-shim');
 
 {
   const old = process.env.LLM_PROVIDER;
@@ -19,4 +19,3 @@ const { chooseProviderName, isThrottleOrQuota } = require('../src/lib/llm/provid
 }
 
 console.log('provider-config.test: OK');
-

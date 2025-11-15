@@ -42,8 +42,9 @@ export function useTurnQueue({
       return;
 
     inFlightRef.current = true;
+    const streamEnabled = (process.env.NEXT_PUBLIC_TURN_STREAM || "1") !== "0";
     try {
-      if (onAssistantStream) {
+      if (onAssistantStream && streamEnabled) {
         let full = "";
         const { ok, text, error } = await bedrockTurnStream(
           { sessionId, token, jobContext, resumeSummary, history, answer: t },
@@ -71,8 +72,9 @@ export function useTurnQueue({
     } finally {
       inFlightRef.current = false;
       cooldownRef.current = true;
-      // Align with server minGap (2500ms) to avoid bursts
-      setTimeout(() => (cooldownRef.current = false), onAssistantStream ? 1500 : 2500);
+      // Align with server minGap (2500ms) to avoid bursts; be slightly above if streaming
+      const delay = onAssistantStream && streamEnabled ? 2600 : 2500;
+      setTimeout(() => (cooldownRef.current = false), delay);
     }
   }
 

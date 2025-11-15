@@ -32,6 +32,64 @@ export default async function InterviewRunPage({
   const session = await fetchSession(id, token);
   if (!session) redirect("/zuri/start");
 
+  if (session.status === "finished") {
+    const finishedAt =
+      session.finishedAt && typeof session.finishedAt === "string"
+        ? new Date(session.finishedAt)
+        : session.finishedAt instanceof Date
+        ? session.finishedAt
+        : null;
+
+    const finishedLabel = finishedAt
+      ? finishedAt.toLocaleString(undefined, {
+          dateStyle: "medium",
+          timeStyle: "short",
+        })
+      : null;
+
+    return (
+      <main className="min-h-[100svh] w-full bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 text-slate-100 flex items-center justify-center px-4">
+        <div className="w-full max-w-lg rounded-3xl border border-slate-800 bg-slate-950/70 shadow-xl p-8 text-center space-y-6">
+          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-emerald-500/15 text-emerald-400">
+            <svg
+              aria-hidden="true"
+              viewBox="0 0 24 24"
+              className="h-6 w-6"
+            >
+              <path
+                fill="currentColor"
+                d="M12 2a10 10 0 1 0 10 10A10.011 10.011 0 0 0 12 2Zm4.3 8.3-4.5 4.5a1 1 0 0 1-1.4 0l-2.5-2.5a1 1 0 0 1 1.4-1.4l1.8 1.79 3.8-3.79a1 1 0 0 1 1.4 1.41Z"
+              />
+            </svg>
+          </div>
+          <div className="space-y-2">
+            <h1 className="text-2xl font-semibold">
+              Interview already completed
+            </h1>
+            <p className="text-sm text-slate-300">
+              Our records show that you&apos;ve already completed this interview
+              for the invited role
+              {finishedLabel ? ` on ${finishedLabel}` : ""}. You don&apos;t
+              need to do anything else.
+            </p>
+          </div>
+          <p className="text-xs text-slate-500">
+            If you believe this is a mistake, please contact your recruiter or
+            reply to the invitation email so the team can review your status.
+          </p>
+          <div className="flex justify-center pt-2">
+            <a
+              href="/jobs"
+              className="inline-flex items-center justify-center rounded-full bg-slate-100 px-4 py-2 text-sm font-medium text-slate-900 hover:bg-white transition-colors"
+            >
+              Browse other roles
+            </a>
+          </div>
+        </div>
+      </main>
+    );
+  }
+
   const jobContext: string = [
     session?.jdTextSnapshot,
     (session?.focusAreasSnapshot || []).join(", "),

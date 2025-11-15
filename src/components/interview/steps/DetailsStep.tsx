@@ -1,5 +1,6 @@
 "use client";
 import { SectionCard, PrimaryButton } from "@/components/interview/atoms";
+import { useState } from "react";
 
 export default function DetailsStep({
   dark = false,
@@ -24,8 +25,23 @@ export default function DetailsStep({
   onPhone: (v: string) => void;
   onResume: (f: File | null) => void;
   error?: string;
-  onSubmit: () => void;
+  onSubmit: () => void | Promise<any>;
 }) {
+  const [busy, setBusy] = useState(false);
+
+  async function handleSubmit() {
+    if (busy) return;
+    setBusy(true);
+    try {
+      const res = onSubmit();
+      if (res instanceof Promise) {
+        await res;
+      }
+    } finally {
+      // The parent likely navigates to the next step; this is a safety.
+      setBusy(false);
+    }
+  }
   return (
     <>
       <h1 className="text-3xl font-semibold mt-8 mb-4">
@@ -83,12 +99,24 @@ export default function DetailsStep({
           )}
 
           <div className="mt-2 cursor-pointer">
-            <PrimaryButton dark={dark} onClick={onSubmit}>
+            <PrimaryButton dark={dark} onClick={handleSubmit} disabled={busy}>
               Screen-share & continue
             </PrimaryButton>
           </div>
         </div>
       </SectionCard>
+
+      {busy && (
+        <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm grid place-items-center">
+          <div className="flex flex-col items-center gap-3">
+            <svg className="h-8 w-8 animate-spin text-white" viewBox="0 0 24 24">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+              <path className="opacity-90" fill="currentColor" d="M4 12a8 8 0 018-8v4A4 4 0 008 12H4z" />
+            </svg>
+            <div className="text-white/90 text-sm">Preparing your interview…</div>
+          </div>
+        </div>
+      )}
     </>
   );
 }
