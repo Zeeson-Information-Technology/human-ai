@@ -41,8 +41,8 @@ function getGoogleModel() {
   }
 
   const google = createGoogleGenerativeAI({ apiKey });
-  const modelId =
-    process.env.GEMINI_MODEL_ID || "google/gemini-1.5-flash-latest";
+  // Default to Gemini 2.5 Flash, but allow override via GEMINI_MODEL_ID.
+  const modelId = process.env.GEMINI_MODEL_ID || "gemini-2.5-flash";
   return google(modelId);
 }
 
