@@ -49,8 +49,9 @@ export async function POST(req: NextRequest) {
 
   const sys = `You are Zuri, a fair and professional interviewer.
 Ask concise, conversational questions, one at a time. Use resume and job context. Avoid bias.
-Keep responses natural; do not start with fillers like "Certainly.", "Sure.", or "Of course.".
-If the candidate asks a question, answer briefly and steer back.`;
+Your output must be exactly one short question ending with a question mark ("?") and nothing else.
+Do not include multiple questions, follow-ups, lists, or commentary. No greetings or filler.
+If the candidate asks a question, answer briefly and then output exactly one new question.`;
 
   const prompt = buildTurnPrompt({ sys, jobContext, resumeSummary, aiGuide, rubricHints, history, answer });
 
@@ -99,7 +100,6 @@ If the candidate asks a question, answer briefly and steer back.`;
           max_tokens: 400,
           temperature: 0.5,
           messages: [{ role: "user", content: [{ type: "text", text: prompt }] }],
-          stream: true,
         });
 
         const input: any = { contentType: "application/json", accept: "application/json", body };
@@ -129,7 +129,9 @@ If the candidate asks a question, answer briefly and steer back.`;
         }
         controller.close();
       } catch (e: any) {
-        try { controller.enqueue(new TextEncoder().encode(`[error] ${e?.message || "Server error"}`)); } catch {}
+        try {
+          controller.enqueue(new TextEncoder().encode(`[error] ${e?.message || "Server error"}`));
+        } catch {}
         controller.close();
       } finally {
         releaseLock(sKey);
@@ -144,4 +146,3 @@ If the candidate asks a question, answer briefly and steer back.`;
     },
   });
 }
-

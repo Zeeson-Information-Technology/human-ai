@@ -1,16 +1,15 @@
 "use client";
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { useEffect, useRef, useState, useMemo } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 // import { SectionCard } from "@/components/interview/atoms";
 import { useChimeClient } from "@/lib/use-chime";
 import { useTranscribe } from "@/lib/use-transcribe";
-import { useTurnQueue } from "@/components/interview/useTurnQueue";
-import type { ZuriHistoryTurn } from "@/lib/zuri-transport";
 import { ScreenShare } from "@/components/interview/steps/screen-share";
 import AvatarSpeaking from "@/components/interview/AvatarSpeaking";
 import { BRAND_FULL } from "@/lib/brand";
 import { useInterviewTimer } from "@/components/interview/timer/useInterviewTimer";
+import { splitForSpeak } from "@/lib/tts-ssml";
 import { TimerBadge } from "@/components/interview/timer/TimerBadge";
 import { PreBriefOverlay } from "@/components/modal/PreBriefOverlay";
 import { EntireScreenEnforcementModal } from "@/components/modal/EntireScreenEnforcementModal";
@@ -18,6 +17,7 @@ import { RequireShareModal } from "@/components/modal/RequireShareModal";
 import { ResumeModal } from "@/components/modal/ResumeModal";
 import { ConnectingOverlay } from "@/components/modal/ConnectingOverlay";
 import { EndInterviewModal } from "@/components/modal/EndInterviewModal";
+import { useChat } from "ai/react";
 
 type LivePaneProps = {
   dark?: boolean;
@@ -47,20 +47,16 @@ export default function LivePane({
   const router = useRouter();
   const endedRef = useRef(false);
 
-  const [messages, setMessages] = useState<
-    Array<{ role: "assistant" | "user"; content: string }>
-  >([]);
-
   const [isConnected, setIsConnected] = useState(false);
   const [hasWelcomed, setHasWelcomed] = useState(false);
   const [ready, setReady] = useState(false); // when to start the clock
   const isSpeakingRef = useRef(false); // suppress ASR while TTS playing
+  const speakSeqRef = useRef(0); // cancel token for chunked playback
   const lastAiSpokeAtRef = useRef(0);
   const bufferedAnswerRef = useRef<string>("");
   const debounceFlushRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [cameraError, setCameraError] = useState<string | null>(null);
   const [showEndModal, setShowEndModal] = useState(false);
-  const [pendingAnswer, setPendingAnswer] = useState("");
   const [showPrebrief, setShowPrebrief] = useState(true);
   const [showResume, setShowResume] = useState(false);
   const [shareSurface, setShareSurface] = useState<string>("unknown");
@@ -108,7 +104,6 @@ export default function LivePane({
       if (isShort && !hasEndPunct && !hasSpace) {
         return;
       }
-      setMessages((prev) => [...prev, { role: "user", content: text }]);
       // Debounced endpointing: accumulate finals and flush after pause
       const endPunct = /[.!?]$/;
       if (bufferedAnswerRef.current) {
@@ -133,65 +128,78 @@ export default function LivePane({
           const ans = (bufferedAnswerRef.current || "").trim();
           if (!ans) return;
           bufferedAnswerRef.current = "";
-          enqueueTurn({ history: historyForTurn, answer: ans });
+          // Send a single consolidated user turn into the chat stream
+          append({
+            role: "user",
+            content: ans,
+          }).catch((err) => {
+            console.warn("append user turn failed", err);
+          });
         };
         tryFlush();
       }, 1200);
     },
   });
 
-  const historyForTurn: ZuriHistoryTurn[] = useMemo(() => {
-    return messages.map((m) => ({
-      role: (m.role === "assistant" ? "assistant" : "user") as ZuriHistoryTurn["role"],
-      content: m.content,
-    }));
-  }, [messages]);
-
-  const { enqueueTurn } = useTurnQueue({
-    sessionId,
-    token,
-    jobContext,
-    resumeSummary,
-    onAssistant: async (text: string, followups?: string[]) => {
-      const t = (text || "").trim();
-      if (!t) return;
-      // If streaming already created an assistant message, replace its content; else append new
-      setMessages((prev) => {
-        if (prev.length && prev[prev.length - 1]?.role === "assistant") {
-          const copy = [...prev];
-          copy[copy.length - 1] = { role: "assistant", content: t } as any;
-          return copy;
-        }
-        return [...prev, { role: "assistant", content: t }];
-      });
-      try {
-        await appendAIStep(t, followups?.[0]);
-      } catch {}
-      await speak(t);
+  const { messages, append, setMessages } = useChat({
+    api: "/api/zuri/chat",
+    body: {
+      sessionId,
+      token,
+      jobContext,
+      resumeSummary,
     },
-    onAssistantStream: (delta: string) => {
-      const d = (delta || "").toString();
-      if (!d) return;
+    onError: (err) => {
+      // eslint-disable-next-line no-console
+      console.error("[LivePane] chat error", err);
+    },
+      onFinish: async (msg) => {
+        const raw = (msg?.content || "").trim();
+        if (!raw) return;
+      const parts = splitForSpeak(raw);
+      const pick =
+        parts.find((p) => /\?\s*$/.test(p.trim())) || parts[0] || raw;
+      const q = pick.trim();
+      // Clamp the visible assistant content to the primary question
       setMessages((prev) => {
-        if (prev.length === 0 || prev[prev.length - 1].role !== "assistant") {
-          return [...prev, { role: "assistant", content: d }];
+        if (!prev.length) {
+          return [
+            ...prev,
+            {
+              id: msg.id,
+              role: "assistant",
+              content: q,
+            },
+          ];
         }
         const copy = [...prev];
-        const last = copy[copy.length - 1] as { role: "assistant" | "user"; content: string };
-        copy[copy.length - 1] = { ...last, content: last.content + d } as any;
-        return copy as any;
-      });
-    },
+        // Replace last assistant message, otherwise append
+        for (let i = copy.length - 1; i >= 0; i--) {
+          if (copy[i].role === "assistant") {
+            copy[i] = { ...copy[i], content: q };
+            return copy;
+          }
+        }
+        copy.push({
+          id: msg.id,
+          role: "assistant",
+          content: q,
+        });
+        return copy;
+        });
+        try {
+          await appendAIStep(raw);
+        } catch {}
+        try {
+          await speak(q);
+        } catch (err) {
+          if (process.env.NODE_ENV !== "production") {
+            // eslint-disable-next-line no-console
+            console.error("[LivePane] speak in onFinish failed", err);
+          }
+        }
+      },
   });
-
-  // Trigger queued turn when we have a fresh final transcript
-  useEffect(() => {
-    const t = (pendingAnswer || "").trim();
-    if (!t) return;
-    enqueueTurn({ history: historyForTurn, answer: t });
-    setPendingAnswer("");
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pendingAnswer]);
 
   // Mic visualizer (VU meter) from active mic stream
   useEffect(() => {
@@ -227,39 +235,85 @@ export default function LivePane({
   }, [micStream]);
 
   async function speak(text: string) {
+    // Cancel any in-flight speak by bumping sequence
+    const mySeq = ++speakSeqRef.current;
     try {
+      if (process.env.NODE_ENV !== "production") {
+        // eslint-disable-next-line no-console
+        console.log("[LivePane] speak()", {
+          textPreview: text.slice(0, 80),
+        });
+      }
       isSpeakingRef.current = true;
       setSpeaking(true);
-      const ctrl = new AbortController();
-      const to = setTimeout(() => ctrl.abort(), 7000);
-      const r = await fetch(
-        `/api/zuri/tts/say?text=${encodeURIComponent(text)}`,
-        { signal: ctrl.signal }
-      ).catch((e) => {
-        throw e;
-      });
-      clearTimeout(to);
-      if (!r.ok) throw new Error("TTS failed");
-      const blob = await r.blob();
-      const url = URL.createObjectURL(blob);
-      if (audioRef.current) {
-        audioRef.current.src = url;
-        await audioRef.current.play();
-        audioRef.current.onended = () => {
-          isSpeakingRef.current = false;
-          lastAiSpokeAtRef.current = Date.now();
-          setSpeaking(false);
-        };
-      } else {
+
+      const chunks = splitForSpeak(text);
+      const parts = chunks.length > 0 ? chunks : [text];
+
+        for (const part of parts) {
+          if (speakSeqRef.current !== mySeq) return; // cancelled
+          // Try default provider, then fallback to AWS if it fails
+          async function fetchTts(url: string) {
+            try {
+              const res = await fetch(url);
+              if (process.env.NODE_ENV !== "production") {
+                // eslint-disable-next-line no-console
+                console.log("[LivePane] TTS fetch", {
+                  url,
+                  ok: res.ok,
+                  status: res.status,
+                  provider: res.headers.get("x-tts-provider") || null,
+                });
+              }
+              return res;
+            } catch (err) {
+              if (process.env.NODE_ENV !== "production") {
+                // eslint-disable-next-line no-console
+                console.error("[LivePane] TTS network error", err);
+              }
+              throw err;
+            }
+          }
+        let r = await fetchTts(`/api/zuri/tts/say?text=${encodeURIComponent(part)}`);
+        if (!r.ok) {
+          // provider override fallback
+          r = await fetchTts(`/api/zuri/tts/say?text=${encodeURIComponent(part)}&provider=aws`);
+        }
+        if (!r.ok) throw new Error("TTS failed");
+        const blob = await r.blob();
+        const url = URL.createObjectURL(blob);
+          if (audioRef.current) {
+            audioRef.current.src = url;
+            // play and await end; if autoplay is blocked, don't hang
+            let playFailed = false;
+            await audioRef.current.play().catch(() => {
+              playFailed = true;
+            });
+            if (!playFailed) {
+              await new Promise<void>((resolve) => {
+                if (!audioRef.current) return resolve();
+                const onEnd = () => {
+                  if (audioRef.current) audioRef.current.onended = null;
+                  resolve();
+                };
+                audioRef.current.onended = onEnd;
+              });
+            }
+          }
+      }
+      if (speakSeqRef.current !== mySeq) return;
+      isSpeakingRef.current = false;
+      lastAiSpokeAtRef.current = Date.now();
+      setSpeaking(false);
+    } catch (e) {
+      // Ensure flags are cleared on errors too
+      if (speakSeqRef.current === mySeq) {
         isSpeakingRef.current = false;
         lastAiSpokeAtRef.current = Date.now();
         setSpeaking(false);
       }
-    } catch (e) {
-      isSpeakingRef.current = false;
-      lastAiSpokeAtRef.current = Date.now();
-      console.warn("speak() failed", e);
-      setSpeaking(false);
+      // eslint-disable-next-line no-console
+      console.error("speak() failed", e);
     }
   }
 
@@ -277,33 +331,6 @@ export default function LivePane({
       );
     } catch (e) {
       console.warn("append-step failed", e);
-    }
-  }
-
-  async function sendAnswer(answer: string) {
-    const payload = {
-      sessionId,
-      token,
-      jobContext,
-      resumeSummary,
-      history: historyForTurn,
-      answer,
-    } as any;
-    const r = await fetch("/api/zuri/bedrock/turn", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
-    const j = await r.json().catch(() => ({}));
-    if (!r.ok || !j?.ok) throw new Error(j?.error || "turn failed");
-    const nextText: string = (j.next?.text || "").trim();
-    if (nextText) {
-      setMessages((prev) => [
-        ...prev,
-        { role: "assistant", content: nextText },
-      ]);
-      appendAIStep(nextText, (j.next?.followups || [])[0]);
-      await speak(nextText);
     }
   }
 
@@ -567,27 +594,41 @@ export default function LivePane({
       } catch {}
       return;
     }
-    // Hide pre-brief and start the timer immediately on Start
+    // Hide pre-brief on Start
     setHasWelcomed(true);
     setShowPrebrief(false);
-    startTimerOnce();
     // Start ASR on user gesture to avoid blocking the pre-brief
     try {
       await startTranscription();
     } catch {}
     try {
+      if (process.env.NODE_ENV !== "production") {
+        // eslint-disable-next-line no-console
+        console.log("[LivePane] beginInterview: initial question", {
+          companyName,
+          initialQuestionPreview: initialQuestion.slice(0, 120),
+        });
+      }
       // Record the initial question server-side
       await appendAIStep(initialQuestion);
       // Render the AI's first question immediately (no TTS blocking)
       setMessages((prev) => [
         ...prev,
-        { role: "assistant", content: initialQuestion },
+        {
+          id: `assistant-init-${Date.now()}`,
+          role: "assistant",
+          content: initialQuestion,
+        },
       ]);
-      // Fire-and-forget a short spoken welcome to reduce latency risk
-      const greeting = `Welcome to your interview for ${companyName}.`;
-      speak(greeting);
+      // Speak the same initial question we display and record
+      await speak(initialQuestion);
+      // Start the interview clock after the first prompt is spoken
+      startTimerOnce();
     } catch (e) {
-      console.warn("TTS greeting failed.", e);
+      // eslint-disable-next-line no-console
+      console.error("TTS greeting failed.", e);
+      // Ensure timer still starts even if TTS fails
+      startTimerOnce();
     }
   }
 

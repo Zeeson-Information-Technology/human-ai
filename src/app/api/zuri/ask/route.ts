@@ -1,8 +1,11 @@
-// Server: returns { nextQuestion, followupHint?, rubric? }
+// Server: returns a stream of { nextQuestion, followupHint?, rubric? }
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { streamObject } from "ai";
+import { getModelForProvider } from "@/lib/llm/provider";
 
 export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
 const schema = z.object({
   nextQuestion: z.string().min(5),
@@ -25,21 +28,9 @@ export async function POST(req: Request) {
     language = "en",
   } = body;
 
-  // Load AI SDK lazily; return 501 if not installed
-  const dynImport = (m: string) => (Function("return import(m)") as any)(m);
-  let generateObject: any, google: any;
-  try {
-    ({ generateObject } = await dynImport("ai"));
-    ({ google } = await dynImport("@ai-sdk/google"));
-  } catch {
-    return NextResponse.json(
-      { ok: false, error: "AI SDK not installed on this deployment" },
-      { status: 501 }
-    );
-  }
-
-  const { object } = await generateObject({
-    model: google("gemini-2.5-flash"),
+  const result = await streamObject({
+    // Cast to any to avoid LanguageModelV1/V2 type mismatch; runtime is fine.
+    model: getModelForProvider("google") as any,
     schema,
     system: [
       "You are Zuri, a structured, fair interviewer.",
@@ -59,5 +50,5 @@ export async function POST(req: Request) {
     ].join("\n\n"),
   });
 
-  return NextResponse.json({ ok: true, ...object });
+  return result.toTextStreamResponse();
 }

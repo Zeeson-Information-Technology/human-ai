@@ -66,6 +66,15 @@ export default function JobApplyPage() {
   const [hasResume, setHasResume] = useState(false);
   const [formErrors, setFormErrors] = useState<{ [key: string]: string }>({});
   const [showChromeBanner, setShowChromeBanner] = useState(false);
+  const [inviteFinished, setInviteFinished] = useState<{
+    checked: boolean;
+    finished: boolean;
+    finishedAt: string | null;
+  }>({
+    checked: false,
+    finished: false,
+    finishedAt: null,
+  });
 
   // Lock email when invite ties it to a specific address
   const emailLocked = useMemo(
@@ -81,6 +90,62 @@ export default function JobApplyPage() {
       }
     }
   }, [ivt, user, sessionLoading, router]);
+
+  // For invite flows: check if this candidate already has a finished session
+  useEffect(() => {
+    if (!ivt || !code || !emailFromLink) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const qs = new URLSearchParams({
+          code,
+          email: emailFromLink,
+          ivt,
+        });
+        const res = await fetch(`/api/zuri/sessions/invite-status?${qs}`, {
+          cache: "no-store",
+        });
+        const j = await res.json().catch(() => ({}));
+        if (process.env.NODE_ENV !== "production") {
+          // Log raw status so we can inspect in the browser console
+          // while debugging invite flows.
+          // eslint-disable-next-line no-console
+          console.log("[apply] invite-status", {
+            code,
+            emailFromLink,
+            ok: j?.ok,
+            hasSession: j?.hasSession,
+            status: j?.status,
+            finishedAt: j?.finishedAt,
+          });
+        }
+        if (cancelled) return;
+        if (res.ok && j?.ok && j.hasSession && j.status === "finished") {
+          setInviteFinished({
+            checked: true,
+            finished: true,
+            finishedAt: j.finishedAt || null,
+          });
+        } else {
+          setInviteFinished({
+            checked: true,
+            finished: false,
+            finishedAt: null,
+          });
+        }
+      } catch {
+        if (!cancelled) {
+          setInviteFinished((prev) => ({
+            ...prev,
+            checked: true,
+          }));
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [ivt, code, emailFromLink]);
 
   // Recommend Chrome for best screen-sharing experience
   useEffect(() => {
@@ -288,6 +353,64 @@ export default function JobApplyPage() {
   }
 
   const langs: string[] = Array.isArray(job?.languages) ? job.languages : [];
+
+  if (ivt && inviteFinished.checked && inviteFinished.finished) {
+    const label = inviteFinished.finishedAt
+      ? new Date(inviteFinished.finishedAt).toLocaleString(undefined, {
+          dateStyle: "medium",
+          timeStyle: "short",
+        })
+      : null;
+
+    return (
+      <div className="min-h-[100svh] bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 flex items-center justify-center px-4">
+        <div className="w-full max-w-lg rounded-3xl border border-slate-800 bg-slate-950/70 shadow-xl p-8 text-center space-y-6">
+          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-emerald-500/15 text-emerald-400">
+            <svg aria-hidden="true" viewBox="0 0 24 24" className="h-6 w-6">
+              <path
+                fill="currentColor"
+                d="M12 2a10 10 0 1 0 10 10A10.011 10.011 0 0 0 12 2Zm4.3 8.3-4.5 4.5a1 1 0 0 1-1.4 0l-2.5-2.5a1 1 0 0 1 1.4-1.4l1.8 1.79 3.8-3.79a1 1 0 0 1 1.4 1.41Z"
+              />
+            </svg>
+          </div>
+          <div className="space-y-2">
+            <h1 className="text-2xl font-semibold text-slate-50">
+              Interview already completed
+            </h1>
+            <p className="text-sm text-slate-300">
+              Our records show that you&apos;ve already completed this interview
+              for the invited role
+              {label ? ` on ${label}` : ""}. You can&apos;t take same interview more than once. 
+            </p>
+          </div>
+          <p className="text-xs text-slate-500">
+            If you believe this is a mistake, please contact your recruiter or
+            reply to the invitation email so the team can review your status.
+          </p>
+          <div className="flex flex-wrap justify-center gap-3 pt-2">
+            <button
+              type="button"
+              onClick={() => router.push("/jobs")}
+              className="inline-flex items-center justify-center 
+              rounded-full bg-slate-100 px-4 py-2 text-sm 
+              font-medium text-slate-900 hover:bg-white transition-colors cursor-pointer"
+            >
+              Browse other roles
+            </button>
+            <button
+              type="button"
+              onClick={() => router.push("/")}
+              className="inline-flex items-center justify-center 
+              rounded-full border border-slate-600 px-4 py-2 text-sm 
+              font-medium text-slate-100 hover:bg-slate-800 transition-colors cursor-pointer"
+            >
+              Back to home
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="relative mx-auto max-w-2xl px-4 py-8">

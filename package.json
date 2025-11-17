@@ -7,11 +7,12 @@
     "build": "next build --turbopack",
     "start": "next start",
     "lint": "eslint",
-    "test:timer": "node ./tests/run-timer.js"
-    ,
+    "test": "node ./tests/run-all.js",
+    "test:timer": "node ./tests/run-timer.js",
     "test:unit": "node ./tests/run-all.js"
   },
   "dependencies": {
+    "@ai-sdk/google": "^2.0.32",
     "@aws-sdk/client-bedrock-runtime": "^3.913.0",
     "@aws-sdk/client-chime-sdk-meetings": "^3.913.0",
     "@aws-sdk/client-comprehend": "^3.914.0",
@@ -22,8 +23,12 @@
     "@aws-sdk/client-transcribe-streaming": "^3.913.0",
     "@aws-sdk/credential-providers": "^3.913.0",
     "@aws-sdk/s3-request-presigner": "^3.914.0",
+    "@google-cloud/speech": "^7.2.1",
+    "@google-cloud/text-to-speech": "^6.4.0",
+    "@google-cloud/vertexai": "^1.10.0",
     "@smithy/eventstream-codec": "^4.2.3",
     "@smithy/util-utf8": "^4.2.0",
+    "ai": "^3.2.2",
     "amazon-chime-sdk-component-library-react": "^3.11.0",
     "amazon-chime-sdk-js": "^3.29.0",
     "bcryptjs": "^3.0.2",
@@ -31,6 +36,7 @@
     "compromise": "^14.14.4",
     "framer-motion": "^12.23.12",
     "franc-min": "^6.2.0",
+    "google-auth-library": "^10.5.0",
     "jsonwebtoken": "^9.0.2",
     "lucide-react": "^0.544.0",
     "mongodb": "^6.19.0",
@@ -43,7 +49,7 @@
     "styled-components": "^6.1.19",
     "styled-system": "^5.1.5",
     "tesseract.js": "^6.0.1",
-    "zod": "^4.1.8"
+    "zod": "^4.1.12"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
@@ -57,8 +63,8 @@
     "eslint": "^9",
     "eslint-config-next": "15.5.3",
     "postcss": "^8.5.6",
-    "ts-node": "^10.9.2",
     "tailwindcss": "^4.1.13",
+    "ts-node": "^10.9.2",
     "typescript": "^5"
   },
   "ts-node": {
