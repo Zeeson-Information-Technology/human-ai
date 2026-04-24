@@ -53,7 +53,7 @@ const flow = [
   {
     step: "Collaborate",
     title: "Collect the missing intelligence",
-    text: "SMEs, clients, candidates, and delivery collaborators can provide structured input when the pursuit needs depth.",
+    text: "SMEs, client stakeholders, reviewers, and delivery collaborators can provide structured input when the pursuit needs depth.",
   },
   {
     step: "Deliver",
@@ -75,7 +75,7 @@ const futureModules = [
   "Document extraction and compliance mapping",
   "Bid/no-bid scoring with human override",
   "SME and stakeholder review sessions",
-  "Candidate and resource sourcing for pursuits",
+  "Resource and collaborator sourcing for pursuits",
   "Workbench task intelligence and outcome learning",
 ];
 

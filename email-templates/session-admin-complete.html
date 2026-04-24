@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width" />
-    <title>Interview complete — {{jobTitle}}</title>
+    <title>Structured review complete - {{jobTitle}}</title>
     <meta name="x-apple-disable-message-reformatting" />
     <style>
       html,
@@ -54,7 +54,7 @@
         font-size: 14px;
       }
       .meta {
-        color: #475569;
+        color: #cbd5e1;
         font-size: 12px;
         margin-top: 2px;
       }
@@ -77,16 +77,6 @@
         font-weight: 700;
         font-size: 13px;
         text-decoration: none;
-      }
-      .tag {
-        display: inline-block;
-        background: #f1f5f9;
-        color: #0f172a;
-        border: 1px solid #e2e8f0;
-        border-radius: 999px;
-        padding: 2px 8px;
-        font-size: 12px;
-        margin-right: 6px;
       }
       .k {
         color: #64748b;
@@ -126,9 +116,9 @@
                 <table role="presentation" width="100%" class="card">
                   <tr>
                     <td class="header">
-                      <div class="brand">Euman AI</div>
-                      <div class="title">Interview complete — {{jobTitle}}</div>
-                      <div class="meta">Role: {{roleName}} • {{company}}</div>
+                      <div class="brand">Euman Intelligence</div>
+                      <div class="title">Structured review complete - {{jobTitle}}</div>
+                      <div class="meta">Opportunity: {{roleName}} • {{company}}</div>
                     </td>
                   </tr>
                   <tr>
@@ -136,27 +126,26 @@
                       <p>Hi team,</p>
 
                       <p>
-                        The candidate below just completed their Zuri interview.
-                        You can review the recording(s), transcript(s), and the
-                        auto scorecard using the button.
+                        The participant below just completed their structured
+                        review through Zuri. You can review the recording,
+                        transcript, and generated scorecard using the button
+                        below.
                       </p>
 
                       <p>
-                        <span class="k">Candidate</span>
+                        <span class="k">Participant</span>
                         <strong>{{candidateName}}</strong>
                         <br />
                         <span class="k">Email</span>
-                        <a href="mailto:{{candidateEmail}}"
-                          >{{candidateEmail}}</a
-                        >
+                        <a href="mailto:{{candidateEmail}}">{{candidateEmail}}</a>
                         <br />
                         <span class="k">Phone</span>
                         {{candidatePhone}}
                       </p>
 
                       <p>
-                        <span class="k">Job</span> {{jobTitle}}<br />
-                        <span class="k">Company</span> {{company}}<br />
+                        <span class="k">Opportunity</span> {{jobTitle}}<br />
+                        <span class="k">Client</span> {{company}}<br />
                         <span class="k">Language</span> {{language}}<br />
                         <span class="k">Finished at</span> {{finishedAt}}
                       </p>
@@ -175,18 +164,13 @@
                       <p style="margin: 12px 0 4px">
                         <strong>Focus areas</strong>
                       </p>
-                      <p>
-                        <!-- pass a comma-separated string for focus areas -->
-                        {{focusAreas}}
-                      </p>
+                      <p>{{focusAreas}}</p>
 
                       <p style="margin-top: 18px">
-                        <a class="btn" href="{{adminUrl}}">Open session</a>
+                        <a class="btn" href="{{adminUrl}}">Open review</a>
                         &nbsp;&nbsp;
-                        <a
-                          class="btn-secondary"
-                          href="mailto:{{candidateEmail}}"
-                          >Reply to candidate</a
+                        <a class="btn-secondary" href="mailto:{{candidateEmail}}"
+                          >Reply to participant</a
                         >
                       </p>
 
@@ -205,7 +189,7 @@
                   </tr>
                   <tr>
                     <td class="footer">
-                      © {{year}} Euman AI • Zuri Interviewer
+                      © {{year}} Euman Intelligence • Zuri proposal intelligence
                     </td>
                   </tr>
                 </table>

@@ -87,7 +87,7 @@ export default function AdminOpportunityCreatePage() {
 
         <div className="flex-1">
           <div className="mb-6 rounded-2xl border border-black/10 bg-white/70 p-4 text-sm text-gray-700 shadow-sm backdrop-blur">
-            Create an opportunity independently from a client conversation, sales call, emailed request, portal notice, or inquiry. Participants like candidates and SMEs can be added later only when this opportunity needs them.
+            Create an opportunity independently from a client conversation, sales call, emailed request, portal notice, or inquiry. Participants like SMEs, reviewers, and delivery collaborators can be added later only when this opportunity needs them.
           </div>
           <AdminStartForm />
         </div>

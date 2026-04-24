@@ -93,7 +93,9 @@ export default async function AdminInterviewDetail({
           Role: <span className="font-medium">{doc.roleName || "-"}</span> |
           Participant type:{" "}
           <span className="font-medium uppercase">
-            {(doc as any).participantType || "candidate"}
+            {((doc as any).participantType || "participant") === "candidate"
+              ? "participant"
+              : (doc as any).participantType || "participant"}
           </span>{" "}
           |
           Language: <span className="font-medium">{doc.language}</span> |

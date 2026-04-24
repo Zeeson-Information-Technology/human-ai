@@ -56,7 +56,10 @@ async function getSessions(
     };
   }
 
-  const docs = await Session.find(match).sort({ createdAt: -1 }).limit(150).lean();
+  const docs = await Session.find(match)
+    .sort({ createdAt: -1 })
+    .limit(150)
+    .lean();
 
   const filteredDocs =
     status && status !== "all"
@@ -67,7 +70,10 @@ async function getSessions(
     id: String(d._id),
     ownerId: d.ownerId ? String(d.ownerId) : "",
     status: d.status as string,
-    participantType: d.participantType || "candidate",
+    participantType:
+      d.participantType && d.participantType !== "candidate"
+        ? d.participantType
+        : "participant",
     jobCode: d.jobCode || "",
     jobTitle: d.jobTitle || "",
     company: d.company || "",
@@ -113,7 +119,7 @@ export default async function AdminInterviewsPage({
   return (
     <div className="mx-auto max-w-6xl px-4 py-8">
       <div className="flex items-center justify-between gap-3">
-        <h1 className="text-2xl font-bold">Participant Reviews</h1>
+        <h1 className="text-2xl font-bold">Structured Reviews</h1>
         <div className="flex items-center gap-2 text-sm">
           <Link
             href="/admin"
@@ -165,7 +171,7 @@ export default async function AdminInterviewsPage({
         <input
           name="q"
           defaultValue={q}
-          placeholder="Search by name, email, opportunity, or code..."
+          placeholder="Search by participant, email, opportunity, or code..."
           className="min-w-[280px] flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm bg-white text-gray-900 placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-black/10"
         />
 
@@ -208,7 +214,8 @@ export default async function AdminInterviewsPage({
                 </div>
                 <div className="mt-1 flex flex-wrap items-center gap-2 text-sm text-gray-600">
                   <span>
-                    {s.participantName} &lt;{s.participantEmail}&gt;
+                    {s.participantName || "Participant"} &lt;
+                    {s.participantEmail || "-"}&gt;
                   </span>
                   <span className="inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] uppercase tracking-wide">
                     {s.participantType}
@@ -255,4 +262,3 @@ export default async function AdminInterviewsPage({
     </div>
   );
 }
-
