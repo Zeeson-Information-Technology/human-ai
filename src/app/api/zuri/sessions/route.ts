@@ -4,7 +4,7 @@ export const dynamic = "force-dynamic";
 import { NextRequest, NextResponse } from "next/server";
 import dbConnect from "@/lib/db-connect";
 import Session from "@/model/session";
-import { Job, type JobDoc } from "@/model/job";
+import { Job, type JobDoc } from "@/model/opportunity";
 import { Types } from "mongoose";
 import { z } from "zod";
 import { verifyInvite } from "@/lib/invite-token";
@@ -14,6 +14,7 @@ const CreateSessionSchema = z.object({
   jobCode: z.string().trim().optional(),
   roleName: z.string().trim().optional(),
   language: z.string().trim().min(2).optional(), // make optional; we’ll derive if missing
+  participantType: z.enum(["candidate", "sme", "reviewer", "partner"]).optional(),
 
   // accept either name
   inviteToken: z.string().trim().optional(),
@@ -72,6 +73,7 @@ export async function POST(req: NextRequest) {
       jobCode: jobCodeIn,
       roleName,
       language: langIn,
+      participantType = "candidate",
       inviteToken,
       ivt,
       candidate,
@@ -257,6 +259,7 @@ export async function POST(req: NextRequest) {
     const doc = await Session.create({
       status: "running",
       startedAt: new Date(),
+      participantType,
 
       // Job linkage + snapshots
       jobCode: job?.code || jobCodeUp,
@@ -330,6 +333,7 @@ export async function POST(req: NextRequest) {
         ok: true,
         id: String(doc._id),
         token: doc.token,
+        participantType: doc.participantType,
         job: job
           ? { id: String(job._id), code: job.code, title: job.title }
           : undefined,
@@ -348,3 +352,4 @@ export async function POST(req: NextRequest) {
     );
   }
 }
+

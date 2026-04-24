@@ -1,26 +1,27 @@
-"use client";
+import { redirect } from "next/navigation";
 
-import { useEffect } from "react";
-import { useRouter } from "next/navigation";
-import { useSession } from "@/lib/use-session";
-import BrandLoader from "@/components/brand-loader";
-import AdminStartForm from "./AdminStartForm";
+export default async function LegacyAdminStartRedirect({
+  searchParams,
+}: {
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const params = (await searchParams) || {};
+  const next = new URLSearchParams();
 
-export default function InterviewAdminStartPage() {
-  const { user, loading } = useSession();
-  const router = useRouter();
+  for (const [key, value] of Object.entries(params)) {
+    if (typeof value === "string" && value.trim()) {
+      next.set(key, value);
+    } else if (Array.isArray(value)) {
+      for (const item of value) {
+        if (item && item.trim()) next.append(key, item);
+      }
+    }
+  }
 
-  // Redirect unauthorized users
-  useEffect(() => {
-    if (loading) return;
-    const allowed = user && (user.role === "admin" || user.role === "company");
-    if (!allowed) router.replace("/zuri/start");
-  }, [user, loading, router]);
-
-  const allowed = user && (user.role === "admin" || user.role === "company");
-
-  // Premium loader while resolving auth/redirect
-  if (loading || !allowed) return <BrandLoader />;
-
-  return <AdminStartForm />;
+  const query = next.toString();
+  redirect(
+    query
+      ? `/admin/opportunities/new?${query}`
+      : "/admin/opportunities/new"
+  );
 }

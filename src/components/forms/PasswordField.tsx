@@ -8,7 +8,7 @@ type Props = Omit<React.InputHTMLAttributes<HTMLInputElement>, "type"> & {
 };
 
 const PasswordField = forwardRef<HTMLInputElement, Props>(
-  function PasswordField({ label = "Password", error, ...props }, ref) {
+  function PasswordField({ label = "Password", error, className = "", ...props }, ref) {
     const [show, setShow] = useState(false);
 
     return (
@@ -24,6 +24,7 @@ const PasswordField = forwardRef<HTMLInputElement, Props>(
             className={[
               "rounded-xl border p-3 pr-10 w-full",
               error ? "border-rose-500" : "",
+              className,
             ].join(" ")}
             aria-invalid={!!error}
             aria-describedby={error ? `${props.name}-error` : undefined}

@@ -1,6 +1,6 @@
 "use client";
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
 // import { SectionCard } from "@/components/interview/atoms";
 import { useChimeClient } from "@/lib/use-chime";
@@ -17,7 +17,9 @@ import { RequireShareModal } from "@/components/modal/RequireShareModal";
 import { ResumeModal } from "@/components/modal/ResumeModal";
 import { ConnectingOverlay } from "@/components/modal/ConnectingOverlay";
 import { EndInterviewModal } from "@/components/modal/EndInterviewModal";
-import { useChat } from "ai/react";
+import { useChat } from "@ai-sdk/react";
+import { DefaultChatTransport } from "ai";
+import useInterviewStore from "@/state/useInterviewStore";
 
 type LivePaneProps = {
   dark?: boolean;
@@ -29,6 +31,14 @@ type LivePaneProps = {
   resumeSummary?: string;
   primarySkill?: string;
   onConnected?: () => void;
+};
+
+type ChatMessage = {
+  id: string;
+  role: "assistant" | "user" | "system";
+  // Allow content arrays/parts from streaming responses
+  content: string | any[];
+  parts: any[];
 };
 
 export default function LivePane({
@@ -47,7 +57,24 @@ export default function LivePane({
   const router = useRouter();
   const endedRef = useRef(false);
 
-  const [isConnected, setIsConnected] = useState(false);
+  const isConnected = useInterviewStore((state) => state.isConnected);
+  const isSharing = useInterviewStore((state) => state.isSharing);
+  const shareSurface = useInterviewStore((state) => state.shareSurface);
+  const chatFlowStatus = useInterviewStore((state) => state.chatStatus);
+  const chatError = useInterviewStore((state) => state.chatError);
+  const pendingAnswer = useInterviewStore((state) => state.pendingAnswer);
+  const setSessionContext = useInterviewStore((state) => state.setSessionContext);
+  const setConnected = useInterviewStore((state) => state.setConnected);
+  const setSharing = useInterviewStore((state) => state.setSharing);
+  const setShareSurface = useInterviewStore((state) => state.setShareSurface);
+  const setChatStatus = useInterviewStore((state) => state.setChatStatus);
+  const setChatError = useInterviewStore((state) => state.setChatError);
+  const setPendingAnswer = useInterviewStore((state) => state.setPendingAnswer);
+  const setLastAssistant = useInterviewStore((state) => state.setLastAssistant);
+  const setLastUser = useInterviewStore((state) => state.setLastUser);
+  const setTimerStartedAt = useInterviewStore((state) => state.setTimerStartedAt);
+  const resetTransient = useInterviewStore((state) => state.resetTransient);
+
   const [hasWelcomed, setHasWelcomed] = useState(false);
   const [ready, setReady] = useState(false); // when to start the clock
   const isSpeakingRef = useRef(false); // suppress ASR while TTS playing
@@ -59,16 +86,19 @@ export default function LivePane({
   const [showEndModal, setShowEndModal] = useState(false);
   const [showPrebrief, setShowPrebrief] = useState(true);
   const [showResume, setShowResume] = useState(false);
-  const [shareSurface, setShareSurface] = useState<string>("unknown");
   const autoShareTriedRef = useRef(false);
   const [speaking, setSpeaking] = useState(false);
   const [micLevel, setMicLevel] = useState(0); // 0..1 mic visual
+  const [aiStepSaving, setAiStepSaving] = useState(false);
+  const [greetingInProgress, setGreetingInProgress] = useState(false);
+  const [retrying, setRetrying] = useState(false);
+  const sendUserTurnRef = useRef<(text: string) => void>(() => {});
+  const [sttError, setSttError] = useState<string | null>(null);
 
   // Local video (self), optional screen share PiP, and audio for TTS
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const shareVideoRef = useRef<HTMLVideoElement | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
-  const [isSharing, setIsSharing] = useState(false);
   const [videoDevices, setVideoDevices] = useState<MediaDeviceInfo[]>([]);
   const [selectedCamId, setSelectedCamId] = useState<string>("");
 
@@ -128,38 +158,122 @@ export default function LivePane({
           const ans = (bufferedAnswerRef.current || "").trim();
           if (!ans) return;
           bufferedAnswerRef.current = "";
-          // Send a single consolidated user turn into the chat stream
-          append({
-            role: "user",
-            content: ans,
-          }).catch((err) => {
-            console.warn("append user turn failed", err);
-          });
+          // Add natural pause before AI responds (simulates interviewer thinking)
+          setTimeout(() => {
+            sendUserTurnRef.current(ans);
+          }, 2000);
         };
         tryFlush();
-      }, 1200);
+      }, 3000);
     },
   });
 
-  const { messages, append, setMessages } = useChat({
-    api: "/api/zuri/chat",
-    body: {
-      sessionId,
-      token,
-      jobContext,
-      resumeSummary,
-    },
+  const normalizeSttError = useCallback((raw?: string | null) => {
+    if (!raw) return "Speech transcription unavailable. Check mic permissions or browser support.";
+    const lower = raw.toLowerCase();
+    if (lower.includes("no-speech")) {
+      return "No speech detected. Unmute your mic and try again.";
+    }
+    if (lower.includes("not-allowed") || lower.includes("denied") || lower.includes("permission")) {
+      return "Mic access denied. Please allow microphone permissions.";
+    }
+    if (lower.includes("network")) {
+      return "Network issue with speech recognition. Check your connection.";
+    }
+    return raw;
+  }, []);
+
+  // Surface STT failures in UI so operators know why turns aren't captured.
+  useEffect(() => {
+    if (transcribeError) {
+      const msg = normalizeSttError(transcribeError?.message);
+      setSttError(msg);
+      if (process.env.NODE_ENV !== "production") {
+        // eslint-disable-next-line no-console
+        console.warn("[LivePane] transcribe warning", msg);
+      }
+    } else {
+      setSttError(null);
+    }
+  }, [transcribeError, normalizeSttError]);
+
+  useEffect(() => {
+    if (!sttError) return;
+    const id = setTimeout(() => setSttError(null), 5000);
+    return () => clearTimeout(id);
+  }, [sttError]);
+
+  const extractTurn = useCallback((msg: ChatMessage) => {
+    const parts = Array.isArray(msg?.parts) ? msg.parts : [];
+    const dataPart = parts.find(
+      (p: any) =>
+        typeof p?.type === "string" && p.type.startsWith("data-") && p?.data
+    );
+    const turn = (dataPart?.data || null) as
+      | { text?: string; followups?: string[]; endInterview?: boolean }
+      | null;
+    const textParts = parts
+      .filter((p: any) => p?.type === "text" && typeof p?.text === "string")
+      .map((p: any) => p.text)
+      .join(" ")
+      .trim();
+    const content = msg?.content;
+    const contentText =
+      typeof content === "string"
+        ? content
+        : Array.isArray(content)
+        ? content.join(" ")
+        : "";
+    const text = (turn?.text || textParts || contentText || "").trim();
+    return { turn, text };
+  }, []);
+
+  // Memoize chat transport so we don't recreate it on every render.
+  const chatTransport = useMemo(
+    () =>
+      new DefaultChatTransport({
+        api: "/api/zuri/chat",
+        body: {
+          sessionId,
+          token,
+          jobContext,
+          resumeSummary,
+        },
+      }),
+    [sessionId, token, jobContext, resumeSummary]
+  );
+
+  const { messages, setMessages, sendMessage, status } = useChat<ChatMessage>({
+    transport: chatTransport,
     onError: (err) => {
       // eslint-disable-next-line no-console
       console.error("[LivePane] chat error", err);
+      setChatError(err?.message || "Lost connection with Zuri.");
+      setChatStatus("error");
+      setPendingAnswer(null);
     },
-      onFinish: async (msg) => {
-        const raw = (msg?.content || "").trim();
-        if (!raw) return;
+    onFinish: async ({ message: msg }) => {
+      const { turn, text: raw } = extractTurn(msg);
+      if (process.env.NODE_ENV !== "production") {
+        // eslint-disable-next-line no-console
+        console.log("[LivePane] onFinish", {
+          msgId: msg.id,
+          status,
+          turn,
+          rawPreview: (raw || "").slice(0, 160),
+          partsCount: Array.isArray(msg.parts) ? msg.parts.length : 0,
+        });
+      }
+      if (!raw) {
+        setPendingAnswer(null);
+        setChatStatus("idle");
+        return;
+      }
       const parts = splitForSpeak(raw);
       const pick =
         parts.find((p) => /\?\s*$/.test(p.trim())) || parts[0] || raw;
       const q = pick.trim();
+      setLastAssistant(q);
       // Clamp the visible assistant content to the primary question
       setMessages((prev) => {
         if (!prev.length) {
@@ -169,6 +283,7 @@ export default function LivePane({
               id: msg.id,
               role: "assistant",
               content: q,
+              parts: [],
             },
           ];
         }
@@ -184,22 +299,117 @@ export default function LivePane({
           id: msg.id,
           role: "assistant",
           content: q,
+          parts: [],
         });
         return copy;
-        });
+      });
+      // Fire-and-forget persistence and TTS so chat status can flip to idle immediately.
+      void (async () => {
         try {
+          setAiStepSaving(true);
           await appendAIStep(raw);
-        } catch {}
+        } catch {
+          // append step errors are non-blocking for UI
+        } finally {
+          setAiStepSaving(false);
+        }
+      })();
+      void (async () => {
         try {
-          await speak(q);
+          const spokeOk = await speak(q);
+          if (spokeOk && !ready) {
+            startTimerOnce();
+          }
         } catch (err) {
           if (process.env.NODE_ENV !== "production") {
             // eslint-disable-next-line no-console
             console.error("[LivePane] speak in onFinish failed", err);
           }
         }
-      },
+      })();
+      if (turn?.endInterview) {
+        setShowEndModal(true);
+      }
+      setPendingAnswer(null);
+      setChatStatus("idle");
+      setChatError(null);
+    },
   });
+  const chatLoading = status === "submitted" || status === "streaming";
+
+  // Keep shared interview context in a global store for resilience across rerenders/HMR.
+  useEffect(() => {
+    setSessionContext(sessionId, token);
+    return () => {
+      resetTransient();
+    };
+  }, [sessionId, token, setSessionContext, resetTransient]);
+
+  // Mirror hook status into shared chat status to avoid UI getting stuck.
+  useEffect(() => {
+    if (status === "ready" && chatFlowStatus !== "idle") {
+      if (process.env.NODE_ENV !== "production") {
+        // eslint-disable-next-line no-console
+        console.log("[LivePane] chat status sync -> idle", { status, chatFlowStatus });
+      }
+      setChatStatus("idle");
+      setPendingAnswer(null);
+    }
+    if ((status === "submitted" || status === "streaming") && chatFlowStatus !== "sending") {
+      if (process.env.NODE_ENV !== "production") {
+        // eslint-disable-next-line no-console
+        console.log("[LivePane] chat status sync -> sending", { status, chatFlowStatus });
+      }
+      setChatStatus("sending");
+    }
+  }, [status, chatFlowStatus, setChatStatus, setPendingAnswer]);
+
+  const sendUserTurn = useCallback(
+    (text: string) => {
+      if (greetingInProgress) return Promise.resolve();
+      const message = (text || "").trim();
+      if (!message) return Promise.resolve();
+      setLastUser(message);
+      setPendingAnswer(message);
+      setChatStatus("sending");
+      if (typeof sendMessage !== "function") {
+        const err = new Error("Chat sender unavailable");
+        console.error("[LivePane] sendMessage missing", err);
+        setChatError("Unable to send. Please retry.");
+        setChatStatus("error");
+        return Promise.reject(err);
+      }
+      return sendMessage({
+        role: "user",
+        content: message,
+        parts: [],
+      }).catch((err) => {
+        console.warn("append user turn failed", err);
+        setChatError(err?.message || "Failed to reach Zuri.");
+        setChatStatus("error");
+        throw err;
+      });
+    },
+    [sendMessage, greetingInProgress]
+  );
+
+  sendUserTurnRef.current = sendUserTurn;
+
+  const handleRetrySend = useCallback(async () => {
+    setRetrying(true);
+    try {
+      if (pendingAnswer) {
+        await sendUserTurn(pendingAnswer);
+      } else {
+        setChatError(null);
+        setChatStatus("idle");
+      }
+    } catch (err) {
+      console.warn("retry send failed", err);
+    } finally {
+      setRetrying(false);
+    }
+  }, [pendingAnswer, sendUserTurn]);
 
   // Mic visualizer (VU meter) from active mic stream
   useEffect(() => {
@@ -234,9 +444,10 @@ export default function LivePane({
     };
   }, [micStream]);
 
-  async function speak(text: string) {
+  async function speak(text: string): Promise<boolean> {
     // Cancel any in-flight speak by bumping sequence
     const mySeq = ++speakSeqRef.current;
+    let success = false;
     try {
       if (process.env.NODE_ENV !== "production") {
         // eslint-disable-next-line no-console
@@ -251,37 +462,26 @@ export default function LivePane({
       const parts = chunks.length > 0 ? chunks : [text];
 
         for (const part of parts) {
-          if (speakSeqRef.current !== mySeq) return; // cancelled
-          // Try default provider, then fallback to AWS if it fails
-          async function fetchTts(url: string) {
-            try {
-              const res = await fetch(url);
-              if (process.env.NODE_ENV !== "production") {
-                // eslint-disable-next-line no-console
-                console.log("[LivePane] TTS fetch", {
-                  url,
-                  ok: res.ok,
-                  status: res.status,
-                  provider: res.headers.get("x-tts-provider") || null,
-                });
-              }
-              return res;
-            } catch (err) {
-              if (process.env.NODE_ENV !== "production") {
-                // eslint-disable-next-line no-console
-                console.error("[LivePane] TTS network error", err);
-              }
-              throw err;
-            }
+          if (speakSeqRef.current !== mySeq) return false; // cancelled
+          // Use Google TTS
+          const res = await fetch("/api/zuri/tts", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ text: part }),
+          });
+          if (!res.ok) {
+            const errorText = await res.text().catch(() => "TTS failed");
+            throw new Error(`TTS failed: ${errorText}`);
           }
-        let r = await fetchTts(`/api/zuri/tts/say?text=${encodeURIComponent(part)}`);
-        if (!r.ok) {
-          // provider override fallback
-          r = await fetchTts(`/api/zuri/tts/say?text=${encodeURIComponent(part)}&provider=aws`);
-        }
-        if (!r.ok) throw new Error("TTS failed");
-        const blob = await r.blob();
-        const url = URL.createObjectURL(blob);
+          const { audioBase64, contentType } = await res.json();
+          if (!audioBase64) throw new Error("No audio data received");
+          const binaryString = atob(audioBase64);
+          const bytes = new Uint8Array(binaryString.length);
+          for (let i = 0; i < binaryString.length; i++) {
+            bytes[i] = binaryString.charCodeAt(i);
+          }
+          const blob = new Blob([bytes], { type: contentType || "audio/mpeg" });
+          const url = URL.createObjectURL(blob);
           if (audioRef.current) {
             audioRef.current.src = url;
             // play and await end; if autoplay is blocked, don't hang
@@ -301,7 +501,8 @@ export default function LivePane({
             }
           }
       }
-      if (speakSeqRef.current !== mySeq) return;
+      if (speakSeqRef.current !== mySeq) return false;
+      success = true;
       isSpeakingRef.current = false;
       lastAiSpokeAtRef.current = Date.now();
       setSpeaking(false);
@@ -315,6 +516,7 @@ export default function LivePane({
       // eslint-disable-next-line no-console
       console.error("speak() failed", e);
     }
+    return success;
   }
 
   async function appendAIStep(text: string, followupHint?: string) {
@@ -395,7 +597,7 @@ export default function LivePane({
         }
         if (!mounted) return;
 
-        setIsConnected(true);
+        setConnected(true);
         try {
           onConnected?.();
         } catch {}
@@ -436,7 +638,7 @@ export default function LivePane({
             },
             contentShareDidStop: () => {
               try {
-                setIsSharing(false);
+                setSharing(false);
                 setShareSurface("unknown");
               } catch {}
             },
@@ -452,7 +654,7 @@ export default function LivePane({
             setShareSurface(String(settings.displaySurface || "unknown"));
             if (String(settings.displaySurface) === "monitor") {
               (audioVideo as any)?.startContentShare?.(pre);
-              setIsSharing(true);
+              setSharing(true);
               try {
                 await startLocalVideo(videoRef.current);
               } catch {}
@@ -544,15 +746,9 @@ export default function LivePane({
   function startTimerOnce() {
     if (ready) return;
     setReady(true);
+    setTimerStartedAt(Date.now());
     startTimer();
   }
-
-  // Failsafe: if welcomed is set but timer hasn't started, kick it off
-  useEffect(() => {
-    if (hasWelcomed && !ready) {
-      startTimerOnce();
-    }
-  }, [hasWelcomed, ready]);
 
   // Resume guard flag and beforeunload
   useEffect(() => {
@@ -595,8 +791,8 @@ export default function LivePane({
       return;
     }
     // Hide pre-brief on Start
-    setHasWelcomed(true);
     setShowPrebrief(false);
+    setGreetingInProgress(true);
     // Start ASR on user gesture to avoid blocking the pre-brief
     try {
       await startTranscription();
@@ -610,7 +806,12 @@ export default function LivePane({
         });
       }
       // Record the initial question server-side
-      await appendAIStep(initialQuestion);
+      try {
+        setAiStepSaving(true);
+        await appendAIStep(initialQuestion);
+      } finally {
+        setAiStepSaving(false);
+      }
       // Render the AI's first question immediately (no TTS blocking)
       setMessages((prev) => [
         ...prev,
@@ -618,17 +819,24 @@ export default function LivePane({
           id: `assistant-init-${Date.now()}`,
           role: "assistant",
           content: initialQuestion,
+          parts: [],
         },
       ]);
       // Speak the same initial question we display and record
-      await speak(initialQuestion);
-      // Start the interview clock after the first prompt is spoken
-      startTimerOnce();
+      const spokeOk = await speak(initialQuestion);
+      // Only mark interview as started after the greeting TTS succeeds
+      if (spokeOk) {
+        setHasWelcomed(true);
+        startTimerOnce();
+      } else {
+        setChatError("Could not play the greeting. Please retry.");
+      }
     } catch (e) {
       // eslint-disable-next-line no-console
       console.error("TTS greeting failed.", e);
-      // Ensure timer still starts even if TTS fails
-      startTimerOnce();
+      setChatError("Could not play the greeting. Please retry.");
+    } finally {
+      setGreetingInProgress(false);
     }
   }
 
@@ -726,11 +934,11 @@ export default function LivePane({
         try {
           stream.getTracks().forEach((t) => t.stop());
         } catch {}
-        setIsSharing(false);
+        setSharing(false);
         return;
       }
       (audioVideo as any)?.startContentShare?.(stream);
-      setIsSharing(true);
+      setSharing(true);
       try {
         await startLocalVideo(videoRef.current);
       } catch {}
@@ -741,7 +949,7 @@ export default function LivePane({
   function stopShare() {
     try {
       (audioVideo as any)?.stopContentShare?.();
-      setIsSharing(false);
+      setSharing(false);
       setShareSurface("unknown");
       try {
         // Rebind local camera to PiP after stopping share
@@ -750,14 +958,14 @@ export default function LivePane({
     } catch {}
   }
   return (
-    <main className="relative mx-auto w-full max-w-5xl px-4 pb-10">
+    <div className="relative mx-auto w-full max-w-5xl px-4 pb-10">
       <audio ref={audioRef} />
 
       {/* Minimal header: end/share/timer */}
       <div className="absolute right-4 top-4 flex items-center gap-2 z-20">
         <button
           onClick={() => setShowEndModal(true)}
-          className="px-4 py-2 rounded-md bg-rose-600 text-sm hover:bg-rose-500 
+          className="px-3 py-2 rounded-md bg-rose-600 text-sm hover:bg-rose-500 
           border border-rose-700 text-white cursor-pointer"
         >
           End
@@ -772,7 +980,7 @@ export default function LivePane({
                   }
                 : startShare
             }
-            className="px-3 py-1 rounded bg-slate-800 text-xs hover:bg-slate-700 
+            className="px-3 py-2 rounded bg-slate-800 text-xs hover:bg-slate-700 
             border border-slate-700 cursor-pointer"
           >
             {isSharing && shareSurface !== "monitor"
@@ -831,6 +1039,67 @@ export default function LivePane({
         <TimerBadge remainingMs={remainingMs} />
       </div>
 
+      {(chatFlowStatus === "sending" || chatLoading) && !chatError && (
+        <div className="fixed top-4 right-4 z-[180] rounded-full bg-black/80 px-4 py-2 text-sm text-white shadow-lg shadow-black/40 transition">
+          Zuri is thinking...
+        </div>
+      )}
+
+      {aiStepSaving && !chatError && (
+        <div className="fixed top-16 right-4 z-[175] flex items-center gap-2 rounded-full bg-slate-900/90 px-4 py-2 text-sm text-white shadow-lg shadow-black/30 transition">
+          <span className="h-3 w-3 animate-spin rounded-full border-2 border-white/60 border-t-transparent" />
+          Saving interview update...
+        </div>
+      )}
+
+      {chatError && (
+        <div className="fixed inset-0 z-[220] flex items-center justify-center bg-black/50 backdrop-blur-sm px-4">
+          <div className="w-full max-w-md rounded-3xl border border-white/10 bg-white/95 p-6 shadow-[0_20px_60px_rgba(0,0,0,0.35)]">
+            <p className="text-base font-semibold text-gray-900">
+              Reconnecting to Zuri
+            </p>
+            <p className="mt-2 text-sm text-gray-600">
+              {pendingAnswer
+                ? "We saved your last answer. Retry sending it to continue the interview."
+                : "We temporarily lost connection. Try again to resume the interview."}
+            </p>
+            <div className="mt-6 flex flex-wrap justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => {
+                  setChatError(null);
+                  setPendingAnswer(null);
+                  setChatStatus("idle");
+                }}
+                className="rounded-full border border-gray-300 px-4 py-2 text-sm 
+                font-medium text-gray-700 hover:bg-gray-50 cursor-pointer"
+              >
+                Dismiss
+              </button>
+              <button
+                type="button"
+                onClick={handleRetrySend}
+                disabled={retrying}
+                className="rounded-full bg-black px-4 py-2 text-sm font-semibold 
+                text-white shadow-lg shadow-black/30 hover:opacity-90 disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer"
+              >
+                {retrying
+                  ? "Reconnecting..."
+                  : pendingAnswer
+                  ? "Retry send"
+                  : "Reconnect"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {sttError && (
+        <div className="fixed bottom-4 right-4 z-[200] max-w-xs rounded-lg bg-amber-900 text-amber-50 px-3 py-2 text-xs shadow-lg shadow-black/30 border border-amber-700">
+          Audio transcription unavailable: {sttError}
+        </div>
+      )}
+
       {/* Pre-brief overlay (shows after join; ASR starts on Start click) */}
       {isConnected && showPrebrief && (
         <PreBriefOverlay
@@ -871,6 +1140,8 @@ export default function LivePane({
           }}
         />
       )}
-    </main>
+    </div>
   );
 }
+
+

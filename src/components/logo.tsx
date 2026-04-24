@@ -3,8 +3,8 @@ import Image from "next/image";
 export default function Logo({ className = "" }: { className?: string }) {
   return (
     <Image
-      src="/euman-logo.png"
-      alt="Euman AI Logo"
+      src="/euman_logo.png"
+      alt="Euman Intelligence Logo"
       className={className}
       width={137}
       height={32}

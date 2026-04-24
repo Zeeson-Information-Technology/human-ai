@@ -7,7 +7,7 @@ export const runtime = "nodejs";
 import { NextResponse, NextRequest } from "next/server";
 import { z } from "zod";
 import dbConnect from "@/lib/db-connect";
-import { Job } from "@/model/job";
+import { Job } from "@/model/opportunity";
 import sendEmail from "@/lib/sendSmtpMail";
 import { signInvite } from "@/lib/invite-token";
 
@@ -237,3 +237,4 @@ export async function POST(req: NextRequest) {
     );
   }
 }
+

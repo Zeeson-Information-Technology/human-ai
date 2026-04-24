@@ -220,6 +220,15 @@ export default function AdminSettingsPage() {
 
   return (
     <div className="max-w-2xl mx-auto py-8">
+      <div className="mb-4">
+        <Link
+          href="/admin"
+          className="inline-flex items-center gap-2 rounded-full border border-black/10 bg-white/70 px-3 py-1 text-sm text-gray-800 backdrop-blur hover:bg-gray-50"
+        >
+          <span aria-hidden>&larr;</span> Back to dashboard
+        </Link>
+      </div>
+
       <h2 className="text-xl font-bold mb-4">Admin Settings</h2>
 
       {/* Tab bar */}
@@ -474,8 +483,6 @@ export default function AdminSettingsPage() {
         </div>
       )}
 
-      {/* Team management can stay under Profile, or split into a 4th tab if preferred */}
-      {tab === "profile" && <TeamBlock />}
     </div>
   );
 }
@@ -484,7 +491,7 @@ export default function AdminSettingsPage() {
 function TeamBlock() {
   const { user } = useSession();
   const [subUsers, setSubUsers] = useState<any[]>([]);
-  const [invite, setInvite] = useState({ email: "", role: "recruiter" });
+  const [invite, setInvite] = useState({ email: "", role: "staff" });
   const [inviteMsg, setInviteMsg] = useState<string | null>(null);
   const [inviteOk, setInviteOk] = useState<boolean | null>(null);
   const [inviteBusy, setInviteBusy] = useState(false);
@@ -506,7 +513,7 @@ function TeamBlock() {
   }
 
   // IMPORTANT: keep roles in sync with your backend's allowed values.
-  const ALLOWED_ROLES = ["recruiter", "manager", "admin", "company"] as const;
+  const ALLOWED_ROLES = ["staff", "admin"] as const;
 
   async function onInvite(e: React.FormEvent) {
     e.preventDefault();
@@ -542,7 +549,7 @@ function TeamBlock() {
       }
 
       // Success: clear form, refresh list, show message
-      setInvite({ email: "", role: "recruiter" });
+      setInvite({ email: "", role: "staff" });
       setInviteMsg("User invited!");
       setInviteOk(true);
       setSubUsers(j.users || subUsers); // if API returns updated list
@@ -561,6 +568,10 @@ function TeamBlock() {
   return (
     <div className="mt-10">
       <h3 className="text-lg font-semibold mb-2">Manage Team</h3>
+      <p className="mb-3 text-sm text-gray-600">
+        Invite internal staff with scoped access. Staff can sign in, but only
+        admins see every client workspace.
+      </p>
 
       {/* Invite form only for admin/company */}
       {canInvite && (
@@ -591,8 +602,7 @@ function TeamBlock() {
               disabled={inviteBusy}
             >
               {/* Keep these aligned with ALLOWED_ROLES above and your backend */}
-              <option value="recruiter">Recruiter</option>
-              <option value="manager">Manager</option>
+              <option value="staff">Staff</option>
               <option value="admin">Admin</option>
             </select>
             {/* Chevron icon */}

@@ -8,7 +8,7 @@ import UploadableAvatar from "@/components/UploadableAvatar";
 type UserLite = {
   name?: string;
   email?: string;
-  role: "admin" | "company" | "talent";
+  role: "admin" | "company" | "staff" | "recruiter" | "manager" | "talent";
 };
 
 type NavItem = {
@@ -64,7 +64,9 @@ export default function DashboardShell({
       ? "/admin/settings"
       : user.role === "company"
       ? "/company/settings"
-      : "/settings";
+      : user.role === "talent"
+      ? "/settings"
+      : "/admin/settings";
 
   // Robust duplicate detection: match by href, label, or “endsWith('/settings')”
   const hasProfile = hasItem(
@@ -84,7 +86,7 @@ export default function DashboardShell({
   // Only show in footer if not already present in top nav
   const shouldShowFooterProfile = !hasProfile;
   const shouldShowFooterSettings =
-    (user.role === "company" || user.role === "admin") && !hasSettings;
+    (user.role === "admin" || user.role === "company") && !hasSettings;
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-black text-white">
@@ -151,12 +153,14 @@ export default function DashboardShell({
 
             {/* Footer actions */}
             <div className="mt-6 border-t border-white/10 pt-4 grid gap-2">
-              <Link
-                href="/support"
-                className="rounded-lg px-3 py-2 text-sm text-white/85 hover:bg-white/10"
-              >
-                Contact support
-              </Link>
+              {user.role === "talent" && (
+                <Link
+                  href="/support"
+                  className="rounded-lg px-3 py-2 text-sm text-white/85 hover:bg-white/10"
+                >
+                  Contact support
+                </Link>
+              )}
 
               {shouldShowFooterProfile && (
                 <Link

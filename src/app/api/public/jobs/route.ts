@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import dbConnect from "@/lib/db-connect";
-import { Job } from "@/model/job";
+import { Job } from "@/model/opportunity";
 
 export const dynamic = "force-dynamic";
 
@@ -17,3 +17,4 @@ export async function GET() {
   }));
   return NextResponse.json({ jobs });
 }
+

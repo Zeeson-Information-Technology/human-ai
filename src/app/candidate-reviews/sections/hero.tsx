@@ -5,9 +5,9 @@ import Link from "next/link";
 
 export default function Hero() {
   return (
-    <section className="relative border-b">
+    <section className="relative overflow-hidden border-b">
       {/* subtle right-side glow like micro1 */}
-      <div aria-hidden className="pointer-events-none absolute inset-0 -z-10">
+      <div aria-hidden className="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
         <div
           className="absolute right-[-18%] top-1/2 h-[170%] w-[90%] -translate-y-1/2 blur-3xl opacity-50"
           style={{

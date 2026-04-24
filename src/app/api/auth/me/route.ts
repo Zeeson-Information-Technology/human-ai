@@ -10,7 +10,7 @@ type MeProjection = {
   email?: string;
   name?: string;
   company?: string;
-  role: "admin" | "company" | "talent";
+  role: "admin" | "company" | "staff" | "recruiter" | "manager" | "talent";
   isVerified?: boolean;
 
   avatar?: { url?: string; publicId?: string; uploadedAt?: Date };

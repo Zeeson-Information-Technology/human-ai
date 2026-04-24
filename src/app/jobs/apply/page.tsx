@@ -8,6 +8,13 @@ import Image from "next/image";
 import { useSession } from "@/lib/use-session";
 
 // Add validation helpers
+function normalizeLinkedInUrl(raw: string): string {
+  const value = raw.trim();
+  if (!value) return "";
+  if (/^https?:\/\//i.test(value)) return value;
+  return `https://${value}`;
+}
+
 function isValidLinkedInUrl(url: string): boolean {
   try {
     const parsed = new URL(url);
@@ -227,6 +234,9 @@ export default function JobApplyPage() {
     setErr(null);
     setFormErrors({});
 
+    // Normalize LinkedIn ahead of validation
+    const normalizedLinkedin = normalizeLinkedInUrl(linkedin);
+
     // Validate fields
     const errors: { [key: string]: string } = {};
 
@@ -238,9 +248,9 @@ export default function JobApplyPage() {
       errors.email = "Valid email is required";
     }
 
-    if (!linkedin.trim()) {
+    if (!normalizedLinkedin.trim()) {
       errors.linkedin = "LinkedIn profile URL is required";
-    } else if (!isValidLinkedInUrl(linkedin)) {
+    } else if (!isValidLinkedInUrl(normalizedLinkedin)) {
       errors.linkedin =
         "Please enter a valid LinkedIn profile URL (e.g., linkedin.com/in/username)";
     }
@@ -275,6 +285,9 @@ export default function JobApplyPage() {
       setFormErrors(errors);
       return;
     }
+
+    // Update UI with normalized LinkedIn
+    setLinkedin(normalizedLinkedin);
 
     setBusy(true);
     try {
@@ -319,7 +332,7 @@ export default function JobApplyPage() {
           jobCode: code,
           language,
           inviteToken: ivt || undefined,
-          candidate: { name, email, phone, linkedin },
+          candidate: { name, email, phone, linkedin: normalizedLinkedin },
           resume: { url: resumeUrlToUse },
           screeners: {
             legacy: Array.isArray(job?.screenerQuestions)
@@ -522,6 +535,7 @@ export default function JobApplyPage() {
             <input
               value={linkedin}
               onChange={(e) => setLinkedin(e.target.value)}
+              onBlur={() => setLinkedin((prev) => normalizeLinkedInUrl(prev))}
               placeholder="LinkedIn profile URL"
               type="url"
               className={`rounded-xl border p-3 w-full ${
@@ -594,7 +608,7 @@ export default function JobApplyPage() {
                               screenerRuleAnswers[idx]?.answer ?? ""
                             )}
                             onChange={(e) => setAns(e.target.value)}
-                            className={`rounded-xl border p-2 ${
+                            className={`rounded-xl border border-radius-10 p-2 bg-white text-gray-900 ${
                               hasErr ? "border-red-500" : ""
                             }`}
                           >
@@ -639,7 +653,7 @@ export default function JobApplyPage() {
                               screenerRuleAnswers[idx]?.answer ?? ""
                             )}
                             onChange={(e) => setAns(e.target.value === "true")}
-                            className={`rounded-xl border p-2 ${
+                            className={`rounded-xl border p-2 bg-white text-gray-900 ${
                               hasErr ? "border-red-500" : ""
                             }`}
                           >
@@ -734,7 +748,7 @@ export default function JobApplyPage() {
 
       {(sessionLoading || loadingJob) && (
         <div
-          className="fixed inset-0 z-[60] grid place-items-center bg-black/40 backdrop-blur-sm"
+          className="fixed inset-0 z-[120] grid place-items-center bg-black/40 backdrop-blur-sm"
           role="status"
           aria-live="polite"
           aria-label="Loading interview form"
@@ -742,7 +756,7 @@ export default function JobApplyPage() {
           <div className="flex flex-col items-center gap-4">
             <div className="relative grid h-12 w-auto place-items-center">
               <Image
-                src="/euman-logo.png"
+                src="/euman_logo.png"
                 alt="Euman AI"
                 width={160}
                 height={36}
@@ -759,7 +773,7 @@ export default function JobApplyPage() {
 
       {busy && (
         <div
-          className="fixed inset-0 z-[60] grid place-items-center bg-black/40 backdrop-blur-sm"
+          className="fixed inset-0 z-[120] grid place-items-center bg-black/40 backdrop-blur-sm"
           role="status"
           aria-live="polite"
           aria-label="Starting interview"
@@ -767,7 +781,7 @@ export default function JobApplyPage() {
           <div className="flex flex-col items-center gap-4">
             <div className="relative grid h-12 w-auto place-items-center">
               <Image
-                src="/euman-logo.png"
+                src="/euman_logo.png"
                 alt="Euman AI"
                 width={160}
                 height={36}

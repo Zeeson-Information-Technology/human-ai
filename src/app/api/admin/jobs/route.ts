@@ -1,20 +1,25 @@
 // ================================
 // FILE: src/app/api/admin/jobs/route.ts
-// List jobs + session counts (admin key required)
+// List opportunities + participant review counts
 // ================================
 export const runtime = "nodejs";
 
 import { NextRequest, NextResponse } from "next/server";
 import dbConnect from "@/lib/db-connect";
-import { Job } from "@/model/job";
+import { verifyToken } from "@/lib/auth";
+import { isPlatformAdminRole, isScopedStaffRole } from "@/lib/admin-auth";
+import { Job } from "@/model/opportunity";
 import Session from "@/model/session";
-import { isAdmin } from "@/lib/admin-auth";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(req: NextRequest) {
   try {
-    if (!isAdmin(req)) {
+    const token =
+      req.cookies.get("admin_token")?.value || req.cookies.get("token")?.value || "";
+    const payload = verifyToken(token);
+    const role = String(payload?.role || "");
+    if (!payload?.userId || (!isPlatformAdminRole(role) && !isScopedStaffRole(role))) {
       return NextResponse.json(
         { ok: false, error: "Unauthorized" },
         { status: 401 }
@@ -23,10 +28,20 @@ export async function GET(req: NextRequest) {
 
     await dbConnect();
 
-    // Basic job info
     const jobs = await Job.find(
-      {},
-      { title: 1, company: 1, code: 1, languages: 1, active: 1, createdAt: 1 }
+      isPlatformAdminRole(role) ? {} : { assignedUserId: payload.userId },
+      {
+        title: 1,
+        company: 1,
+        clientName: 1,
+        assignedUserEmail: 1,
+        buyerOrganization: 1,
+        submissionDeadline: 1,
+        marketFocus: 1,
+        code: 1,
+        active: 1,
+        createdAt: 1,
+      }
     )
       .sort({ createdAt: -1 })
       .lean();
@@ -60,9 +75,12 @@ export async function GET(req: NextRequest) {
       return {
         id: String(j._id),
         title: j.title,
-        company: j.company || "",
+        company: j.clientName || j.company || "",
+        buyerOrganization: j.buyerOrganization || "",
+        submissionDeadline: j.submissionDeadline || "",
+        marketFocus: j.marketFocus || "",
+        assignedUserEmail: j.assignedUserEmail || "",
         code: j.code,
-        languages: j.languages || [],
         active: !!j.active,
         createdAt: j.createdAt?.toISOString?.() || null,
         sessions: c.total,
@@ -79,3 +97,4 @@ export async function GET(req: NextRequest) {
     );
   }
 }
+

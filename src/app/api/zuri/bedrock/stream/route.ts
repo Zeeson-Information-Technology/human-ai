@@ -8,7 +8,7 @@ export const dynamic = "force-dynamic";
 import { NextRequest } from "next/server";
 import dbConnect from "@/lib/db-connect";
 import Session from "@/model/session";
-import { Job } from "@/model/job";
+import { Job } from "@/model/opportunity";
 import { buildTurnPrompt } from "@/lib/llm/prompt";
 
 async function clientBedrock() {
@@ -146,3 +146,4 @@ If the candidate asks a question, answer briefly and then output exactly one new
     },
   });
 }
+

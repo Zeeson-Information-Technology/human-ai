@@ -1,4 +1,3 @@
-// src/components/cta.tsx
 "use client";
 
 import { useState } from "react";
@@ -20,10 +19,10 @@ export default function CTA() {
       email: String(form.get("email") || "").trim(),
       company: String(form.get("company") || "").trim(),
       message: String(form.get("message") || "").trim(),
-      website: String(form.get("website") || ""), // honeypot
+      website: String(form.get("website") || ""),
     };
 
-    if (payload.website) return; // bot caught
+    if (payload.website) return;
 
     if (
       !payload.name ||
@@ -31,7 +30,7 @@ export default function CTA() {
       !payload.company ||
       payload.message.length < 10
     ) {
-      setErr("Please fill all fields (message ≥ 10 chars).");
+      setErr("Please fill all fields (message must be at least 10 characters).");
       return;
     }
 
@@ -55,10 +54,10 @@ export default function CTA() {
 
   return (
     <div className="rounded-2xl border bg-white/60 p-6 shadow-sm backdrop-blur">
-      <h3 className="text-lg font-semibold">Request a pilot / consultation</h3>
+      <h3 className="text-lg font-semibold">Request proposal support</h3>
       <p className="mt-1 text-sm text-gray-600">
-        Enterprise-focused. We’ll sign NDA and scope a 1–2 week pilot with clear
-        success metrics.
+        Share the opportunity, the timeline, and the context. We will review it
+        and recommend the most effective way to move the response ahead.
       </p>
 
       <form onSubmit={onSubmit} className="mt-4 grid gap-3 sm:grid-cols-2">
@@ -86,12 +85,11 @@ export default function CTA() {
         />
         <textarea
           name="message"
-          placeholder="Project needs (e.g., LLM eval in Hausa, KYC OCR, ASR accent coverage)"
+          placeholder="Describe the opportunity, deadline, internal challenges, and any review, compliance, or SME coordination needs."
           className="min-h-[110px] rounded-xl border p-3 sm:col-span-2"
           required
           disabled={disabled}
         />
-        {/* Honeypot */}
         <input
           name="website"
           className="hidden"
@@ -99,18 +97,15 @@ export default function CTA() {
           autoComplete="off"
         />
 
-        {/* Premium submit */}
         <button
           type="submit"
           disabled={disabled}
           aria-busy={disabled}
           className={[
-            "sm:col-span-2 group relative inline-flex items-center justify-center gap-2",
-            "rounded-2xl px-5 py-3 text-sm font-semibold text-white",
-            "bg-gradient-to-r from-emerald-600 via-emerald-500 to-cyan-600",
-            "shadow-xl ring-1 ring-black/10 hover:shadow-2xl transition",
-            "focus:outline-none focus:ring-2 focus:ring-emerald-400",
-            "disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer",
+            "group relative inline-flex items-center justify-center gap-2 sm:col-span-2",
+            "rounded-2xl bg-gradient-to-r from-emerald-600 via-emerald-500 to-cyan-600 px-5 py-3 text-sm font-semibold text-white",
+            "shadow-xl ring-1 ring-black/10 transition hover:shadow-2xl",
+            "cursor-pointer focus:outline-none focus:ring-2 focus:ring-emerald-400 disabled:cursor-not-allowed disabled:opacity-60",
           ].join(" ")}
         >
           {disabled ? (
@@ -125,10 +120,9 @@ export default function CTA() {
               <path d="M10.894 2.553a1 1 0 0 0-1.788 0l-7 14A1 1 0 0 0 3 18h14a1 1 0 0 0 .894-1.447l-7-14Z" />
             </svg>
           )}
-          {disabled ? "Sending…" : "Send request"}
+          {disabled ? "Sending..." : "Send request"}
         </button>
 
-        {/* Status messages (accessible) */}
         <div className="sm:col-span-2" aria-live="polite">
           {status === "sent" && (
             <p className="mt-2 inline-flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700">
@@ -140,7 +134,7 @@ export default function CTA() {
               >
                 <path d="M16.704 5.29a1 1 0 0 0-1.408-1.42L7.5 11.08 4.7 8.29a1 1 0 1 0-1.4 1.42l3.5 3.5a1 1 0 0 0 1.42 0l8.484-8.92Z" />
               </svg>
-              Thanks! We’ll reply within 24 hours.
+              Thanks. We will reply within 24 hours.
             </p>
           )}
           {(status === "error" || err) && (

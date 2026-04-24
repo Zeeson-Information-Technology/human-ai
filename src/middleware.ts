@@ -32,6 +32,16 @@ function decodeRoleFromJwt(token: string): string | null {
 export function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
+  const isLogin = pathname === "/admin/login";
+  const isOnboarding = pathname === "/admin/onboarding";
+  const isStatic =
+    pathname.startsWith("/_next/") ||
+    pathname.startsWith("/favicon") ||
+    pathname.startsWith("/assets") ||
+    pathname.match(/\.(png|jpg|jpeg|svg|ico|css|js|map|txt)$/i);
+
+  if (isLogin || isOnboarding || isStatic) return NextResponse.next();
+
   // Only protect /admin routes
   if (pathname.startsWith("/admin")) {
     // Try to get token from cookies
@@ -43,21 +53,11 @@ export function middleware(req: NextRequest) {
     const role = token ? decodeRoleFromJwt(token) : null;
     // Only allow admin area roles (admin, company, recruiter, manager)
     if (!role || !isAdminAreaRole(role)) {
-      return NextResponse.redirect(
-        new URL("/zuri/start/login?role=admin", req.url)
-      );
+      const url = new URL("/admin/login", req.url);
+      url.searchParams.set("next", pathname);
+      return NextResponse.redirect(url);
     }
   }
-
-  // Allow login page and static assets under /_next and /public
-  const isLogin = pathname === "/admin/login";
-  const isStatic =
-    pathname.startsWith("/_next/") ||
-    pathname.startsWith("/favicon") ||
-    pathname.startsWith("/assets") ||
-    pathname.match(/\.(png|jpg|jpeg|svg|ico|css|js|map|txt)$/i);
-
-  if (isLogin || isStatic) return NextResponse.next();
 
   return NextResponse.next();
 }

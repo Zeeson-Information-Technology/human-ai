@@ -1,11 +1,12 @@
-// src/app/admin/interviews/[id]/page.tsx
-import dbConnect from "@/lib/db-connect";
-import Session from "@/model/session";
+import Link from "next/link";
 import { Types } from "mongoose";
 import { notFound, redirect } from "next/navigation";
-import Link from "next/link";
 import { getAdminFromCookies } from "@/lib/admin-session";
+import { isPlatformAdminRole } from "@/lib/admin-auth";
+import dbConnect from "@/lib/db-connect";
 import { getOperatorFromCookies } from "@/lib/get-operator";
+import { Job } from "@/model/opportunity";
+import Session from "@/model/session";
 
 function fmt(dt?: string | Date | null) {
   if (!dt) return "-";
@@ -19,16 +20,18 @@ function fmt(dt?: string | Date | null) {
     return new Date(d).toLocaleString();
   }
 }
-
 export default async function AdminInterviewDetail({
   params,
 }: {
   params: { id: string };
 }) {
-  // Unified auth: only allow admin/company
   const admin = await getAdminFromCookies();
-  if (!admin) redirect("/zuri/start/login?role=client");
+  if (!admin) redirect("/admin/login");
+
   const me = await getOperatorFromCookies();
+  if (!me) {
+    redirect("/admin/login");
+  }
 
   const id = (params?.id || "").trim();
   if (!id || !Types.ObjectId.isValid(id)) notFound();
@@ -36,17 +39,21 @@ export default async function AdminInterviewDetail({
   await dbConnect();
   const doc = await Session.findById(id).lean();
   if (!doc) notFound();
-
-  // Scope: company users must own the session; admins can view all
-  if (me?.role !== "admin") {
-    if (!doc.ownerId || String(doc.ownerId) !== String(me?.id || "")) {
-      notFound();
+  if (!isPlatformAdminRole(me.role)) {
+    const workspace = doc.jobCode
+      ? await Job.findOne(
+          { code: doc.jobCode },
+          { assignedUserId: 1 }
+        ).lean()
+      : null;
+    if (!workspace || String((workspace as any).assignedUserId || "") !== String(me.id)) {
+      redirect("/admin/interviews");
     }
   }
 
   const steps = Array.isArray(doc.steps) ? doc.steps : [];
-  // Fetch presigned report links
   const base = process.env.APP_BASE_URL || "http://localhost:3000";
+
   const reportsRes = await fetch(`${base}/api/admin/reports/${id}`, {
     cache: "no-store",
   }).catch(() => null);
@@ -54,7 +61,7 @@ export default async function AdminInterviewDetail({
     reportsRes && reportsRes.ok
       ? await reportsRes.json().catch(() => ({}))
       : {};
-  // Fetch snapshot list (optional route added below)
+
   const snapsRes = await fetch(`${base}/api/admin/reports/${id}/snapshots`, {
     cache: "no-store",
   }).catch(() => null);
@@ -64,7 +71,7 @@ export default async function AdminInterviewDetail({
   return (
     <div className="mx-auto max-w-5xl px-4 py-8">
       <div className="mb-4 flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Interview</h1>
+        <h1 className="text-2xl font-bold">Structured Review</h1>
         <Link
           href="/admin/interviews"
           className="rounded-lg border px-3 py-1 text-sm hover:bg-gray-50"
@@ -77,19 +84,24 @@ export default async function AdminInterviewDetail({
         <div className="text-sm text-gray-600">
           {doc.jobTitle ? (
             <>
-              Job: <span className="font-medium">{doc.jobTitle}</span>{" "}
-              {doc.company ? <> • {doc.company}</> : null}{" "}
-              {doc.jobCode ? <> • {doc.jobCode}</> : null}
-              {" • "}
+              Opportunity: <span className="font-medium">{doc.jobTitle}</span>
+              {doc.company ? <> | {doc.company}</> : null}
+              {doc.jobCode ? <> | {doc.jobCode}</> : null}
+              {" | "}
             </>
           ) : null}
-          Role: <span className="font-medium">{doc.roleName || "-"}</span> •
-          Language: <span className="font-medium">{doc.language}</span> •
+          Role: <span className="font-medium">{doc.roleName || "-"}</span> |
+          Participant type:{" "}
+          <span className="font-medium uppercase">
+            {(doc as any).participantType || "candidate"}
+          </span>{" "}
+          |
+          Language: <span className="font-medium">{doc.language}</span> |
           Status: <span className="font-medium uppercase">{doc.status}</span>
         </div>
 
         <div className="mt-2 text-sm text-gray-600">
-          Started: {fmt(doc.startedAt)} • Finished: {fmt(doc.finishedAt)}
+          Started: {fmt(doc.startedAt)} | Finished: {fmt(doc.finishedAt)}
         </div>
 
         {doc.scorecard && (
@@ -102,18 +114,17 @@ export default async function AdminInterviewDetail({
               Verdict: {doc.scorecard.verdict}
             </div>
             {doc.scorecard.summary && (
-              <p className="mt-2 text-sm text-gray-800 whitespace-pre-wrap">
+              <p className="mt-2 whitespace-pre-wrap text-sm text-gray-800">
                 {doc.scorecard.summary}
               </p>
             )}
           </div>
         )}
 
-        {/* Screening responses */}
         {doc.screeners && (
           <div className="mt-4 rounded-xl border p-4">
             <div className="flex items-center justify-between">
-              <div className="text-sm font-medium">Screening Responses</div>
+              <div className="text-sm font-medium">Qualification Responses</div>
               {doc.screenersSummary && (
                 <div className="text-xs text-gray-600">
                   <span
@@ -126,13 +137,13 @@ export default async function AdminInterviewDetail({
                     {doc.screenersSummary.qualifies ? "Qualified" : "Not qualified"}
                   </span>
                   <span className="ml-2">
-                    {doc.screenersSummary.qualifyingPassed}/{doc.screenersSummary.qualifyingTotal} qualifying passed
+                    {doc.screenersSummary.qualifyingPassed}/
+                    {doc.screenersSummary.qualifyingTotal} qualifying passed
                   </span>
                 </div>
               )}
             </div>
 
-            {/* Legacy */}
             {Array.isArray((doc as any).screeners?.legacy) &&
               (doc as any).screeners.legacy.length > 0 && (
                 <div className="mt-3">
@@ -141,25 +152,24 @@ export default async function AdminInterviewDetail({
                     {(doc as any).screeners.legacy.map((x: any, i: number) => (
                       <div key={i} className="rounded-lg border p-3 text-sm">
                         <div className="font-medium">{x.question}</div>
-                        <div className="mt-1 text-gray-700 whitespace-pre-wrap">{x.answer || "-"}</div>
+                        <div className="mt-1 whitespace-pre-wrap text-gray-700">
+                          {x.answer || "-"}
+                        </div>
                       </div>
                     ))}
                   </div>
                 </div>
               )}
 
-            {/* Rules */}
             {Array.isArray((doc as any).screeners?.rules) &&
               (doc as any).screeners.rules.length > 0 && (
                 <div className="mt-3">
-                  <div className="text-xs text-gray-500">Structured screeners</div>
+                  <div className="text-xs text-gray-500">Structured qualifiers</div>
                   <div className="mt-2 grid gap-2">
                     {(doc as any).screeners.rules.map((r: any, i: number) => (
                       <div key={i} className="rounded-lg border p-3 text-sm">
                         <div className="flex items-center justify-between">
-                          <div className="font-medium mr-3">
-                            {r.question}
-                          </div>
+                          <div className="mr-3 font-medium">{r.question}</div>
                           {r.qualifying && (
                             <span
                               className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs ${
@@ -180,14 +190,27 @@ export default async function AdminInterviewDetail({
                               : String(r.answer ?? "-")}
                           </span>
                         </div>
-                        {(typeof r.min === "number" || typeof r.max === "number" || r.qualifyWhen) && (
+                        {(typeof r.min === "number" ||
+                          typeof r.max === "number" ||
+                          r.qualifyWhen) && (
                           <div className="mt-1 text-xs text-gray-500">
-                            {typeof r.min === "number" ? `Min ${r.min}${r.unit ? ` ${r.unit}` : ""}` : ""}
-                            {typeof r.min === "number" && typeof r.max === "number" ? " • " : ""}
-                            {typeof r.max === "number" ? `Max ${r.max}${r.unit ? ` ${r.unit}` : ""}` : ""}
+                            {typeof r.min === "number"
+                              ? `Min ${r.min}${r.unit ? ` ${r.unit}` : ""}`
+                              : ""}
+                            {typeof r.min === "number" &&
+                            typeof r.max === "number"
+                              ? " | "
+                              : ""}
+                            {typeof r.max === "number"
+                              ? `Max ${r.max}${r.unit ? ` ${r.unit}` : ""}`
+                              : ""}
                             {r.qualifyWhen && (
                               <span className="ml-1">
-                                ({r.qualifyWhen} {Array.isArray(r.qualifyValue) ? r.qualifyValue.join(", ") : String(r.qualifyValue ?? "")})
+                                ({r.qualifyWhen}{" "}
+                                {Array.isArray(r.qualifyValue)
+                                  ? r.qualifyValue.join(", ")
+                                  : String(r.qualifyValue ?? "")}
+                                )
                               </span>
                             )}
                           </div>
@@ -203,7 +226,7 @@ export default async function AdminInterviewDetail({
         {doc.jdTextSnapshot && (
           <details className="mt-4 rounded-xl border p-4 text-sm">
             <summary className="cursor-pointer font-medium">
-              Job description (snapshot)
+              Role brief snapshot
             </summary>
             <pre className="mt-2 whitespace-pre-wrap text-gray-800">
               {doc.jdTextSnapshot}
@@ -226,14 +249,13 @@ export default async function AdminInterviewDetail({
           )}
       </div>
 
-      {/* Steps */}
       <h2 className="mt-8 text-lg font-semibold">Q&A</h2>
       <div className="mt-3 grid gap-3">
         {steps.map((s: any, i: number) => (
           <div key={`${s.qId}-${i}`} className="rounded-xl border p-4">
             <div className="text-sm text-gray-500">
               Question {i + 1}
-              {s.startedAt ? ` • ${fmt(s.startedAt)}` : ""}
+              {s.startedAt ? ` | ${fmt(s.startedAt)}` : ""}
             </div>
             <p className="mt-1 font-medium">{s.qText}</p>
 
@@ -246,7 +268,7 @@ export default async function AdminInterviewDetail({
               />
             )}
             {(s.transcript || s.answerText) && (
-              <div className="mt-3 rounded-lg bg-gray-50 p-3 text-sm text-gray-800 whitespace-pre-wrap">
+              <div className="mt-3 whitespace-pre-wrap rounded-lg bg-gray-50 p-3 text-sm text-gray-800">
                 {s.transcript || s.answerText}
               </div>
             )}
@@ -264,12 +286,11 @@ export default async function AdminInterviewDetail({
         )}
       </div>
 
-      {/* Reports & Anti-cheat */}
       <h2 className="mt-10 text-lg font-semibold">Artifacts</h2>
       <div className="mt-3 grid gap-4 sm:grid-cols-2">
         <div className="rounded-2xl border p-4">
           <div className="text-sm font-medium">Reports</div>
-          <div className="mt-2 text-sm text-gray-700 space-y-2">
+          <div className="mt-2 space-y-2 text-sm text-gray-700">
             {reports?.jsonUrl ? (
               <a className="underline" href={reports.jsonUrl} target="_blank">
                 Summary JSON
@@ -279,7 +300,7 @@ export default async function AdminInterviewDetail({
             )}
             {reports?.pdfUrl ? (
               <a
-                className="underline block"
+                className="block underline"
                 href={reports.pdfUrl}
                 target="_blank"
               >
@@ -288,20 +309,19 @@ export default async function AdminInterviewDetail({
             ) : (
               <div className="text-gray-500">No PDF yet</div>
             )}
-            {/* Inline preview for JSON */}
             {reports?.jsonUrl && <ReportPreview url={reports.jsonUrl} />}
           </div>
         </div>
 
         <div className="rounded-2xl border p-4">
           <div className="text-sm font-medium">Anti-cheat timeline</div>
-          <div className="mt-2 text-sm text-gray-700 max-h-64 overflow-auto">
+          <div className="mt-2 max-h-64 overflow-auto text-sm text-gray-700">
             {Array.isArray((doc as any).antiCheatEvents) &&
             (doc as any).antiCheatEvents.length > 0 ? (
               <ul className="space-y-1">
                 {(doc as any).antiCheatEvents.map((e: any, i: number) => (
                   <li key={i} className="text-xs text-gray-600">
-                    <span className="text-gray-500">{fmt(e?.ts)}</span> •{" "}
+                    <span className="text-gray-500">{fmt(e?.ts)}</span> |{" "}
                     <span className="font-medium">{e?.type}</span>
                     {e?.detail ? (
                       <span className="text-gray-500">: {e.detail}</span>
@@ -319,13 +339,13 @@ export default async function AdminInterviewDetail({
       {Array.isArray(snaps?.items) && snaps.items.length > 0 && (
         <div className="mt-4 rounded-2xl border p-4">
           <div className="text-sm font-medium">Snapshots</div>
-          <div className="mt-3 grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
             {snaps.items.map((it: any) => (
               <a key={it.key} href={it.url} target="_blank" className="block">
                 <img
                   src={it.url}
                   alt="snapshot"
-                  className="h-32 w-full object-cover rounded-lg border"
+                  className="h-32 w-full rounded-lg border object-cover"
                 />
               </a>
             ))}
@@ -335,7 +355,6 @@ export default async function AdminInterviewDetail({
     </div>
   );
 }
-
 async function ReportPreview({ url }: { url: string }) {
   try {
     const res = await fetch(url, { cache: "no-store" });
@@ -343,7 +362,7 @@ async function ReportPreview({ url }: { url: string }) {
     const json = await res.json();
     const text = JSON.stringify(json, null, 2);
     return (
-      <pre className="mt-3 max-h-56 overflow-auto rounded-lg bg-gray-50 p-3 text-xs text-gray-800 whitespace-pre-wrap border">
+      <pre className="mt-3 max-h-56 overflow-auto whitespace-pre-wrap rounded-lg border bg-gray-50 p-3 text-xs text-gray-800">
         {text}
       </pre>
     );

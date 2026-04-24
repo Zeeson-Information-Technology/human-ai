@@ -1,4 +1,3 @@
-<!-- email-templates/pilot-request.html -->
 <!DOCTYPE html>
 <html lang="en" style="margin: 0; padding: 0">
   <head>
@@ -7,7 +6,6 @@
     <title>{{subject}}</title>
     <meta name="x-apple-disable-message-reformatting" />
     <style>
-      /* ===== Base reset (safe for email) ===== */
       html,
       body {
         margin: 0 !important;
@@ -34,7 +32,6 @@
       a {
         text-decoration: none;
       }
-      /* ===== Layout ===== */
       .bg {
         background: #f7f7fb;
       }
@@ -148,7 +145,6 @@
       .wrapper-pad {
         padding: 28px 16px;
       }
-      /* ===== Mobile tweaks ===== */
       @media only screen and (max-width: 600px) {
         .content {
           padding: 22px 18px !important;
@@ -172,7 +168,6 @@
     </style>
   </head>
   <body class="bg">
-    <!-- Preheader (hidden but useful for preview) -->
     <div
       style="
         display: none;
@@ -182,7 +177,7 @@
         mso-hide: all;
       "
     >
-      New pilot request from {{company}} — {{name}} ({{email}})
+      New proposal inquiry from {{company}} — {{name}} ({{email}})
     </div>
 
     <table
@@ -203,27 +198,22 @@
           >
             <tr>
               <td>
-                <!-- Card -->
                 <table role="presentation" width="100%" class="card">
-                  <!-- Header -->
                   <tr>
                     <td class="header">
-                      <!-- Optional logo: replace text with an <img> if you have one -->
                       <div class="brand">Euman AI</div>
-                      <div class="title">New Pilot Request</div>
+                      <div class="title">New Proposal Inquiry</div>
                     </td>
                   </tr>
 
-                  <!-- Accent bar -->
                   <tr>
                     <td class="accent"></td>
                   </tr>
 
-                  <!-- Body -->
                   <tr>
                     <td class="content">
                       <p class="subtitle">
-                        You received a new pilot/consultation request.
+                        A new contact request has come in from the website.
                       </p>
                       <div class="subject">{{subject}}</div>
 
@@ -254,13 +244,11 @@
                       <div class="message">{{message}}</div>
 
                       <div class="actions">
-                        <!-- Reply button goes to the sender -->
                         <a
                           class="btn"
                           href="mailto:{{email}}?subject=Re:%20{{subject}}"
                           >Reply to {{name}}</a
                         >
-                        <!-- Optional: link to internal CRM/task (replace # with real URL) -->
                         <a
                           class="btn secondary"
                           href="#"
@@ -271,18 +259,16 @@
                       </div>
 
                       <p class="meta">
-                        This request was generated from the landing form and
-                        also stored in your database.
+                        This inquiry was submitted through the contact form and
+                        saved to the database.
                       </p>
                     </td>
                   </tr>
 
-                  <!-- Footer -->
                   <tr>
                     <td class="footer">© {{year}} Euman AI</td>
                   </tr>
                 </table>
-                <!-- /Card -->
               </td>
             </tr>
           </table>

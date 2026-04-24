@@ -7,7 +7,7 @@ export const dynamic = "force-dynamic";
 import { NextRequest, NextResponse } from "next/server";
 import dbConnect from "@/lib/db-connect";
 import Session from "@/model/session";
-import { Job } from "@/model/job";
+import { Job } from "@/model/opportunity";
 import { generateWithProvider } from "@/lib/llm/provider";
 import { buildTurnPrompt } from "@/lib/llm/prompt";
 
@@ -212,3 +212,4 @@ If the candidate asks a question, answer briefly and steer back. Do not continue
     return NextResponse.json({ ok: false, error: msg }, { status: 500 });
   }
 }
+

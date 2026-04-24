@@ -2,7 +2,7 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <title>You've been invited to Euman AI</title>
+    <title>You have been invited to Euman Intelligence</title>
     <style>
       body {
         font-family: Arial, Helvetica, sans-serif;
@@ -46,35 +46,26 @@
         font-size: 15px;
         color: #0f172a;
       }
-      .code {
-        font-size: 20px;
-        font-family: monospace;
-        letter-spacing: 2px;
-        color: #0ea5a5;
-        margin: 10px 0;
-      }
     </style>
   </head>
   <body>
     <div class="card">
-      <div class="brand">Euman AI</div>
-      <h2>You've been invited to join Euman AI</h2>
+      <div class="brand">Euman Intelligence</div>
+      <h2>You have been invited to join Euman Intelligence</h2>
       <p>Hi {{name}},</p>
-      <p>
-        You have been invited as a <strong>{{role}}</strong> {{#if company}}for
-        <strong>{{company}}</strong>{{/if}} on Euman AI.
-      </p>
+      <p>Your access as a <strong>{{role}}</strong> is ready{{companyLine}}.</p>
       <div class="info">
-        <strong>Temporary password:</strong>
-        <span class="code">{{tempPassword}}</span>
-        <br />
-        You will be asked to set a new password on your first login.
+        Use the secure link below to set your password and finish onboarding.
       </div>
-      <a class="btn" href="{{url}}">Accept invite &amp; sign in</a>
+      <a class="btn" href="{{url}}">Accept invite &amp; set password</a>
+      <p style="margin-top: 14px; font-size: 13px; color: #475569; word-break: break-word;">
+        If the button does not open, use this link:<br />
+        <a href="{{url}}" style="color: #0ea5a5; text-decoration: none">{{url}}</a>
+      </p>
       <p style="margin-top: 18px; font-size: 13px; color: #475569">
         If you did not expect this invite, you can ignore this email.
       </p>
-      <div class="footer">© {{year}} Euman AI</div>
+      <div class="footer">&copy; {{year}} Euman Intelligence</div>
     </div>
   </body>
 </html>

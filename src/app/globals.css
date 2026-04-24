@@ -72,3 +72,32 @@ body {
 .animate-marquee {
   animation-name: marquee;
 }
+
+.scrollbar-beauty {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(17, 24, 39, 0.35) rgba(243, 244, 246, 0.9);
+}
+
+.scrollbar-beauty::-webkit-scrollbar {
+  height: 12px;
+  width: 12px;
+}
+
+.scrollbar-beauty::-webkit-scrollbar-track {
+  background: linear-gradient(180deg, rgba(243, 244, 246, 0.96), rgba(229, 231, 235, 0.96));
+  border-radius: 999px;
+}
+
+.scrollbar-beauty::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, rgba(31, 41, 55, 0.8), rgba(16, 185, 129, 0.7));
+  border-radius: 999px;
+  border: 2px solid rgba(243, 244, 246, 0.95);
+}
+
+.scrollbar-beauty::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, rgba(17, 24, 39, 0.9), rgba(5, 150, 105, 0.85));
+}
+
+.scrollbar-beauty::-webkit-scrollbar-corner {
+  background: transparent;
+}

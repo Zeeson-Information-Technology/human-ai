@@ -1,5 +1,10 @@
 // src/types/user.ts
-export type UserRole = "admin" | "company" | "recruiter" | "manager";
+export type UserRole =
+  | "admin"
+  | "company"
+  | "staff"
+  | "recruiter"
+  | "manager";
 
 export type AvatarInfo = {
   url?: string;

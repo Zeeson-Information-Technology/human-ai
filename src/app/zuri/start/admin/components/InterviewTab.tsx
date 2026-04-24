@@ -11,7 +11,6 @@ type InterviewTabProps = {
   setLangs: (l: string[]) => void;
   onCreateJob?: () => void;
   createDisabled?: boolean;
-  // screeners
   screeners?: ScreenerRuleUI[];
   onAddPreset?: (cat: ScreenerCategory) => void;
   onChangeRule?: (idx: number, patch: Partial<ScreenerRuleUI>) => void;
@@ -103,24 +102,23 @@ function ScreenerItem({
   index: number;
 }) {
   const onlyDigits = (s: string) => s.replace(/[^0-9]/g, "");
-  const isNumericOp = (
-    op?: ScreenerRuleUI["qualifyWhen"]
-  ) => op === "lt" || op === "lte" || op === "eq" || op === "gte" || op === "gt" || op === "neq";
+
   return (
-    <div className="rounded-xl border border-neutral-200 bg-white text-neutral-900 dark:bg-neutral-900 dark:border-neutral-700 dark:text-neutral-100 transition-colors focus-within:border-emerald-400 focus-within:ring-2 focus-within:ring-emerald-200/50 hover:border-emerald-300 transition-colors focus-within:border-emerald-400 focus-within:ring-2 focus-within:ring-emerald-200 hover:border-emerald-300">
+    <div className="rounded-xl border border-neutral-200 bg-white text-neutral-900 transition-colors hover:border-emerald-300 focus-within:border-emerald-400 focus-within:ring-2 focus-within:ring-emerald-200/50 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-100">
       <div className="flex items-center justify-between gap-2 px-3 py-2">
         <div className="text-sm font-medium">
           {index + 1}. {value.question || "Untitled question"}
         </div>
         <button
           type="button"
-          className="rounded-lg border px-2 text-xs text-red-600 cursor-pointer"
+          className="cursor-pointer rounded-lg border px-2 text-xs text-red-600"
           onClick={onDelete}
         >
           Delete
         </button>
       </div>
-      <div className="border-t border-neutral-200 px-3 py-3 grid gap-3">
+
+      <div className="grid gap-3 border-t border-neutral-200 px-3 py-3">
         <div className="grid gap-3 sm:grid-cols-2">
           <div>
             <label className="text-xs text-neutral-600">Type</label>
@@ -138,6 +136,7 @@ function ScreenerItem({
               <option value="text">Text</option>
             </PremiumSelect>
           </div>
+
           <div>
             <label className="text-xs text-neutral-600">Category</label>
             <PremiumSelect
@@ -156,6 +155,7 @@ function ScreenerItem({
             </PremiumSelect>
           </div>
         </div>
+
         <div>
           <label className="text-xs text-neutral-600">Question</label>
           <input
@@ -165,6 +165,7 @@ function ScreenerItem({
             placeholder="Type the question"
           />
         </div>
+
         {value.kind === "select" && (
           <div>
             <label className="text-xs text-neutral-600">
@@ -178,6 +179,7 @@ function ScreenerItem({
             />
           </div>
         )}
+
         {(value.kind === "number" || value.kind === "currency") && (
           <div className="grid gap-3 sm:grid-cols-3">
             <div>
@@ -232,13 +234,16 @@ function ScreenerItem({
             )}
           </div>
         )}
-        <div className="grid gap-3 sm:grid-cols-[1fr_auto] items-center">
+
+        <div className="grid items-center gap-3 sm:grid-cols-[1fr_auto]">
           <div>
             <label className="text-xs text-neutral-600">Ideal Answer</label>
             {value.kind === "number" || value.kind === "currency" ? (
               <input
                 value={value.idealAnswer || ""}
-                onChange={(e) => onChange({ idealAnswer: onlyDigits(e.target.value) })}
+                onChange={(e) =>
+                  onChange({ idealAnswer: onlyDigits(e.target.value) })
+                }
                 className="w-full rounded-xl border p-2 focus:outline-none focus:ring-2 focus:ring-emerald-300"
                 type="text"
                 inputMode="numeric"
@@ -254,7 +259,8 @@ function ScreenerItem({
               />
             )}
           </div>
-          <label className="inline-flex items-center gap-2 mt-1">
+
+          <label className="mt-1 inline-flex items-center gap-2">
             <input
               type="checkbox"
               checked={!!value.qualifying}
@@ -264,6 +270,7 @@ function ScreenerItem({
             <span className="text-sm">Qualifying question</span>
           </label>
         </div>
+
         {value.qualifying && (
           <div className="grid gap-3 sm:grid-cols-3">
             <div>
@@ -276,15 +283,16 @@ function ScreenerItem({
                 appearance="light"
               >
                 <option value="lt">Less than</option>
-                <option value="lte">≤ Less than or equal</option>
+                <option value="lte">&lt;= Less than or equal</option>
                 <option value="eq">Equal</option>
-                <option value="gte">≥ Greater than or equal</option>
+                <option value="gte">&gt;= Greater than or equal</option>
                 <option value="gt">Greater than</option>
                 <option value="neq">Not equal</option>
                 <option value="in">In (CSV)</option>
                 <option value="nin">Not in (CSV)</option>
               </PremiumSelect>
             </div>
+
             <div className="sm:col-span-2">
               <label className="text-xs text-neutral-600">Value</label>
               <input
@@ -316,30 +324,30 @@ export default function InterviewTab({
   return (
     <div className="grid gap-6">
       <div>
-        <label className="block text-sm font-medium mb-1">Interview Type</label>
+        <label className="mb-1 block text-sm font-medium">Review Flow</label>
         <PremiumSelect
           value={interviewType ?? ""}
           onChange={(e) =>
             setInterviewType((e.target.value || null) as InterviewType | null)
           }
-          aria-label="Select interview type"
+          aria-label="Select review flow"
         >
-          <option value="">Select type.</option>
-          <option value="standard">Standard</option>
-          <option value="resume-based">Resume Based</option>
-          <option value="human-data">Human Data</option>
-          <option value="software">Software</option>
+          <option value="">Select flow.</option>
+          <option value="standard">Structured conversation</option>
+          <option value="resume-based">Resume-led review</option>
+          <option value="human-data">Human data collection</option>
+          <option value="software">Software evaluation</option>
         </PremiumSelect>
       </div>
 
       <div>
-        <label className="block text-sm font-medium mb-1">
-          Interview language
+        <label className="mb-1 block text-sm font-medium">
+          Review language
         </label>
         <PremiumSelect
           value={langs[0] ?? ""}
           onChange={(e) => setLangs(e.target.value ? [e.target.value] : [])}
-          aria-label="Select interview language"
+          aria-label="Select candidate language"
         >
           <option value="">Select language.</option>
           {LANG_GROUPS.map((g) => (
@@ -354,17 +362,18 @@ export default function InterviewTab({
         </PremiumSelect>
       </div>
 
-      {/* Screener builder */}
       <div className="grid gap-3">
         <div className="flex items-center justify-between">
-          <h3 className="text-sm font-semibold">Screening questions</h3>
+          <h3 className="text-sm font-semibold">Qualification questions</h3>
         </div>
+
         <div className="grid gap-3">
           {screeners.length === 0 && (
-            <div className="rounded-xl border bg-white text-neutral-700 p-4 dark:bg-neutral-900 dark:text-neutral-200 dark:border-neutral-700">
-              No screening questions added yet.
+            <div className="rounded-xl border bg-white p-4 text-neutral-700 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-200">
+              No qualification questions added yet.
             </div>
           )}
+
           {screeners.map((sc, idx) => (
             <ScreenerItem
               key={idx}
@@ -376,7 +385,6 @@ export default function InterviewTab({
           ))}
         </div>
 
-        {/* Quick add bar */}
         <div className="flex flex-wrap gap-2 pt-1">
           {(
             [
@@ -392,7 +400,7 @@ export default function InterviewTab({
               key={k}
               type="button"
               onClick={() => onAddPreset?.(k)}
-              className="rounded-full border px-3 py-1 text-xs text-black bg-white hover:bg-emerald-50 hover:border-emerald-300 transition-colors cursor-pointer dark:bg-neutral-900 dark:text-neutral-100 dark:border-neutral-700"
+              className="cursor-pointer rounded-full border bg-white px-3 py-1 text-xs text-black transition-colors hover:border-emerald-300 hover:bg-emerald-50 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-100"
             >
               + {label}
             </button>
@@ -400,16 +408,15 @@ export default function InterviewTab({
         </div>
       </div>
 
-      {/* Create Job CTA */}
       {onCreateJob && (
-        <div className="pt-2 flex justify-end">
+        <div className="flex justify-end pt-2">
           <button
             type="button"
             onClick={onCreateJob}
             disabled={!!createDisabled}
-            className="rounded-2xl px-5 py-3 font-semibold text-white bg-emerald-700/90 shadow ring-1 ring-black/10 hover:shadow-2xl transition cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:cursor-not-allowed"
+            className="cursor-pointer rounded-2xl bg-emerald-700/90 px-5 py-3 font-semibold text-white shadow ring-1 ring-black/10 transition hover:shadow-2xl disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:cursor-not-allowed"
           >
-            Create Job
+            Create Opportunity
           </button>
         </div>
       )}

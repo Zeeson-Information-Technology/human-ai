@@ -7,8 +7,9 @@ export const runtime = "nodejs";
 import { NextRequest, NextResponse } from "next/server";
 import { Types } from "mongoose";
 import dbConnect from "@/lib/db-connect";
+import { Job } from "@/model/opportunity";
 import Session from "@/model/session";
-import { isAdmin } from "@/lib/admin-auth";
+import { isPlatformAdminRole, isScopedStaffRole } from "@/lib/admin-auth";
 import { verifyToken } from "@/lib/auth";
 import { z } from "zod";
 
@@ -20,7 +21,11 @@ export async function GET(
   ctx: { params: Promise<{ id: string }> }
 ) {
   try {
-    if (!isAdmin(req)) {
+    const adminCookie = req.cookies.get("admin_token")?.value || "";
+    const userCookie = req.cookies.get("token")?.value || "";
+    const payload = verifyToken(adminCookie || userCookie || "");
+    const role = String(payload?.role || "");
+    if (!payload?.userId || (!isPlatformAdminRole(role) && !isScopedStaffRole(role))) {
       return NextResponse.json(
         { ok: false, error: "Unauthorized" },
         { status: 401 }
@@ -41,19 +46,16 @@ export async function GET(
         { status: 404 }
       );
 
-    // Scope: allow platform admin or the company owner of this session
-    try {
-      const adminCookie = req.cookies.get("admin_token")?.value || "";
-      const userCookie = req.cookies.get("token")?.value || "";
-      const payload = verifyToken(adminCookie || userCookie || "");
-      const role = String(payload?.role || "");
-      if (role !== "admin") {
-        if (!session.ownerId || String(session.ownerId) !== String(payload?.userId || "")) {
-          return NextResponse.json({ ok: false, error: "Forbidden" }, { status: 403 });
-        }
+    if (!isPlatformAdminRole(role)) {
+      const workspace = session.jobCode
+        ? await Job.findOne(
+            { code: session.jobCode },
+            { assignedUserId: 1 }
+          ).lean()
+        : null;
+      if (!workspace || String((workspace as any).assignedUserId || "") !== String(payload.userId)) {
+        return NextResponse.json({ ok: false, error: "Forbidden" }, { status: 403 });
       }
-    } catch {
-      return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
     }
 
     return NextResponse.json({ ok: true, session }, { status: 200 });
@@ -126,7 +128,11 @@ export async function PATCH(
   ctx: { params: Promise<{ id: string }> }
 ) {
   try {
-    if (!isAdmin(req)) {
+    const adminCookie = req.cookies.get("admin_token")?.value || "";
+    const userCookie = req.cookies.get("token")?.value || "";
+    const payload = verifyToken(adminCookie || userCookie || "");
+    const role = String(payload?.role || "");
+    if (!payload?.userId || (!isPlatformAdminRole(role) && !isScopedStaffRole(role))) {
       return NextResponse.json(
         { ok: false, error: "Unauthorized" },
         { status: 401 }
@@ -191,29 +197,42 @@ export async function PATCH(
       );
     }
 
-    // AuthZ: ensure non-admin can only modify their own session
-    try {
-      const adminCookie = req.cookies.get("admin_token")?.value || "";
-      const userCookie = req.cookies.get("token")?.value || "";
-      const payload = verifyToken(adminCookie || userCookie || "");
-      const role = String(payload?.role || "");
-      if (role !== "admin") {
-        const current = await Session.findById(new Types.ObjectId(id)).lean();
-        if (!current)
-          return NextResponse.json({ ok: false, error: "Not found" }, { status: 404 });
-        if (!current.ownerId || String(current.ownerId) !== String(payload?.userId || "")) {
-          return NextResponse.json({ ok: false, error: "Forbidden" }, { status: 403 });
-        }
+    const current = await Session.findById(new Types.ObjectId(id)).lean();
+    if (!current)
+      return NextResponse.json(
+        { ok: false, error: "Not found" },
+        { status: 404 }
+      );
+
+    if (!isPlatformAdminRole(role)) {
+      const workspace = current.jobCode
+        ? await Job.findOne(
+            { code: current.jobCode },
+            { assignedUserId: 1 }
+          ).lean()
+        : null;
+      if (!workspace || String((workspace as any).assignedUserId || "") !== String(payload.userId)) {
+        return NextResponse.json({ ok: false, error: "Forbidden" }, { status: 403 });
       }
-    } catch {
-      return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
     }
 
-    const updated = await Session.findByIdAndUpdate(
-      new Types.ObjectId(id),
-      { $set: sets },
-      { new: true, lean: true, projection: { token: 0 } }
-    );
+    const updateOps: Record<string, any> = { $set: sets };
+    if (stage && stage !== (current.pipelineStage || null)) {
+      const stageEntry: Record<string, any> = {
+        at: new Date(),
+        from: current.pipelineStage || null,
+        to: stage,
+        role: role || undefined,
+      };
+      if (payload?.userId) stageEntry.by = new Types.ObjectId(payload.userId);
+      updateOps.$push = { stageLog: stageEntry };
+    }
+
+    const updated = await Session.findByIdAndUpdate(new Types.ObjectId(id), updateOps, {
+      new: true,
+      lean: true,
+      projection: { token: 0 },
+    });
     if (!updated)
       return NextResponse.json(
         { ok: false, error: "Not found" },
@@ -229,3 +248,4 @@ export async function PATCH(
     );
   }
 }
+

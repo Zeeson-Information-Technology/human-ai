@@ -29,7 +29,7 @@ export default function ClientInterview({
   jobContext,
   initialQuestion,
   resumeSummary = "",
-  companyName: companyNameProp = "", // Remove default Equatoria value
+  companyName: companyNameProp = "", 
   primarySkill = "",
 }: Props) {
   const [companyName, setCompanyName] = useState<string>(companyNameProp || "");
@@ -153,7 +153,7 @@ export default function ClientInterview({
         )}/prefight?t=${encodeURIComponent(token)}`,
         { method: "POST", body: form }
       );
-      if (!r.ok) throw new Error("Could not save details");
+      if (!r.ok) throw new Error("Could not save details, try again or reload");
       setStep("live");
     } catch (e: any) {
       setErr(e?.message || "Preflight failed. Please try again.");

@@ -6,8 +6,9 @@ export const runtime = "nodejs";
 
 import { NextRequest, NextResponse } from "next/server";
 import dbConnect from "@/lib/db-connect";
-import { Job } from "@/model/job";
-import { isAdmin } from "@/lib/admin-auth";
+import { verifyToken } from "@/lib/auth";
+import { isPlatformAdminRole, isScopedStaffRole } from "@/lib/admin-auth";
+import { Job } from "@/model/opportunity";
 
 function unauthorized() {
   return NextResponse.json(
@@ -20,11 +21,23 @@ function normalizeCode(raw: string | undefined) {
   return (raw || "").trim().toUpperCase();
 }
 
+function getActor(req: NextRequest) {
+  const token =
+    req.cookies.get("admin_token")?.value || req.cookies.get("token")?.value || "";
+  const payload = verifyToken(token);
+  const role = String(payload?.role || "");
+  if (!payload?.userId || (!isPlatformAdminRole(role) && !isScopedStaffRole(role))) {
+    return null;
+  }
+  return { id: String(payload.userId), role };
+}
+
 export async function GET(
   req: NextRequest,
   ctx: { params: Promise<{ code: string }> }
 ) {
-  if (!isAdmin(req)) return unauthorized();
+  const actor = getActor(req);
+  if (!actor) return unauthorized();
   await dbConnect();
 
   const { code: raw } = await ctx.params;
@@ -43,6 +56,16 @@ export async function GET(
       { status: 404 }
     );
 
+  if (
+    !isPlatformAdminRole(actor.role) &&
+    String((doc as any).assignedUserId || "") !== actor.id
+  ) {
+    return NextResponse.json(
+      { ok: false, error: "Forbidden" },
+      { status: 403 }
+    );
+  }
+
   return NextResponse.json({ ok: true, job: doc }, { status: 200 });
 }
 
@@ -50,7 +73,8 @@ export async function PUT(
   req: NextRequest,
   ctx: { params: Promise<{ code: string }> }
 ) {
-  if (!isAdmin(req)) return unauthorized();
+  const actor = getActor(req);
+  if (!actor || !isPlatformAdminRole(actor.role)) return unauthorized();
 
   try {
     await dbConnect();
@@ -110,7 +134,8 @@ export async function DELETE(
   req: NextRequest,
   ctx: { params: Promise<{ code: string }> }
 ) {
-  if (!isAdmin(req)) return unauthorized();
+  const actor = getActor(req);
+  if (!actor || !isPlatformAdminRole(actor.role)) return unauthorized();
   await dbConnect();
 
   const { code: raw } = await ctx.params;
@@ -125,3 +150,4 @@ export async function DELETE(
   await Job.findOneAndDelete({ code });
   return NextResponse.json({ ok: true }, { status: 200 });
 }
+
