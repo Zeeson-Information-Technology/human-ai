@@ -25,7 +25,8 @@ export default function Page() {
           <div className="grid items-center gap-8 py-14 sm:grid-cols-2 sm:gap-10 sm:py-20">
             <div className="relative isolate overflow-hidden">
               <div className="inline-flex items-center gap-2 rounded-full border bg-white/70 px-3 py-1 text-xs font-medium text-gray-600 backdrop-blur">
-                Human judgment • AI-enabled execution • Proposal leadership
+                Human judgment &bull; AI-enabled execution &bull; Proposal
+                leadership
               </div>
 
               <h1 className="mt-4 text-4xl font-extrabold tracking-tight sm:text-6xl">
@@ -105,10 +106,14 @@ export default function Page() {
           </div>
           <div className="mt-4 grid grid-cols-2 items-center gap-x-8 gap-y-3 opacity-70 sm:grid-cols-6">
             <div className="text-sm font-semibold text-gray-500">Consulting</div>
-            <div className="text-sm font-semibold text-gray-500">Public Sector</div>
+            <div className="text-sm font-semibold text-gray-500">
+              Public Sector
+            </div>
             <div className="text-sm font-semibold text-gray-500">Health</div>
             <div className="text-sm font-semibold text-gray-500">Telecom</div>
-            <div className="text-sm font-semibold text-gray-500">Financial Services</div>
+            <div className="text-sm font-semibold text-gray-500">
+              Financial Services
+            </div>
             <div className="text-sm font-semibold text-gray-500">Technology</div>
           </div>
         </div>
@@ -272,9 +277,9 @@ export default function Page() {
             Need a smarter way to move an active opportunity forward?
           </h2>
           <p className="mx-auto mt-2 max-w-2xl text-gray-700">
-            Share the opportunity, the context, and the timeline. We will assess
-            the brief, identify the response path, and show you how the work can
-            move with less internal drag.
+            Share the opportunity, the context, and the timeline. We will
+            assess the brief, identify the response path, and show you how the
+            work can move with less internal drag.
           </p>
           <div className="mt-6 flex items-center justify-center gap-3">
             <Link
@@ -291,7 +296,7 @@ export default function Page() {
             </Link>
           </div>
           <p className="mt-3 text-sm text-gray-600">
-            Euman Intelligence • proposals@eumanai.com
+            Euman Intelligence &bull; proposals@eumanai.com
           </p>
         </div>
       </section>

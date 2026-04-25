@@ -1,5 +1,6 @@
 import Link from "next/link";
 import DashboardShell from "@/components/dashboardBar";
+import { getAdminNav } from "@/lib/admin-dashboard";
 import { redirect } from "next/navigation";
 import { getAdminFromCookies } from "@/lib/admin-session";
 import dbConnect from "@/lib/db-connect";
@@ -39,13 +40,7 @@ export default async function AdminProfilePage() {
     <DashboardShell
       user={{ name: initial.name, email: initial.email, role: "admin" }}
       title="Admin Profile"
-      nav={[
-        { href: "/admin", label: "Dashboard", exact: true },
-        { href: "/admin/leads", label: "Inquiries" },
-        { href: "/admin/jobs", label: "Workspaces" },
-        { href: "/admin/interviews", label: "Structured Reviews" },
-        { href: "/admin/settings", label: "Settings" },
-      ]}
+      nav={getAdminNav("admin")}
     >
       <div className="max-w-md">
         <div className="mb-4">

@@ -1,11 +1,13 @@
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
+import DashboardShell from "@/components/dashboardBar";
 import { revalidatePath } from "next/cache";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getAdminFromCookies } from "@/lib/admin-session";
 import dbConnect from "@/lib/db-connect";
+import { getAdminNav } from "@/lib/admin-dashboard";
 import { getOperatorFromCookies } from "@/lib/get-operator";
 import { getEffectivePermissions, isPlatformAdminRole } from "@/lib/admin-auth";
 import { Opportunity } from "@/model/opportunity";
@@ -59,7 +61,16 @@ export default async function AdminJobsPage() {
   const jobs = await getJobs(me);
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-8">
+    <DashboardShell
+      user={{
+        name: (me as any).name ?? me.email ?? "Admin",
+        email: me.email,
+        role: me.role as any,
+      }}
+      title={isPlatformAdminRole(me.role) ? "Opportunities" : "My Opportunities"}
+      nav={getAdminNav(me.role)}
+    >
+    <div className="mx-auto max-w-6xl px-4 py-2">
       <div className="mb-2">
         <Link
           href="/admin"
@@ -85,12 +96,18 @@ export default async function AdminJobsPage() {
           >
             Participant Reviews
           </Link>
+          <Link
+            href="/admin/operations"
+            className="rounded-lg border px-3 py-2 text-sm hover:bg-gray-50"
+          >
+            Operations Board
+          </Link>
           {(isPlatformAdminRole(me.role) || permissions.canCreateOpportunity) && (
             <Link
               href="/admin/opportunities/new"
               className="rounded-xl bg-white px-4 py-2 font-medium text-black hover:opacity-90"
             >
-              {me.role === "admin" ? "Open opportunity" : "Create opportunity"}
+              Create opportunity
             </Link>
           )}
         </div>
@@ -140,7 +157,7 @@ export default async function AdminJobsPage() {
                 >
                   <button
                     type="submit"
-                    className={`rounded-full px-3 py-1 text-xs font-semibold ${
+                    className={`cursor-pointer rounded-full px-3 py-1 text-xs font-semibold ${
                       job.active
                         ? "bg-emerald-600 text-white"
                         : "bg-black text-white"
@@ -151,7 +168,7 @@ export default async function AdminJobsPage() {
                         : "Reopen this opportunity"
                     }
                   >
-                    {job.active ? "Open opportunity" : "Reopen opportunity"}
+                    {job.active ? "Archive opportunity" : "Reopen opportunity"}
                   </button>
                 </form>
               )}
@@ -180,6 +197,12 @@ export default async function AdminJobsPage() {
               >
                 Participant requests
               </Link>
+              <Link
+                href={`/admin/jobs/${job.code}/workbench`}
+                className="rounded-lg border px-3 py-1 hover:bg-gray-50"
+              >
+                Workbench
+              </Link>
               {me.role === "admin" && (
                 <Link
                   href={`/admin/opportunities/new?code=${job.code}`}
@@ -188,25 +211,18 @@ export default async function AdminJobsPage() {
                   Edit setup
                 </Link>
               )}
-              <a
-                href={`/jobs/apply?code=${job.code}`}
-                target="_blank"
-                rel="noopener"
-                className="rounded-lg border px-3 py-1 hover:bg-gray-50"
-              >
-                Response link
-              </a>
             </div>
           </div>
         ))}
 
         {jobs.length === 0 && (
           <div className="rounded-2xl border bg-gray-50 p-8 text-center text-sm text-gray-600">
-            No opportunities yet. Click <span className="font-semibold">Open opportunity</span> to start.
+            No opportunities yet. Click <span className="font-semibold">Create opportunity</span> to start.
           </div>
         )}
       </div>
     </div>
+    </DashboardShell>
   );
 }
 

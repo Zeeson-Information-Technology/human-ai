@@ -102,10 +102,10 @@ export default function DashboardShell({
         }}
       />
 
-      <div className="relative mx-auto max-w-7xl px-4 py-6">
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-[260px_1fr]">
+      <div className="relative mx-auto max-w-[1600px] px-4 py-6 sm:px-6 lg:px-8">
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-[280px_minmax(0,1fr)] lg:gap-8">
           {/* Sidebar */}
-          <aside className="rounded-2xl border border-white/10 bg-white/10 p-4 backdrop-blur-md lg:sticky lg:top-6 self-start">
+          <aside className="self-start rounded-2xl border border-white/10 bg-white/10 p-4 backdrop-blur-md lg:sticky lg:top-6 lg:p-5">
             {/* Profile */}
             <div className="flex items-center gap-3 pb-4 border-b border-white/10">
               <UploadableAvatar
@@ -199,7 +199,7 @@ export default function DashboardShell({
           </aside>
 
           {/* Main */}
-          <main className="rounded-2xl border border-white/10 bg-white/5 p-5 backdrop-blur-sm">
+          <main className="min-w-0 rounded-2xl border border-white/10 bg-white/5 p-5 backdrop-blur-sm sm:p-6 lg:p-8">
             {title ? <h1 className="mb-4 text-xl font-bold">{title}</h1> : null}
             {children}
           </main>

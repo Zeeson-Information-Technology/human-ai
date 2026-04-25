@@ -23,6 +23,7 @@ export default function Footer({ variant = "dark" }: FooterProps) {
     { href: "/about", label: "About" },
     { href: "/contact", label: "Contact" },
     { href: "/policies/privacy", label: "Privacy" },
+    { href: "/careers", label: "Careers" },
   ];
 
   return (
@@ -36,14 +37,16 @@ export default function Footer({ variant = "dark" }: FooterProps) {
       <div className="mx-auto w-full max-w-7xl px-4 pb-0 pt-10">
         <div className="flex flex-col items-start justify-between gap-6 sm:flex-row">
           <div className="sm:-mt-4">
-            <Image
-              src="/euman_logo.png"
-              alt="Euman Intelligence"
-              className="h-auto w-auto"
-              width={137}
-              height={32}
-              priority
-            />
+            <Link href="/" className="inline-flex cursor-pointer items-center">
+              <Image
+                src="/euman_logo.png"
+                alt="Euman Intelligence"
+                className="h-auto w-auto"
+                width={137}
+                height={32}
+                priority
+              />
+            </Link>
             <p
               className={`mt-1 max-w-sm text-sm ${
                 isDark ? "text-white/65" : "text-gray-600"

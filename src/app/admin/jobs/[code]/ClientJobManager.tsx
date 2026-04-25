@@ -376,6 +376,8 @@ export default function ClientJobManager({
   );
   const [workbenchBusy, setWorkbenchBusy] = useState(false);
   const [newColumnTitle, setNewColumnTitle] = useState("");
+  const [editingColumnId, setEditingColumnId] = useState<string | null>(null);
+  const [editingColumnTitle, setEditingColumnTitle] = useState("");
   const [newCard, setNewCard] = useState<Record<string, NewWorkbenchCardDraft>>({});
   const [openComposerColumnId, setOpenComposerColumnId] = useState<string | null>(null);
   const [activeWorkbenchCardId, setActiveWorkbenchCardId] = useState<string | null>(null);
@@ -572,6 +574,26 @@ export default function ClientJobManager({
     () => [...(workbench.columns || [])].sort((a, b) => a.order - b.order),
     [workbench.columns]
   );
+  const beginColumnEdit = (columnId: string, currentTitle: string) => {
+    setEditingColumnId(columnId);
+    setEditingColumnTitle(currentTitle);
+  };
+  const cancelColumnEdit = () => {
+    setEditingColumnId(null);
+    setEditingColumnTitle("");
+  };
+  const saveColumnTitle = async (columnId: string) => {
+    const title = editingColumnTitle.trim();
+    if (!title) return;
+    const nextWorkbench = {
+      ...workbench,
+      columns: workbench.columns.map((column) =>
+        column.id === columnId ? { ...column, title } : column
+      ),
+    };
+    cancelColumnEdit();
+    await saveWorkbench(nextWorkbench, "Workbench column updated.");
+  };
   const cardsByColumn = useMemo(() => {
     const grouped = new Map<string, WorkbenchCard[]>();
     for (const card of workbench.cards || []) {
@@ -591,6 +613,13 @@ export default function ClientJobManager({
     () => workbench.cards.find((card) => card.id === activeWorkbenchCardId) || null,
     [activeWorkbenchCardId, workbench.cards]
   );
+  const currentComposerColumn = useMemo(
+    () => orderedColumns.find((column) => column.id === openComposerColumnId) || null,
+    [openComposerColumnId, orderedColumns]
+  );
+  const composerDraft = openComposerColumnId
+    ? newCard[openComposerColumnId] || EMPTY_CARD_DRAFT
+    : EMPTY_CARD_DRAFT;
 
   function updateWorkbenchCard(
     cardId: string,
@@ -600,6 +629,49 @@ export default function ClientJobManager({
       ...prev,
       cards: prev.cards.map((item) => (item.id === cardId ? updater(item) : item)),
     }));
+  }
+
+  async function createWorkbenchTask(columnId: string) {
+    const draft = newCard[columnId] || EMPTY_CARD_DRAFT;
+    if (!draft.title.trim()) return;
+
+    const assignees = parseAssigneeEmails(draft.assignees);
+    const nextWorkbench = {
+      ...workbench,
+      cards: [
+        ...workbench.cards,
+        {
+          id: makeId("card"),
+          title: draft.title.trim(),
+          description: draft.description.trim(),
+          columnId,
+          order: (cardsByColumn.get(columnId) || []).length,
+          creatorEmail: currentUserEmail,
+          creatorName: currentUserEmail,
+          creatorAvatarUrl: "",
+          assigneeEmail: assignees[0] || job.assignedUserEmail || "",
+          assigneeEmails: assignees.length
+            ? assignees
+            : job.assignedUserEmail
+              ? [job.assignedUserEmail]
+              : [],
+          dueDate: draft.dueDate,
+          dueTime: draft.dueTime,
+          priority: draft.priority,
+          createdAt: new Date().toLocaleDateString(),
+          links: [],
+          documents: [],
+          subtasks: [],
+        },
+      ],
+    };
+
+    setNewCard((prev) => ({
+      ...prev,
+      [columnId]: EMPTY_CARD_DRAFT,
+    }));
+    setOpenComposerColumnId(null);
+    await saveWorkbench(nextWorkbench, "Task added.");
   }
 
   useEffect(() => {
@@ -1201,8 +1273,12 @@ export default function ClientJobManager({
               />
               <button
                 type="button"
-                disabled={workbenchBusy || !newColumnTitle.trim()}
+                disabled={workbenchBusy}
                 onClick={async () => {
+                  if (!newColumnTitle.trim()) {
+                    showToast("Enter a column title.", "info");
+                    return;
+                  }
                   const nextWorkbench = {
                     ...workbench,
                     columns: [
@@ -1220,8 +1296,7 @@ export default function ClientJobManager({
                 className={cx(
                   BTN.primary,
                   "cursor-pointer rounded-lg px-3 py-2 text-sm",
-                  (workbenchBusy || !newColumnTitle.trim()) &&
-                    "cursor-not-allowed opacity-50"
+                  workbenchBusy && "cursor-not-allowed opacity-50"
                 )}
               >
                 Add column
@@ -1233,7 +1308,6 @@ export default function ClientJobManager({
             <div className="flex min-w-max items-start gap-4">
             {orderedColumns.map((column) => {
               const cards = cardsByColumn.get(column.id) || [];
-              const draft = newCard[column.id] || EMPTY_CARD_DRAFT;
               return (
                 <div
                   key={column.id}
@@ -1279,8 +1353,88 @@ export default function ClientJobManager({
                 >
                   <div className="flex items-center justify-between gap-2">
                     <div>
-                      <div className="font-medium text-gray-900">{column.title}</div>
-                      <div className="text-xs text-gray-500">{cards.length} work items</div>
+                      {editingColumnId === column.id ? (
+                        <div className="flex items-center gap-2">
+                          <input
+                            value={editingColumnTitle}
+                            onChange={(e) => setEditingColumnTitle(e.target.value)}
+                            className="min-w-0 rounded-lg border px-3 py-1.5 text-sm text-gray-900"
+                            placeholder="Column title"
+                            autoFocus
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") {
+                                e.preventDefault();
+                                void saveColumnTitle(column.id);
+                              }
+                              if (e.key === "Escape") {
+                                e.preventDefault();
+                                cancelColumnEdit();
+                              }
+                            }}
+                          />
+                          <button
+                            type="button"
+                            disabled={workbenchBusy || !editingColumnTitle.trim()}
+                            onClick={() => void saveColumnTitle(column.id)}
+                            className={cx(
+                              BTN.primary,
+                              "cursor-pointer rounded-lg px-2.5 py-1.5 text-xs",
+                              (workbenchBusy || !editingColumnTitle.trim()) &&
+                                "cursor-not-allowed opacity-50"
+                            )}
+                          >
+                            Save
+                          </button>
+                          <button
+                            type="button"
+                            onClick={cancelColumnEdit}
+                            className="cursor-pointer rounded-lg border px-2.5 py-1.5 text-xs text-gray-700 hover:bg-gray-50"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="group flex items-center gap-2">
+                          <div className="font-medium text-gray-900">{column.title}</div>
+                          <button
+                            type="button"
+                            onClick={() => beginColumnEdit(column.id, column.title)}
+                            className="cursor-pointer rounded-md border border-gray-200 bg-white p-1 text-gray-600 opacity-0 transition hover:bg-gray-50 hover:text-gray-900 group-hover:opacity-100"
+                            aria-label={`Edit ${column.title} column`}
+                            title="Edit column title"
+                          >
+                            <svg
+                              className="h-3.5 w-3.5"
+                              viewBox="0 0 20 20"
+                              fill="currentColor"
+                              aria-hidden="true"
+                            >
+                              <path d="M14.69 2.86a1.5 1.5 0 0 1 2.12 2.12l-8.1 8.1-3.05.93.93-3.05 8.1-8.1ZM5.9 11.77l-.42 1.39 1.39-.42 7.74-7.74-.97-.97-7.74 7.74Z" />
+                              <path d="M4 15.25A1.25 1.25 0 0 0 5.25 16.5h9.5a.75.75 0 0 1 0 1.5h-9.5A2.75 2.75 0 0 1 2.5 15.25v-9.5a.75.75 0 0 1 1.5 0v9.5Z" />
+                            </svg>
+                          </button>
+                        </div>
+                      )}
+                      <div className="flex items-center gap-2">
+                        <div className="text-xs text-gray-500">{cards.length} work items</div>
+                        <button
+                          type="button"
+                          disabled={workbenchBusy}
+                          onClick={() => setOpenComposerColumnId(column.id)}
+                          className="cursor-pointer rounded-lg border border-gray-200 bg-white p-2 text-gray-700 transition hover:bg-gray-50 hover:text-gray-900 disabled:cursor-not-allowed disabled:opacity-50"
+                          aria-label={`Add task to ${column.title}`}
+                          title={`Add task to ${column.title}`}
+                        >
+                          <svg
+                            className="h-4 w-4"
+                            viewBox="0 0 20 20"
+                            fill="currentColor"
+                            aria-hidden="true"
+                          >
+                            <path d="M10 4.25a.75.75 0 0 1 .75.75v4.25H15a.75.75 0 0 1 0 1.5h-4.25V15a.75.75 0 0 1-1.5 0v-4.25H5a.75.75 0 0 1 0-1.5h4.25V5a.75.75 0 0 1 .75-.75Z" />
+                          </svg>
+                        </button>
+                      </div>
                     </div>
                     <button
                       type="button"
@@ -1422,165 +1576,6 @@ export default function ClientJobManager({
                     })}
                   </div>
 
-                  <div className="mt-4 border-t pt-3">
-                    {openComposerColumnId === column.id ? (
-                      <div className="grid gap-2">
-                        <input
-                          value={draft.title}
-                          onChange={(e) =>
-                            setNewCard((prev) => ({
-                              ...prev,
-                              [column.id]: { ...draft, title: e.target.value },
-                            }))
-                          }
-                          placeholder="Task title"
-                          className="rounded-lg border px-3 py-2 text-sm text-gray-900"
-                        />
-                        <textarea
-                          value={draft.description}
-                          onChange={(e) =>
-                            setNewCard((prev) => ({
-                              ...prev,
-                              [column.id]: {
-                                ...draft,
-                                description: e.target.value,
-                              },
-                            }))
-                          }
-                          placeholder="Describe the task or next action"
-                          className="min-h-[88px] rounded-lg border px-3 py-2 text-sm text-gray-900"
-                        />
-                        <input
-                          value={draft.assignees}
-                          onChange={(e) =>
-                            setNewCard((prev) => ({
-                              ...prev,
-                              [column.id]: { ...draft, assignees: e.target.value },
-                            }))
-                          }
-                          placeholder="Assignees, comma separated"
-                          className="rounded-lg border px-3 py-2 text-sm text-gray-900"
-                        />
-                        <div className="grid gap-2 sm:grid-cols-3">
-                          <input
-                            type="date"
-                            value={draft.dueDate}
-                            onChange={(e) =>
-                              setNewCard((prev) => ({
-                                ...prev,
-                                [column.id]: { ...draft, dueDate: e.target.value },
-                              }))
-                            }
-                            className="min-w-0 rounded-lg border px-3 py-2 text-sm text-gray-900"
-                          />
-                          <input
-                            type="time"
-                            value={draft.dueTime}
-                            onChange={(e) =>
-                              setNewCard((prev) => ({
-                                ...prev,
-                                [column.id]: { ...draft, dueTime: e.target.value },
-                              }))
-                            }
-                            className="min-w-0 rounded-lg border px-3 py-2 text-sm text-gray-900"
-                          />
-                          <select
-                            value={draft.priority}
-                            onChange={(e) =>
-                              setNewCard((prev) => ({
-                                ...prev,
-                                [column.id]: {
-                                  ...draft,
-                                  priority: e.target.value as WorkbenchPriority | "",
-                                },
-                              }))
-                            }
-                            className="min-w-0 rounded-lg border px-3 py-2 text-sm text-gray-900"
-                          >
-                            {PRIORITY_OPTIONS.map((option) => (
-                              <option key={option.value || "none"} value={option.value}>
-                                {option.label}
-                              </option>
-                            ))}
-                          </select>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <button
-                            type="button"
-                            disabled={workbenchBusy || !draft.title.trim()}
-                            onClick={async () => {
-                              const assignees = parseAssigneeEmails(draft.assignees);
-                              const nextWorkbench = {
-                                ...workbench,
-                                cards: [
-                                  ...workbench.cards,
-                                  {
-                                    id: makeId("card"),
-                                    title: draft.title.trim(),
-                                    description: draft.description.trim(),
-                                    columnId: column.id,
-                                    order: cards.length,
-                                    creatorEmail: currentUserEmail,
-                                    creatorName: currentUserEmail,
-                                    creatorAvatarUrl: "",
-                                    assigneeEmail:
-                                      assignees[0] || job.assignedUserEmail || "",
-                                    assigneeEmails: assignees.length
-                                      ? assignees
-                                      : job.assignedUserEmail
-                                        ? [job.assignedUserEmail]
-                                        : [],
-                                    dueDate: draft.dueDate,
-                                    dueTime: draft.dueTime,
-                                    priority: draft.priority,
-                                    createdAt: new Date().toLocaleDateString(),
-                                    links: [],
-                                    documents: [],
-                                    subtasks: [],
-                                  },
-                                ],
-                              };
-                              setNewCard((prev) => ({
-                                ...prev,
-                                [column.id]: EMPTY_CARD_DRAFT,
-                              }));
-                              setOpenComposerColumnId(null);
-                              await saveWorkbench(nextWorkbench, "Task added.");
-                            }}
-                            className={cx(
-                              BTN.primary,
-                              "cursor-pointer rounded-lg px-3 py-2 text-sm",
-                              (workbenchBusy || !draft.title.trim()) &&
-                                "cursor-not-allowed opacity-50"
-                            )}
-                          >
-                            Add task
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setOpenComposerColumnId(null);
-                              setNewCard((prev) => ({
-                                ...prev,
-                                [column.id]: EMPTY_CARD_DRAFT,
-                              }));
-                            }}
-                            className={cx(BTN.subtle, "cursor-pointer rounded-lg px-3 py-2 text-sm")}
-                          >
-                            Cancel
-                          </button>
-                        </div>
-                      </div>
-                    ) : (
-                      <button
-                        type="button"
-                        onClick={() => setOpenComposerColumnId(column.id)}
-                        className={cx(BTN.subtle, "cursor-pointer rounded-lg px-3 py-2 text-sm")}
-                      >
-                        + New task
-                      </button>
-                    )}
-                  </div>
                 </div>
               );
             })}
@@ -1588,6 +1583,199 @@ export default function ClientJobManager({
           </div>
         </div>
       )}
+
+      {tab === "workbench" && currentComposerColumn ? (
+        <div className="fixed inset-0 z-[68] flex items-center justify-center bg-black/45 p-4 backdrop-blur-[2px]">
+          <div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-3xl bg-white p-5 shadow-2xl sm:p-6">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <div className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">
+                  Create task
+                </div>
+                <div className="mt-2 text-2xl font-semibold text-gray-900">
+                  {currentComposerColumn.title}
+                </div>
+                <p className="mt-1 text-sm text-gray-600">
+                  Add a new work item to this column.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setOpenComposerColumnId(null);
+                  setNewCard((prev) => ({
+                    ...prev,
+                    [currentComposerColumn.id]: EMPTY_CARD_DRAFT,
+                  }));
+                }}
+                className="cursor-pointer rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700 transition hover:bg-gray-50"
+              >
+                Close
+              </button>
+            </div>
+
+            <div className="mt-6 grid gap-4">
+              <div>
+                <label className="mb-2 block text-sm font-medium text-gray-900">
+                  Task title
+                </label>
+                <input
+                  value={composerDraft.title}
+                  onChange={(e) =>
+                    setNewCard((prev) => ({
+                      ...prev,
+                      [currentComposerColumn.id]: {
+                        ...composerDraft,
+                        title: e.target.value,
+                      },
+                    }))
+                  }
+                  placeholder="Describe the task or next action"
+                  className="w-full rounded-2xl border border-gray-200 px-4 py-3 text-sm text-gray-900"
+                />
+              </div>
+
+              <div>
+                <label className="mb-2 block text-sm font-medium text-gray-900">
+                  Description
+                </label>
+                <textarea
+                  value={composerDraft.description}
+                  onChange={(e) =>
+                    setNewCard((prev) => ({
+                      ...prev,
+                      [currentComposerColumn.id]: {
+                        ...composerDraft,
+                        description: e.target.value,
+                      },
+                    }))
+                  }
+                  placeholder="Add context, deadline notes, or next steps"
+                  className="min-h-[112px] w-full rounded-2xl border border-gray-200 px-4 py-3 text-sm text-gray-900"
+                />
+              </div>
+
+              <div className="grid gap-4 md:grid-cols-2">
+                <div>
+                  <label className="mb-2 block text-sm font-medium text-gray-900">
+                    Assignees
+                  </label>
+                  <input
+                    value={composerDraft.assignees}
+                    onChange={(e) =>
+                      setNewCard((prev) => ({
+                        ...prev,
+                        [currentComposerColumn.id]: {
+                          ...composerDraft,
+                          assignees: e.target.value,
+                        },
+                      }))
+                    }
+                    placeholder="Add one or more emails"
+                    className="w-full rounded-2xl border border-gray-200 px-4 py-3 text-sm text-gray-900"
+                  />
+                </div>
+
+                <div>
+                  <label className="mb-2 block text-sm font-medium text-gray-900">
+                    Priority
+                  </label>
+                  <select
+                    value={composerDraft.priority}
+                    onChange={(e) =>
+                      setNewCard((prev) => ({
+                        ...prev,
+                        [currentComposerColumn.id]: {
+                          ...composerDraft,
+                          priority: e.target.value as WorkbenchPriority | "",
+                        },
+                      }))
+                    }
+                    className="w-full rounded-2xl border border-gray-200 px-4 py-3 text-sm text-gray-900"
+                  >
+                    {PRIORITY_OPTIONS.map((option) => (
+                      <option key={option.value || "none"} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid gap-4 md:grid-cols-2">
+                <div>
+                  <label className="mb-2 block text-sm font-medium text-gray-900">
+                    Due date
+                  </label>
+                  <input
+                    type="date"
+                    value={composerDraft.dueDate}
+                    onChange={(e) =>
+                      setNewCard((prev) => ({
+                        ...prev,
+                        [currentComposerColumn.id]: {
+                          ...composerDraft,
+                          dueDate: e.target.value,
+                        },
+                      }))
+                    }
+                    className="w-full rounded-2xl border border-gray-200 px-4 py-3 text-sm text-gray-900"
+                  />
+                </div>
+
+                <div>
+                  <label className="mb-2 block text-sm font-medium text-gray-900">
+                    Due time
+                  </label>
+                  <input
+                    type="time"
+                    value={composerDraft.dueTime}
+                    onChange={(e) =>
+                      setNewCard((prev) => ({
+                        ...prev,
+                        [currentComposerColumn.id]: {
+                          ...composerDraft,
+                          dueTime: e.target.value,
+                        },
+                      }))
+                    }
+                    className="w-full rounded-2xl border border-gray-200 px-4 py-3 text-sm text-gray-900"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-6 flex flex-wrap justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => {
+                  setOpenComposerColumnId(null);
+                  setNewCard((prev) => ({
+                    ...prev,
+                    [currentComposerColumn.id]: EMPTY_CARD_DRAFT,
+                  }));
+                }}
+                className={cx(BTN.subtle, "cursor-pointer rounded-xl px-4 py-2 text-sm")}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={workbenchBusy || !composerDraft.title.trim()}
+                onClick={() => void createWorkbenchTask(currentComposerColumn.id)}
+                className={cx(
+                  BTN.primary,
+                  "cursor-pointer rounded-xl px-4 py-2 text-sm",
+                  (workbenchBusy || !composerDraft.title.trim()) &&
+                    "cursor-not-allowed opacity-50"
+                )}
+              >
+                Create task
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
 
       {tab === "workbench" && activeWorkbenchCard && (
         <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/35 p-4 backdrop-blur-[2px]">
@@ -1792,7 +1980,7 @@ export default function ClientJobManager({
                       </button>
                     </div>
                   ))}
-                  <div className="flex flex-col gap-2 sm:flex-row">
+                  <div className="flex flex-col gap-2">
                     <input
                       value={detailLinkInput}
                       onChange={(e) => setDetailLinkInput(e.target.value)}
@@ -1811,7 +1999,7 @@ export default function ClientJobManager({
                       }}
                       className={cx(
                         BTN.primary,
-                        "cursor-pointer rounded-xl px-3 py-2 text-sm sm:shrink-0",
+                        "cursor-pointer self-start rounded-xl px-3 py-2 text-sm",
                         !detailLinkInput.trim() && "cursor-not-allowed opacity-50"
                       )}
                     >
@@ -1910,7 +2098,7 @@ export default function ClientJobManager({
                       </button>
                     </div>
                   ))}
-                  <div className="flex flex-col gap-2 sm:flex-row">
+                  <div className="flex flex-col gap-2">
                     <input
                       value={detailSubtaskInput}
                       onChange={(e) => setDetailSubtaskInput(e.target.value)}
@@ -1936,7 +2124,7 @@ export default function ClientJobManager({
                       }}
                       className={cx(
                         BTN.primary,
-                        "cursor-pointer rounded-xl px-3 py-2 text-sm sm:shrink-0",
+                        "cursor-pointer self-start rounded-xl px-3 py-2 text-sm",
                         !detailSubtaskInput.trim() && "cursor-not-allowed opacity-50"
                       )}
                     >

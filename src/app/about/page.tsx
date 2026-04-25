@@ -81,7 +81,8 @@ export default function AboutPage() {
         <div className="relative z-10 mx-auto max-w-4xl px-4 text-center">
           <div className="py-20 sm:py-28">
             <div className="inline-flex items-center gap-2 rounded-full border bg-white/70 px-3 py-1 text-xs font-medium text-gray-700 backdrop-blur">
-              Human judgment - AI-enabled execution - Response clarity
+              Human judgment &bull; AI-enabled execution &bull; Response
+              clarity
             </div>
 
             <h1 className="mt-6 text-4xl font-extrabold tracking-tight text-white sm:text-6xl">

@@ -53,6 +53,11 @@ const companyLinks = [
     label: "Contact",
     desc: "Bring us into an active opportunity or a recurring response need.",
   },
+  {
+    href: "/careers",
+    label: "Careers",
+    desc: "Join our remote global team supporting proposal work for clients across markets.",
+  },
 ];
 
 function Dropdown({ label, items }) {
@@ -250,6 +255,13 @@ export default function Nav() {
                   className="rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm font-medium text-white transition hover:bg-white/[0.07]"
                 >
                   Zuri intelligence
+                </Link>
+                <Link
+                  href="/careers"
+                  onClick={closeMobileMenu}
+                  className="rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm font-medium text-white transition hover:bg-white/[0.07]"
+                >
+                  Careers
                 </Link>
               </div>
 

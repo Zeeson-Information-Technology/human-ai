@@ -1,6 +1,8 @@
 import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
+import DashboardShell from "@/components/dashboardBar";
 import { getAdminFromCookies } from "@/lib/admin-session";
+import { getAdminNav } from "@/lib/admin-dashboard";
 import dbConnect from "@/lib/db-connect";
 import { getOperatorFromCookies } from "@/lib/get-operator";
 import { isPlatformAdminRole } from "@/lib/admin-auth";
@@ -81,26 +83,36 @@ export default async function OpportunityWorkbenchPage({
   }
 
   return (
-    <div className="mx-auto flex min-h-screen max-w-7xl flex-col px-4 py-8">
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <div className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">
+    <DashboardShell
+      user={{
+        name: (me as any).name ?? me.email ?? "Admin",
+        email: me.email,
+        role: me.role as any,
+      }}
+      title="Dedicated Workbench"
+      nav={getAdminNav(me.role)}
+    >
+    <div className="mx-auto flex min-h-full max-w-7xl flex-col px-4 py-2 text-white sm:px-5 lg:px-6">
+      <div className="mb-4 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div className="min-w-0">
+          <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/55 sm:text-xs">
             Dedicated workbench
           </div>
-          <h1 className="mt-1 truncate text-2xl font-bold text-gray-900">
-            {job.title} <span className="text-gray-500">| {job.code}</span>
+          <h1 className="mt-1 text-xl font-bold leading-tight text-white sm:text-2xl lg:text-[2rem]">
+            <span className="break-words">{job.title}</span>{" "}
+            <span className="whitespace-nowrap text-white/55">| {job.code}</span>
           </h1>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
           <Link
             href={`/admin/jobs/${job.code}`}
-            className="rounded-lg border px-3 py-1 text-sm hover:bg-gray-50"
+            className="rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-center text-sm text-white/85 transition hover:bg-white/10 hover:text-white"
           >
-            Back to opportunity
+            Back
           </Link>
           <Link
             href="/admin/jobs"
-            className="rounded-lg border px-3 py-1 text-sm hover:bg-gray-50"
+            className="rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-center text-sm text-white/85 transition hover:bg-white/10 hover:text-white"
           >
             Opportunities
           </Link>
@@ -118,5 +130,6 @@ export default async function OpportunityWorkbenchPage({
         />
       </div>
     </div>
+    </DashboardShell>
   );
 }

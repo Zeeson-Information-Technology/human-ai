@@ -1,6 +1,8 @@
 import dbConnect from "@/lib/db-connect";
+import DashboardShell from "@/components/dashboardBar";
 import { getAdminFromCookies } from "@/lib/admin-session";
 import { getEffectivePermissions, isPlatformAdminRole } from "@/lib/admin-auth";
+import { getAdminNav } from "@/lib/admin-dashboard";
 import { getOperatorFromCookies } from "@/lib/get-operator";
 import Inquiry from "@/model/inquiry";
 import User from "@/model/user";
@@ -227,7 +229,16 @@ export default async function AdminLeadsPage() {
   };
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-8">
+    <DashboardShell
+      user={{
+        name: (operator as any).name ?? operator.email ?? "Admin",
+        email: operator.email,
+        role: operator.role as any,
+      }}
+      title={isAdmin ? "Proposal Inquiries" : "My Inquiries"}
+      nav={getAdminNav(operator.role)}
+    >
+    <div className="mx-auto max-w-6xl px-4 py-2">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold">Proposal Inquiries</h1>
@@ -260,11 +271,6 @@ export default async function AdminLeadsPage() {
               </Link>
             </>
           )}
-          <form action={logout}>
-            <button className="cursor-pointer rounded-lg border px-3 py-1 text-sm hover:bg-gray-50">
-              Sign out
-            </button>
-          </form>
         </div>
       </div>
 
@@ -405,6 +411,7 @@ export default async function AdminLeadsPage() {
         ))}
       </div>
     </div>
+    </DashboardShell>
   );
 }
 

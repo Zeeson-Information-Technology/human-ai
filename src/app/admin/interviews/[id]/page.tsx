@@ -1,7 +1,9 @@
+import DashboardShell from "@/components/dashboardBar";
 import Link from "next/link";
 import { Types } from "mongoose";
 import { notFound, redirect } from "next/navigation";
 import { getAdminFromCookies } from "@/lib/admin-session";
+import { getAdminNav } from "@/lib/admin-dashboard";
 import { isPlatformAdminRole } from "@/lib/admin-auth";
 import dbConnect from "@/lib/db-connect";
 import { getOperatorFromCookies } from "@/lib/get-operator";
@@ -69,7 +71,16 @@ export default async function AdminInterviewDetail({
     snapsRes && snapsRes.ok ? await snapsRes.json().catch(() => ({})) : {};
 
   return (
-    <div className="mx-auto max-w-5xl px-4 py-8">
+    <DashboardShell
+      user={{
+        name: (me as any).name ?? me.email ?? "Admin",
+        email: me.email,
+        role: me.role as any,
+      }}
+      title="Structured Review"
+      nav={getAdminNav(me.role)}
+    >
+    <div className="mx-auto max-w-5xl px-4 py-2">
       <div className="mb-4 flex items-center justify-between">
         <h1 className="text-2xl font-bold">Structured Review</h1>
         <Link
@@ -355,6 +366,7 @@ export default async function AdminInterviewDetail({
         </div>
       )}
     </div>
+    </DashboardShell>
   );
 }
 async function ReportPreview({ url }: { url: string }) {

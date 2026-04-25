@@ -1,7 +1,9 @@
+import DashboardShell from "@/components/dashboardBar";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getAdminFromCookies } from "@/lib/admin-session";
 import dbConnect from "@/lib/db-connect";
+import { getAdminNav } from "@/lib/admin-dashboard";
 import { isPlatformAdminRole } from "@/lib/admin-auth";
 import { getOperatorFromCookies } from "@/lib/get-operator";
 import { Job } from "@/model/opportunity";
@@ -117,7 +119,16 @@ export default async function AdminInterviewsPage({
   const running = sessions.filter((s) => s.status === "running").length;
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-8">
+    <DashboardShell
+      user={{
+        name: (me as any).name ?? me.email ?? "Admin",
+        email: me.email,
+        role: me.role as any,
+      }}
+      title={isPlatformAdminRole(me.role) ? "Structured Reviews" : "My Reviews"}
+      nav={getAdminNav(me.role)}
+    >
+    <div className="mx-auto max-w-6xl px-4 py-2">
       <div className="flex items-center justify-between gap-3">
         <h1 className="text-2xl font-bold">Structured Reviews</h1>
         <div className="flex items-center gap-2 text-sm">
@@ -260,5 +271,6 @@ export default async function AdminInterviewsPage({
         )}
       </div>
     </div>
+    </DashboardShell>
   );
 }

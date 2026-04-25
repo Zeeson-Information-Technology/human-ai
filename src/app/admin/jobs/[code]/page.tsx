@@ -1,5 +1,7 @@
+import DashboardShell from "@/components/dashboardBar";
 import { notFound, redirect } from "next/navigation";
 import { getAdminFromCookies } from "@/lib/admin-session";
+import { getAdminNav } from "@/lib/admin-dashboard";
 import dbConnect from "@/lib/db-connect";
 import { getOperatorFromCookies } from "@/lib/get-operator";
 import { isPlatformAdminRole } from "@/lib/admin-auth";
@@ -89,14 +91,24 @@ export default async function AdminJobDetailPage({
       : "overview";
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-8">
-      <div className="mb-4 flex items-center justify-between gap-3">
-        <h1 className="truncate text-2xl font-bold">
-          {job.title} <span className="text-gray-500">| {job.code}</span>
+    <DashboardShell
+      user={{
+        name: (me as any).name ?? me.email ?? "Admin",
+        email: me.email,
+        role: me.role as any,
+      }}
+      title="Opportunity"
+      nav={getAdminNav(me.role)}
+    >
+    <div className="mx-auto max-w-6xl px-4 py-2 text-white sm:px-5 lg:px-6">
+      <div className="mb-4 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <h1 className="min-w-0 text-xl font-bold leading-tight text-white sm:text-2xl lg:text-[2rem]">
+          <span className="break-words">{job.title}</span>{" "}
+          <span className="whitespace-nowrap text-white/55">| {job.code}</span>
         </h1>
         <a
           href="/admin/jobs"
-          className="rounded-lg border px-3 py-1 text-sm hover:bg-gray-50"
+          className="rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-center text-sm text-white/85 transition hover:bg-white/10 hover:text-white"
         >
           Back to Opportunities
         </a>
@@ -110,6 +122,7 @@ export default async function AdminJobDetailPage({
         currentUserEmail={me.email || ""}
       />
     </div>
+    </DashboardShell>
   );
 }
 

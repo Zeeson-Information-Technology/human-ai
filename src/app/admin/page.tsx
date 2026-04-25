@@ -4,6 +4,7 @@ import { getAdminFromCookies } from "@/lib/admin-session";
 import dbConnect from "@/lib/db-connect";
 import { getEffectivePermissions, isPlatformAdminRole } from "@/lib/admin-auth";
 import { getOperatorFromCookies } from "@/lib/get-operator";
+import { getAdminNav } from "@/lib/admin-dashboard";
 import Inquiry from "@/model/inquiry";
 import { Opportunity } from "@/model/opportunity";
 import Session from "@/model/session";
@@ -19,13 +20,35 @@ async function getStats(operator: { id: string; role?: string }) {
 
   const assignedOpportunities = await Opportunity.find(opportunityQuery, {
     code: 1,
+    workbench: 1,
+    active: 1,
   })
     .lean()
-    .then((rows: any[]) => rows.map((row) => row.code).filter(Boolean));
+    .then((rows: any[]) => rows.filter(Boolean));
+
+  const assignedOpportunityCodes = assignedOpportunities
+    .map((row: any) => row.code)
+    .filter(Boolean);
 
   const sessionQuery = adminScope
     ? {}
-    : { jobCode: { $in: assignedOpportunities } };
+    : { jobCode: { $in: assignedOpportunityCodes } };
+
+  const activeOpportunities = assignedOpportunities.filter(
+    (row: any) => row.active !== false
+  );
+  const workbenchCards = activeOpportunities.flatMap(
+    (row: any) => row.workbench?.cards || []
+  );
+  const now = new Date();
+  const todayKey = now.toISOString().slice(0, 10);
+  const overdueTasks = workbenchCards.filter((card: any) => {
+    const dueDate = String(card?.dueDate || "").trim();
+    return dueDate && dueDate < todayKey;
+  }).length;
+  const dueTodayTasks = workbenchCards.filter(
+    (card: any) => String(card?.dueDate || "").trim() === todayKey
+  ).length;
 
   const [opportunities, totalSessions, finishedSessions, inquiries, newInquiries] =
     await Promise.all([
@@ -43,6 +66,9 @@ async function getStats(operator: { id: string; role?: string }) {
     runningSessions: Math.max(totalSessions - finishedSessions, 0),
     inquiries,
     newInquiries,
+    workbenchTasks: workbenchCards.length,
+    overdueTasks,
+    dueTodayTasks,
   };
 }
 
@@ -56,32 +82,19 @@ export default async function AdminHomePage() {
   const permissions = getEffectivePermissions(me);
 
   const stats = await getStats(me);
-  const nav = isAdmin
-    ? [
-        { href: "/admin", label: "Dashboard", exact: true },
-        { href: "/admin/leads", label: "Inquiries" },
-        { href: "/admin/jobs", label: "Opportunities" },
-        { href: "/admin/interviews", label: "Participant Reviews" },
-        { href: "/admin/settings", label: "Settings" },
-      ]
-    : [
-        { href: "/admin", label: "Dashboard", exact: true },
-        { href: "/admin/leads", label: "My Inquiries" },
-        { href: "/admin/jobs", label: "My Opportunities" },
-        { href: "/admin/interviews", label: "My Reviews" },
-      ];
+  const nav = getAdminNav(me.role);
 
   return (
     <DashboardShell
       user={{
-        name: me.email ?? "Admin",
+        name: (me as any).name ?? me.email ?? "Admin",
         email: me.email,
         role: me.role as any,
       }}
       title={isAdmin ? "Proposal Operations" : "My Work"}
       nav={nav}
     >
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {permissions.canManageInquiries ? (
           <Link
             href="/admin/leads"
@@ -136,6 +149,19 @@ export default async function AdminHomePage() {
             {`${stats.finishedSessions} completed | ${stats.runningSessions} active`}
           </div>
         </Link>
+
+        <Link
+          href="/admin/operations"
+          className="rounded-2xl border p-4 transition hover:bg-gray-50"
+        >
+          <div className="text-xs text-gray-500">Operations Board</div>
+          <div className="mt-1 text-2xl font-semibold">
+            {stats.workbenchTasks}
+          </div>
+          <div className="mt-2 text-sm text-gray-600">
+            {`${stats.overdueTasks} overdue | ${stats.dueTodayTasks} due today`}
+          </div>
+        </Link>
       </div>
 
       <div className="mt-6 rounded-2xl border p-4">
@@ -173,6 +199,12 @@ export default async function AdminHomePage() {
             className="rounded-xl border px-3 py-2 text-sm hover:bg-gray-50"
           >
             {isAdmin ? "View opportunities" : "My opportunities"}
+          </Link>
+          <Link
+            href="/admin/operations"
+            className="rounded-xl border px-3 py-2 text-sm hover:bg-gray-50"
+          >
+            Open operations board
           </Link>
         </div>
       </div>
