@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import PremiumToast from "@/components/feedback/PremiumToast";
 import { useTimedToast } from "@/components/feedback/useTimedToast";
@@ -13,6 +13,7 @@ import {
   InviteSentModal,
   type InviteSuccessMeta,
 } from "@/components/modal/InviteFeedback";
+import InvitePanel from "@/app/zuri/start/admin/components/InvitePanel";
 
 function LoaderOverlay({ show }: { show: boolean }) {
   if (!show) return null;
@@ -220,6 +221,38 @@ function formatDue(dueDate?: string, dueTime?: string) {
   return [dueDate, dueTime].filter(Boolean).join(" ");
 }
 
+const INTERNAL_NOTE_LABELS = [
+  "Client rep",
+  "Buyer / issuing authority",
+  "Solicitation number",
+  "Source",
+  "Submission deadline",
+  "Market focus",
+  "Reference materials",
+];
+
+function formatInternalNotes(notes?: string) {
+  if (!notes?.trim()) return [];
+  let normalized = notes.trim();
+  for (const label of INTERNAL_NOTE_LABELS) {
+    normalized = normalized.replace(
+      new RegExp(`\s*${label.replace(/[.*+?^${}()|[\\]\\\\]/g, "\\$&")}:\s*`, "gi"),
+      `\n${label}: `
+    );
+  }
+
+  return normalized
+    .split(/\n+/)
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .map((line) => {
+      const separator = line.indexOf(":");
+      return separator > 0
+        ? { label: line.slice(0, separator).trim(), value: line.slice(separator + 1).trim() }
+        : { label: "Note", value: line };
+    });
+}
+
 function getSubtaskProgress(card: WorkbenchCard) {
   const subtasks = card.subtasks || [];
   return {
@@ -346,6 +379,11 @@ export default function ClientJobManager({
   const [job, setJob] = useState<JobDTO>(initialJob);
   const [savedOverview, setSavedOverview] = useState<JobDTO>(initialJob);
   const [isEditingOverview, setIsEditingOverview] = useState(false);
+  const [showAllSupportAreas, setShowAllSupportAreas] = useState(false);
+  const [showAllDocuments, setShowAllDocuments] = useState(false);
+  const [showBriefModal, setShowBriefModal] = useState(false);
+  const [actionsOpen, setActionsOpen] = useState(false);
+  const actionsRef = useRef<HTMLDivElement>(null);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
@@ -361,12 +399,15 @@ export default function ClientJobManager({
   const [reviewedPage, setReviewedPage] = useState(1);
 
   const [inviteEmails, setInviteEmails] = useState<string[]>([""]);
+  const [participantType, setParticipantType] = useState<"candidate" | "sme" | "reviewer" | "partner">("candidate");
+  const [intakeMethod, setIntakeMethod] = useState<"ai-interview" | "human-interview" | "documents-only" | "manual-review">("ai-interview");
   const [inviteBusy, setInviteBusy] = useState(false);
   const [inviteMsg, setInviteMsg] = useState<string | null>(null);
   const [inviteSuccess, setInviteSuccess] = useState<InviteSuccessMeta | null>(
     null
   );
-  const [linkCopied, setLinkCopied] = useState(false);
+  const [participantRequests, setParticipantRequests] = useState<any[]>([]);
+  const [loadingParticipantRequests, setLoadingParticipantRequests] = useState(false);
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
   const [workbench, setWorkbench] = useState<WorkbenchState>(
     initialJob.workbench || defaultWorkbench()
@@ -506,6 +547,34 @@ export default function ClientJobManager({
   }, [job.code, tab]);
 
   useEffect(() => {
+    if (tab !== "requests") return;
+    let cancelled = false;
+    setLoadingParticipantRequests(true);
+    fetch(`/api/admin/jobs/${job.code}/participant-requests`, { cache: "no-store" })
+      .then((res) => res.json())
+      .then((data) => {
+        if (!cancelled && data.ok) setParticipantRequests(data.requests || []);
+      })
+      .catch(() => {})
+      .finally(() => {
+        if (!cancelled) setLoadingParticipantRequests(false);
+      });
+    return () => { cancelled = true; };
+  }, [job.code, tab]);
+
+  async function updateParticipantRequest(requestId: string, update: Record<string, unknown>) {
+    const res = await fetch(`/api/admin/jobs/${job.code}/participant-requests?requestId=${encodeURIComponent(requestId)}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(update),
+    });
+    const data = await res.json();
+    if (!res.ok || !data.ok) throw new Error(data.error || "Failed to update request");
+    setParticipantRequests((prev) => prev.map((item) => item.id === requestId ? { ...item, ...data.request } : item));
+    showToast("Participant request updated.", "success");
+  }
+
+  useEffect(() => {
     const max = Math.max(1, Math.ceil(pendingResponses.length / PAGE_SIZE));
     if (pendingPage > max) setPendingPage(max);
   }, [pendingPage, pendingResponses.length]);
@@ -544,6 +613,8 @@ export default function ClientJobManager({
         body: JSON.stringify({
           jobCode: job.code,
           emails,
+          participantType,
+          intakeMethod,
         }),
       });
       const data = await res.json();
@@ -568,6 +639,7 @@ export default function ClientJobManager({
     typeof window !== "undefined"
       ? `${window.location.origin}/jobs/apply?code=${job.code}`
       : `/jobs/apply?code=${job.code}`;
+  const selectedResponseLink = `${responseLink}&participantType=${participantType}&intakeMethod=${intakeMethod}`;
   const exportJsonHref = `/api/admin/jobs/${job.code}/export?format=json`;
   const exportCsvHref = `/api/admin/jobs/${job.code}/export?format=csv`;
   const orderedColumns = useMemo(
@@ -675,6 +747,15 @@ export default function ClientJobManager({
   }
 
   useEffect(() => {
+    if (!actionsOpen) return;
+    const closeOnOutsideClick = (event: MouseEvent) => {
+      if (!actionsRef.current?.contains(event.target as Node)) setActionsOpen(false);
+    };
+    document.addEventListener("mousedown", closeOnOutsideClick);
+    return () => document.removeEventListener("mousedown", closeOnOutsideClick);
+  }, [actionsOpen]);
+
+  useEffect(() => {
     if (!activeWorkbenchCardId) {
       setDetailLinkInput("");
       setDetailSubtaskInput("");
@@ -682,73 +763,107 @@ export default function ClientJobManager({
   }, [activeWorkbenchCardId]);
 
   return (
-    <div className="rounded-2xl border p-5">
+    <div className="w-full min-w-0 rounded-2xl border p-4 sm:p-5">
       {toast && <PremiumToast message={toast.msg} type={toast.type} />}
       <LoaderOverlay show={busy} />
       <InviteSendingOverlay show={inviteBusy} />
 
       {!workbenchOnly && (
-        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-          <div className="text-sm text-gray-600">
+        <div className="mb-4 flex min-w-0 flex-col gap-3 md:flex-row md:items-center md:justify-between">
+          <div className="min-w-0 break-words text-sm text-gray-600">
             Code: <span className="font-mono">{job.code}</span> | Created:{" "}
             {job.createdAt ? new Date(job.createdAt).toLocaleString() : "-"}
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex w-full flex-wrap items-center gap-2 md:w-auto md:justify-end">
             {canEditWorkspace && (
-              <button
-                type="button"
-                onClick={() => saveJob({ active: !job.active })}
-                title={
-                  job.active
-                    ? "Archive this opportunity and stop treating it as open"
-                    : "Reopen this opportunity"
-                }
-                className={`cursor-pointer rounded-lg px-3 py-1 text-sm font-medium ${
-                  job.active ? "bg-emerald-600 text-white" : "bg-black text-white"
-                }`}
-              >
-                {job.active ? "Open opportunity" : "Reopen opportunity"}
-              </button>
+              <div ref={actionsRef} className="relative">
+                <button
+                  type="button"
+                  onClick={() => setActionsOpen((value) => !value)}
+                  aria-expanded={actionsOpen}
+                  className="cursor-pointer rounded-lg border border-white/20 bg-white/10 px-3 py-2 text-sm font-medium text-white transition hover:bg-white hover:text-gray-900"
+                >
+                  Actions
+                </button>
+                {actionsOpen ? (
+                  <div className="absolute right-0 z-20 mt-2 w-60 rounded-2xl border border-gray-200 bg-white p-2 text-left shadow-xl">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setActionsOpen(false);
+                        void saveJob({ active: !job.active });
+                      }}
+                      className="block w-full cursor-pointer rounded-xl px-3 py-2.5 text-left text-sm text-gray-900 transition hover:bg-gray-100"
+                    >
+                      {job.active ? "Archive opportunity" : "Reopen opportunity"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setActionsOpen(false);
+                        setTab("requests");
+                      }}
+                      className="mb-2 block w-full cursor-pointer rounded-xl border-b border-gray-100 px-3 py-2.5 text-left text-sm text-gray-900 transition hover:bg-gray-100"
+                    >
+                      Participant requests
+                    </button>
+                    <div className="px-3 pb-1 pt-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-gray-400">
+                      Navigate
+                    </div>
+                    {([
+                      ["workbench", "Workbench"],
+                      ["reviews", "Participant reviews"],
+                    ] as Array<[Tab, string]>).map(([value, label]) => (
+                      <button
+                        key={value}
+                        type="button"
+                        onClick={() => {
+                          setActionsOpen(false);
+                          setTab(value);
+                        }}
+                        className={`block w-full cursor-pointer whitespace-nowrap rounded-xl px-3 py-2.5 text-left text-sm transition hover:bg-gray-100 ${
+                          tab === value ? "bg-gray-50 font-semibold text-gray-900" : "text-gray-700"
+                        }`}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                ) : null}
+              </div>
             )}
-            <button
-              type="button"
-              className="cursor-pointer rounded-lg border px-3 py-1 text-sm hover:bg-gray-50"
-              onClick={() => {
-                try {
-                  navigator.clipboard.writeText(responseLink);
-                  setLinkCopied(true);
-                  window.setTimeout(() => setLinkCopied(false), 1800);
-                } catch {}
-              }}
-              title="Copy response link"
-              aria-label="Copy response link"
-            >
-              {linkCopied ? "Copied!" : "Copy response link"}
-            </button>
           </div>
         </div>
       )}
 
-      {!workbenchOnly && (
-        <div className="mb-4 flex gap-2">
-          {(
-            [
-              ["overview", "Opportunity"],
-              ["workbench", "Workbench"],
-              ["requests", "Participant Requests"],
-              ["reviews", "Participant Reviews"],
-            ] as Array<[Tab, string]>
-          ).map(([value, label]) => (
-            <button
-              key={value}
-              onClick={() => setTab(value)}
-              className={`cursor-pointer rounded-full border px-3 py-1 ${
-                tab === value ? "bg-black text-white" : "bg-white text-gray-900"
-              }`}
-            >
-              {label}
-            </button>
-          ))}
+      {tab === "requests" && (
+        <div className="grid gap-6">
+          <InvitePanel
+            responseLink={selectedResponseLink}
+            inviteEmails={inviteEmails}
+            onChangeEmail={(index, email) => setInviteEmails((prev) => prev.map((value, i) => (i === index ? email : value)))}
+            onRemoveEmail={(index) => setInviteEmails((prev) => prev.filter((_, i) => i !== index))}
+            onAddEmail={() => setInviteEmails((prev) => [...prev, ""])}
+            onSendInvites={sendRequests}
+            inviteBusy={inviteBusy}
+            inviteMsg={inviteMsg}
+            participantType={participantType}
+            onParticipantTypeChange={setParticipantType}
+            intakeMethod={intakeMethod}
+            onIntakeMethodChange={setIntakeMethod}
+          />
+          <section className="rounded-2xl border border-slate-200 bg-white p-4 text-slate-900 shadow-sm">
+            <div className="flex items-center justify-between gap-3">
+              <div><h3 className="font-semibold">Participant requests</h3><p className="text-sm text-slate-500">Requests remain here before a participant submits.</p></div>
+              <span className="text-sm text-slate-500">{participantRequests.length}</span>
+            </div>
+            {loadingParticipantRequests ? <div className="mt-4 text-sm text-slate-500">Loading requests...</div> : participantRequests.length === 0 ? <div className="mt-4 rounded-xl bg-slate-50 p-4 text-sm text-slate-600">No participant requests yet.</div> : <div className="mt-4 grid gap-3">
+              {participantRequests.map((request) => <div key={request.id} className="grid gap-3 rounded-xl border border-slate-200 p-3 sm:flex sm:items-center sm:justify-between">
+                <div className="min-w-0"><div className="truncate font-medium">{request.name || request.email}</div><div className="text-xs text-slate-500">{request.participantType} · {request.intakeMethod} · {request.status}</div>{request.proposedSlots?.[0]?.startAt && <div className="mt-1 text-xs text-amber-700">Proposed: {new Date(request.proposedSlots[0].startAt).toLocaleString()}</div>}</div>
+                {request.intakeMethod === "human-interview" && request.status === "submitted" && request.proposedSlots?.[0] && <div className="flex shrink-0 gap-2"><button type="button" onClick={() => updateParticipantRequest(request.id, { status: "scheduled", selectedSlot: request.proposedSlots[0] })} className="cursor-pointer rounded-lg bg-emerald-700 px-3 py-2 text-xs font-semibold text-white hover:bg-emerald-800">Schedule</button><button type="button" onClick={() => updateParticipantRequest(request.id, { status: "declined" })} className="cursor-pointer rounded-lg border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50">Decline</button></div>}
+              </div>)}
+            </div>}
+          </section>
         </div>
       )}
 
@@ -788,7 +903,7 @@ export default function ClientJobManager({
               </div>
             </div>
 
-            <div className="grid gap-2 sm:grid-cols-3">
+            <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
               <div>
                 <label className="mb-1 block text-sm font-medium">Client</label>
                 <input
@@ -829,7 +944,7 @@ export default function ClientJobManager({
               </div>
             </div>
 
-            <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
               <div>
                 <label className="mb-1 block text-sm font-medium">
                   Buyer / issuing authority
@@ -992,7 +1107,7 @@ export default function ClientJobManager({
               </div>
             </div>
 
-            <div className="grid gap-4 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
+            <div className="grid gap-4 xl:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
               <div>
                 <label className="mb-1 block text-sm font-medium">
                   Internal notes
@@ -1064,12 +1179,12 @@ export default function ClientJobManager({
           </form>
         ) : (
           <div className="grid gap-5">
-            <div className="flex items-start justify-between gap-4 rounded-2xl border bg-gradient-to-br from-white to-gray-50 p-5">
+            <div className="flex min-w-0 flex-col items-start justify-between gap-4 rounded-2xl border bg-gradient-to-br from-white to-gray-50 p-5 md:flex-row">
               <div className="min-w-0">
                 <div className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">
                   Opportunity overview
                 </div>
-                <h2 className="mt-2 text-2xl font-semibold text-gray-900">
+                <h2 className="mt-2 break-words text-2xl font-semibold text-gray-900">
                   {job.title}
                 </h2>
                 <div className="mt-2 flex flex-wrap gap-2 text-sm text-gray-600">
@@ -1092,14 +1207,14 @@ export default function ClientJobManager({
                 <button
                   type="button"
                   onClick={() => setIsEditingOverview(true)}
-                  className={cx(BTN.primary, "cursor-pointer rounded-xl px-4 py-2 text-sm")}
+                  className={cx(BTN.primary, "shrink-0 cursor-pointer whitespace-nowrap rounded-lg px-3 py-1.5 text-xs")}
                 >
                   Edit opportunity
                 </button>
               ) : null}
             </div>
 
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
               {[
                 ["Buyer / issuing authority", job.buyerOrganization || "-"],
                 ["Solicitation number", job.solicitationNumber || "-"],
@@ -1114,35 +1229,58 @@ export default function ClientJobManager({
                   <div className="text-xs font-semibold uppercase tracking-[0.16em] text-gray-500">
                     {label}
                   </div>
-                  <div className="mt-2 text-sm text-gray-900">{value}</div>
+                  <div className="mt-2 break-words text-sm text-gray-900">{value}</div>
                 </div>
               ))}
             </div>
 
-            <div className="grid gap-4 lg:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)]">
-              <div className="rounded-2xl border bg-white p-5 shadow-sm">
-                <div className="text-xs font-semibold uppercase tracking-[0.16em] text-gray-500">
-                  Opportunity brief
+            <div className="grid gap-4 xl:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)]">
+              <div className="min-w-0 rounded-2xl border bg-white p-5 shadow-sm">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="text-xs font-semibold uppercase tracking-[0.16em] text-gray-500">
+                    Opportunity brief
+                  </div>
+                  {job.jdText && job.jdText.length > 500 ? (
+                    <button
+                      type="button"
+                      onClick={() => setShowBriefModal(true)}
+                      className="flex h-6 w-6 shrink-0 cursor-pointer items-center justify-center rounded-full border border-gray-300 text-xs font-bold text-gray-600 transition hover:border-gray-500 hover:bg-gray-50"
+                      aria-label="View full opportunity brief"
+                      title="View full brief"
+                    >
+                      !
+                    </button>
+                  ) : null}
                 </div>
-                <div className="mt-3 whitespace-pre-wrap text-sm leading-7 text-gray-800">
+                <div className="mt-3 line-clamp-7 whitespace-pre-wrap break-words text-sm leading-7 text-gray-800">
                   {job.jdText || "No brief added yet."}
-                </div>
-                <div className="mt-3 text-xs text-gray-500">
-                  Brief length: {briefChars} characters
                 </div>
               </div>
 
               <div className="grid gap-4">
-                <div className="rounded-2xl border bg-white p-5 shadow-sm">
-                  <div className="text-xs font-semibold uppercase tracking-[0.16em] text-gray-500">
-                    Support areas
+                <div className="min-w-0 rounded-2xl border bg-white p-5 shadow-sm">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="text-xs font-semibold uppercase tracking-[0.16em] text-gray-500">
+                      Support areas
+                    </div>
+                    {job.focusAreas && job.focusAreas.length > 4 ? (
+                      <button
+                        type="button"
+                        onClick={() => setShowAllSupportAreas((value) => !value)}
+                        className="flex h-6 w-6 shrink-0 cursor-pointer items-center justify-center rounded-full border border-gray-300 text-xs font-bold text-gray-600 transition hover:border-gray-500 hover:bg-gray-50"
+                        aria-label={showAllSupportAreas ? "Show fewer support areas" : "Show all support areas"}
+                        title={showAllSupportAreas ? "Show fewer" : "Show all"}
+                      >
+                        !
+                      </button>
+                    ) : null}
                   </div>
                   <div className="mt-3 flex flex-wrap gap-2">
                     {job.focusAreas && job.focusAreas.length > 0 ? (
-                      job.focusAreas.map((area) => (
+                      (showAllSupportAreas ? job.focusAreas : job.focusAreas.slice(0, 4)).map((area, index) => (
                         <span
-                          key={area}
-                          className="inline-flex items-center rounded-full border bg-gray-50 px-3 py-1 text-xs text-gray-900"
+                          key={`${area}-${index}`}
+                          className="inline-flex min-w-0 max-w-full items-center break-words rounded-full border bg-gray-50 px-3 py-1 text-xs text-gray-900"
                         >
                           {area}
                         </span>
@@ -1153,19 +1291,32 @@ export default function ClientJobManager({
                   </div>
                 </div>
 
-                <div className="rounded-2xl border bg-white p-5 shadow-sm">
-                  <div className="text-xs font-semibold uppercase tracking-[0.16em] text-gray-500">
-                    Opportunity documents
+                <div className="min-w-0 rounded-2xl border bg-white p-5 shadow-sm">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="text-xs font-semibold uppercase tracking-[0.16em] text-gray-500">
+                      Opportunity documents
+                    </div>
+                    {job.documents && job.documents.length > 2 ? (
+                      <button
+                        type="button"
+                        onClick={() => setShowAllDocuments((value) => !value)}
+                        className="flex h-6 w-6 shrink-0 cursor-pointer items-center justify-center rounded-full border border-gray-300 text-xs font-bold text-gray-600 transition hover:border-gray-500 hover:bg-gray-50"
+                        aria-label={showAllDocuments ? "Show fewer documents" : "Show all documents"}
+                        title={showAllDocuments ? "Show fewer" : "Show all"}
+                      >
+                        !
+                      </button>
+                    ) : null}
                   </div>
-                  <div className="mt-3 grid gap-2">
+                  <div className="mt-3 grid min-w-0 gap-2">
                     {job.documents && job.documents.length > 0 ? (
-                      job.documents.map((document) => (
+                      (showAllDocuments ? job.documents : job.documents.slice(0, 2)).map((document) => (
                         <a
                           key={`${document.url}-${document.name}`}
                           href={document.url}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="rounded-lg border bg-gray-50 px-3 py-2 text-sm text-gray-900 hover:bg-gray-100"
+                          className="min-w-0 max-w-full overflow-hidden break-words rounded-lg border bg-gray-50 px-3 py-2 text-sm text-gray-900 hover:bg-gray-100"
                         >
                           {document.name}
                         </a>
@@ -1184,19 +1335,75 @@ export default function ClientJobManager({
               <div className="text-xs font-semibold uppercase tracking-[0.16em] text-gray-500">
                 Internal notes
               </div>
-              <div className="mt-3 whitespace-pre-wrap text-sm leading-7 text-gray-800">
-                {job.adminFocusNotes || "No internal notes yet."}
-              </div>
+              {job.adminFocusNotes ? (
+                <div className="mt-3 grid min-w-0 gap-2">
+                  {formatInternalNotes(job.adminFocusNotes).map((note, index) => (
+                    <div
+                      key={`${note.label}-${index}`}
+                      className="grid min-w-0 gap-1 rounded-xl border border-gray-100 bg-gray-50 px-3 py-2 sm:grid-cols-[minmax(150px,0.35fr)_minmax(0,1fr)] sm:items-start sm:gap-4"
+                    >
+                      <div className="text-xs font-semibold uppercase tracking-[0.12em] text-gray-500">
+                        {note.label}
+                      </div>
+                      <div className="min-w-0 break-words text-sm leading-6 text-gray-900">
+                        {note.value}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="mt-3 text-sm text-gray-500">No internal notes yet.</div>
+              )}
             </div>
 
             {!canEditWorkspace ? (
               <div className="text-xs text-gray-500">
                 Opportunity details are controlled by admin. You can still manage
-                workbench tasks, participant requests, and reviews.
+                workbench tasks, and reviews.
               </div>
             ) : null}
           </div>
         )
+      )}
+
+      {showBriefModal && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/50 p-4 backdrop-blur-[2px]">
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="full-opportunity-brief-title"
+            className="relative flex max-h-[85vh] w-full max-w-3xl min-w-0 flex-col overflow-hidden rounded-3xl bg-white p-5 text-gray-900 shadow-2xl sm:p-6"
+          >
+            <button
+              type="button"
+              onClick={() => setShowBriefModal(false)}
+              className="absolute right-4 top-4 flex h-8 w-8 cursor-pointer items-center justify-center rounded-full border border-gray-200 text-lg leading-none text-gray-500 transition hover:bg-gray-100 hover:text-gray-900"
+              aria-label="Close full opportunity brief"
+            >
+              x
+            </button>
+            <div className="pr-10">
+              <div className="text-xs font-semibold uppercase tracking-[0.16em] text-gray-500">
+                Opportunity brief
+              </div>
+              <h2 id="full-opportunity-brief-title" className="mt-2 text-xl font-semibold">
+                {job.title}
+              </h2>
+            </div>
+            <div className="mt-5 min-w-0 overflow-y-auto whitespace-pre-wrap break-words text-sm leading-7 text-gray-800">
+              {job.jdText || "No brief added yet."}
+            </div>
+            <div className="mt-5 flex justify-center border-t border-gray-100 pt-4">
+              <button
+                type="button"
+                onClick={() => setShowBriefModal(false)}
+                className={cx(BTN.subtle, "cursor-pointer rounded-xl px-5 py-2 text-sm")}
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {tab === "workbench" && !workbenchOnly && (
@@ -1220,7 +1427,7 @@ export default function ClientJobManager({
                 </div>
               </div>
               <Link
-                href={`/admin/jobs/${job.code}/workbench`}
+                href={`/admin/opportunities/${job.code}/workbench`}
                 className={cx(BTN.primary, "inline-flex cursor-pointer items-center rounded-xl px-4 py-2 text-sm")}
               >
                 Open full workbench
@@ -2171,66 +2378,6 @@ export default function ClientJobManager({
                 </button>
               </div>
             </div>
-          </div>
-        </div>
-      )}
-
-      {tab === "requests" && (
-        <div>
-          <p className="mb-2 text-gray-600">
-            Share this response link or send participant requests for this opportunity by email.
-          </p>
-          <div className="mb-4 rounded bg-gray-600 p-2 font-mono text-xs text-white">
-            Response link:{" "}
-            <a href={responseLink} target="_blank" rel="noopener">
-              {responseLink}
-            </a>
-          </div>
-
-          <div className="mb-4">
-            <div className="mb-2 text-sm font-semibold">Send by email</div>
-            {inviteEmails.map((email, idx) => (
-              <div key={idx} className="mb-2 flex gap-2">
-                <input
-                  value={email}
-                  onChange={(e) => {
-                    const next = [...inviteEmails];
-                    next[idx] = e.target.value;
-                    setInviteEmails(next);
-                  }}
-                  placeholder="candidate@email.com"
-                  className="flex-1 rounded-lg border p-2"
-                  type="email"
-                />
-                <button
-                  type="button"
-                  onClick={() =>
-                    setInviteEmails(inviteEmails.filter((_, i) => i !== idx))
-                  }
-                  className="rounded-lg border px-2 text-xs text-red-600"
-                  disabled={inviteEmails.length === 1}
-                >
-                  Remove
-                </button>
-              </div>
-            ))}
-
-            <button
-              type="button"
-              onClick={() => setInviteEmails([...inviteEmails, ""])}
-              className="cursor-pointer rounded-lg border px-3 py-1 text-sm hover:bg-gray-50"
-            >
-              + Add recipient
-            </button>
-            <button
-              type="button"
-              onClick={sendRequests}
-              disabled={inviteBusy}
-              className="mt-3 cursor-pointer rounded-xl bg-black px-4 py-2 font-medium text-white hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              {inviteBusy ? "Sending..." : "Send requests"}
-            </button>
-            {inviteMsg && <div className="mt-2 text-red-600">{inviteMsg}</div>}
           </div>
         </div>
       )}

@@ -46,7 +46,7 @@ export default function DashboardShell({
       ? pathname === item.href
       : pathname === item.href || pathname.startsWith(item.href + "/");
 
-  // Helpers to avoid duplicates in footer
+  // Helpers to avoid duplicates in footer.
   const hasItem = (pred: (n: NavItem) => boolean) => nav?.some(pred) ?? false;
   const labelEq = (a?: string, b?: string) =>
     (a || "").trim().toLowerCase() === (b || "").trim().toLowerCase();
@@ -68,7 +68,7 @@ export default function DashboardShell({
       ? "/settings"
       : "/admin/settings";
 
-  // Robust duplicate detection: match by href, label, or “endsWith('/settings')”
+  // Robust duplicate detection: match by href, label, or profile/settings suffixes.
   const hasProfile = hasItem(
     (n) =>
       n.href === profileHref ||

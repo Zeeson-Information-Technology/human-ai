@@ -79,7 +79,7 @@ export default async function AdminJobDetailPage({
     !isPlatformAdminRole(me.role) &&
     String(job.assignedUserId || "") !== String(me.id)
   ) {
-    redirect("/admin/jobs");
+    redirect("/admin/opportunities");
   }
 
   const initialTab =
@@ -100,15 +100,15 @@ export default async function AdminJobDetailPage({
       title="Opportunity"
       nav={getAdminNav(me.role)}
     >
-    <div className="mx-auto max-w-6xl px-4 py-2 text-white sm:px-5 lg:px-6">
-      <div className="mb-4 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+    <div className="w-full min-w-0 px-4 py-2 text-white sm:px-5 lg:px-6">
+      <div className="mb-4 flex min-w-0 flex-col gap-4 md:flex-row md:items-start md:justify-between">
         <h1 className="min-w-0 text-xl font-bold leading-tight text-white sm:text-2xl lg:text-[2rem]">
           <span className="break-words">{job.title}</span>{" "}
           <span className="whitespace-nowrap text-white/55">| {job.code}</span>
         </h1>
         <a
-          href="/admin/jobs"
-          className="rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-center text-sm text-white/85 transition hover:bg-white/10 hover:text-white"
+          href="/admin/opportunities"
+          className="w-full shrink-0 rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-center text-sm text-white/85 transition hover:bg-white/10 hover:text-white md:w-auto"
         >
           Back to Opportunities
         </a>

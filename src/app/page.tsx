@@ -1,7 +1,7 @@
-import Image from "next/image";
 import Link from "next/link";
 import Footer from "../components/footer";
 import Highlight from "../components/highlight";
+import HeroWorkflowGraphic from "../components/hero-workflow-graphic";
 import Nav from "../components/nav";
 import Section from "../components/section";
 import Stats from "../components/stats";
@@ -25,23 +25,23 @@ export default function Page() {
           <div className="grid items-center gap-8 py-14 sm:grid-cols-2 sm:gap-10 sm:py-20">
             <div className="relative isolate overflow-hidden">
               <div className="inline-flex items-center gap-2 rounded-full border bg-white/70 px-3 py-1 text-xs font-medium text-gray-600 backdrop-blur">
-                Human judgment &bull; AI-enabled execution &bull; Proposal
-                leadership
+                For SMEs pursuing government tenders
               </div>
 
-              <h1 className="mt-4 text-4xl font-extrabold tracking-tight sm:text-6xl">
-                Human and AI intelligence for proposals, bids, and RFPs
+              <h1 className="mt-4 max-w-xl text-4xl font-extrabold tracking-tight sm:text-6xl">
+                Win more tenders without hiring a full bid team
               </h1>
 
               <div className="pointer-events-none mt-2 h-[3px] w-24 rounded-full bg-gradient-to-r from-emerald-400/70 to-cyan-400/20" />
 
-              <p className="mt-4 max-w-2xl text-gray-600">
-                Euman Intelligence works with businesses that need sharp
-                proposal thinking without investing in heavyweight RFP software
-                or building a full response team in house. We start by
-                understanding your business, shape the response around what
-                matters, and carry the work forward with discipline, speed, and
-                context.
+              <p className="mt-3 text-sm font-semibold text-slate-700 sm:text-base">
+                Human and AI intelligence for proposals, bids, and RFPs
+              </p>
+
+              <p className="mt-4 max-w-xl text-gray-600">
+                For small and medium businesses entering government and public
+                sector bids. We help you capture the brief, shape the response,
+                source the right SME support, and keep delivery moving.
               </p>
 
               <div className="mt-6 flex flex-wrap items-center gap-3">
@@ -49,7 +49,7 @@ export default function Page() {
                   href="/contact"
                   className="inline-flex items-center gap-2 rounded-xl bg-black px-5 py-3 font-medium text-white shadow-xl ring-1 ring-black/10 transition hover:bg-gray-900 hover:shadow-2xl"
                 >
-                  Request a consultation
+                  Start a consultation
                   <svg
                     className="h-4 w-4"
                     viewBox="0 0 20 20"
@@ -74,6 +74,7 @@ export default function Page() {
                   </svg>
                 </Link>
               </div>
+
             </div>
 
             <div className="relative overflow-hidden">
@@ -86,14 +87,7 @@ export default function Page() {
                 }}
               />
 
-              <Image
-                src="/equatoria-hero-brain-circle-clean.svg"
-                alt="Proposal delivery workflow supported by AI and human experts"
-                priority
-                width={720}
-                height={720}
-                className="relative z-10 w-full max-w-xl rounded-2xl shadow-xl ring-1 ring-black/5 animate-hero-float"
-              />
+              <HeroWorkflowGraphic />
             </div>
           </div>
         </div>
@@ -102,7 +96,7 @@ export default function Page() {
       <section className="border-b">
         <div className="mx-auto max-w-5xl px-4 py-6 text-center">
           <div className="text-xs font-medium uppercase tracking-wider text-gray-500">
-            Designed for teams navigating complex buying processes
+            Built for lean businesses entering government and public sector bids
           </div>
           <div className="mt-4 grid grid-cols-2 items-center gap-x-8 gap-y-3 opacity-70 sm:grid-cols-6">
             <div className="text-sm font-semibold text-gray-500">Consulting</div>
@@ -129,35 +123,70 @@ export default function Page() {
       </div>
 
       <Section
+        id="proof"
+        title="Trusted by leaders who know the work"
+        subtitle="Built on real proposal experience, practical judgment, and the ability to spot what matters early."
+      >
+        <div className="grid gap-6 sm:grid-cols-2">
+          {[
+            {
+              quote:
+                "Sharp instinct, solid judgment, and a practical grip on how proposal work should move.",
+              by: "Current employer feedback",
+            },
+            {
+              quote:
+                "Trusted to notice risk early, organize the response, and keep the work moving under pressure.",
+              by: "CEO feedback",
+            },
+          ].map((item) => (
+            <figure
+              key={item.by}
+              className="relative rounded-3xl border border-slate-200 bg-white p-6 shadow-sm"
+            >
+              <div className="text-4xl leading-none text-emerald-500/30">“</div>
+              <blockquote className="mt-3 text-lg leading-8 text-slate-800">
+                {item.quote}
+              </blockquote>
+              <figcaption className="mt-4 text-sm font-medium text-slate-500">
+                {item.by}
+              </figcaption>
+              <div className="pointer-events-none absolute inset-x-0 -top-px h-[2px] rounded-t-3xl bg-gradient-to-r from-emerald-400 via-cyan-400 to-slate-900 opacity-80" />
+            </figure>
+          ))}
+        </div>
+      </Section>
+
+      <Section
         id="services"
-        title="A sharper way to run response work"
-        subtitle="We help clients move from scattered inputs to clear, submission-ready responses."
+        title="Everything a lean tender team needs"
+        subtitle="Capture the brief, respond well, source the right help, and stay on track through delivery."
       >
         <div className="grid gap-6 sm:grid-cols-3">
           {[
             {
-              title: "Bid qualification",
-              desc: "Review requirements, timelines, fit, and delivery expectations so decisions are made with clarity early.",
+              title: "Capture",
+              desc: "Collect inquiry details, buyer context, RFP text, attachments, and deadlines before the work fragments.",
             },
             {
-              title: "Response development",
+              title: "Response",
               desc: "Draft executive summaries, response sections, and value-led narratives that speak to buyer priorities.",
             },
             {
-              title: "Compliance tracking",
-              desc: "Translate instructions into a clear response structure so mandatory requirements do not get lost.",
+              title: "Talent sourcing",
+              desc: "Identify the SME, writer, reviewer, or delivery support needed to move the pursuit forward quickly.",
             },
             {
-              title: "Expert input capture",
-              desc: "Bring technical, commercial, and delivery perspectives into the response without creating noise or delay.",
+              title: "Delivery support",
+              desc: "Keep workbench tasks, deadlines, review cycles, and final packaging organized through submission.",
             },
             {
-              title: "Review and refinement",
-              desc: "Strengthen clarity, consistency, evidence, and evaluator-readability before final packaging.",
+              title: "Low-budget pilot",
+              desc: "Start small with one live tender, then expand once the workflow is working for your team.",
             },
             {
               title: "Cross-market readiness",
-              desc: "Support opportunities across global buyer environments, including current focus areas in Canada, the US, and the UK.",
+              desc: "Support opportunities across Canada, the US, the UK, and other global buyer environments.",
             },
           ].map((card) => (
             <div
@@ -173,23 +202,23 @@ export default function Page() {
       </Section>
 
       <Section
-        id="regions"
-        title="Where we focus"
-        subtitle="Our current commercial focus reflects the markets where structured response work matters most."
+        id="fit"
+        title="Best fit for"
+        subtitle="We work best with smaller teams that want to compete for public sector work without heavy overhead."
       >
         <div className="grid gap-6 sm:grid-cols-3">
           {[
             {
-              title: "Canada",
-              desc: "Support for public and private sector responses requiring clear compliance, governance, and structured service narratives.",
+              title: "Small & medium businesses",
+              desc: "Companies that want to enter government tenders but do not need a full in-house response department.",
             },
             {
-              title: "United States",
-              desc: "Fast-turn proposal support for enterprise and government-oriented opportunities with multi-stakeholder review cycles.",
+              title: "Lean proposal teams",
+              desc: "Teams juggling sales, operations, and proposals who need extra structure and execution support.",
             },
             {
-              title: "United Kingdom",
-              desc: "Bid support aligned to formal tender expectations, framework language, and disciplined response management.",
+              title: "First-time bidders",
+              desc: "Businesses who are new to government tenders and need help making the process less overwhelming.",
             },
           ].map((market) => (
             <div key={market.title} className="rounded-2xl border p-6">
@@ -202,34 +231,34 @@ export default function Page() {
 
       <Section
         id="process"
-        title="How the engagement moves"
-        subtitle="We reduce friction by taking hold of the response process early and keeping it organized."
+        title="How we work with you"
+        subtitle="A simple path that keeps the work moving without unnecessary software or hiring overhead."
       >
         <ol className="grid list-decimal gap-6 pl-5 sm:grid-cols-3">
           {[
             {
-              t: "Assess the opportunity",
-              s: "We review the RFP, the scope, the stakeholders, and the pressure points around the opportunity.",
+              t: "Capture the pursuit",
+              s: "We review the inquiry, RFP, attachments, and the pressures around the opportunity.",
             },
             {
               t: "Set the response path",
               s: "We define the structure, key themes, dependencies, evidence needs, and decision points.",
             },
             {
-              t: "Develop the response",
-              s: "We work through drafting, clarifications, interviews, and content shaping with pace and order.",
+              t: "Source the support needed",
+              s: "We bring in the right SME, writer, or delivery support so the opportunity keeps moving.",
             },
             {
               t: "Check the details",
               s: "We review instructions, attachments, mandatory criteria, and answer completeness before submission.",
             },
             {
-              t: "Strengthen the case",
-              s: "We sharpen differentiation, commercial positioning, and the story the buyer will actually read.",
+              t: "Develop the response",
+              s: "We shape the story the buyer will actually read, with stronger structure and sharper positioning.",
             },
             {
-              t: "Finish cleanly",
-              s: "We support final packaging, approvals, and the last-mile review that protects the response.",
+              t: "Support delivery",
+              s: "We handle final packaging, approvals, the submission handoff, and the last-mile review that protects the response.",
             },
           ].map((item, idx) => (
             <li key={idx} className="relative rounded-2xl border p-6">
@@ -244,14 +273,14 @@ export default function Page() {
 
       <Section
         id="why-us"
-        title="Why this model works"
-        subtitle="The approach is built for teams that need better outcomes, not more software to manage."
+        title="Why lean teams choose this model"
+        subtitle="The approach is built for businesses that want better outcomes without more software to manage."
       >
         <div className="grid gap-6 sm:grid-cols-3">
           {[
             {
-              t: "Structured delivery",
-              s: "Clear workstreams, tracked inputs, and visible review cycles reduce last-minute confusion.",
+              t: "Structured capture",
+              s: "Clear intake, source materials, and evidence paths reduce late confusion and lost context.",
             },
             {
               t: "Human-led with modern tooling",
@@ -259,7 +288,7 @@ export default function Page() {
             },
             {
               t: "Built for lean teams",
-              s: "It works for companies that want strong proposal capability without committing to expensive software and a large in-house response function.",
+              s: "It works for companies that want stronger proposal capability without committing to expensive software and a large in-house response function.",
             },
           ].map((item) => (
             <div key={item.t} className="relative rounded-2xl border p-6">
@@ -274,19 +303,20 @@ export default function Page() {
       <section className="border-t">
         <div className="mx-auto max-w-5xl px-4 py-12 text-center">
           <h2 className="text-2xl font-bold">
-            Need a smarter way to move an active opportunity forward?
+            Need help on your next tender without the overhead of a full bid team?
           </h2>
           <p className="mx-auto mt-2 max-w-2xl text-gray-700">
             Share the opportunity, the context, and the timeline. We will
-            assess the brief, identify the response path, and show you how the
-            work can move with less internal drag.
+            assess the brief, identify the response path, surface the SME or
+            talent gap, and show you how the work can move with less internal
+            drag.
           </p>
           <div className="mt-6 flex items-center justify-center gap-3">
             <Link
               href="/contact"
               className="rounded-xl bg-black px-5 py-3 font-medium text-white hover:opacity-90"
             >
-              Request a consultation
+              Book a fit call
             </Link>
             <Link
               href="/about"

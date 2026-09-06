@@ -74,7 +74,7 @@ type JobTabProps = {
   setSkillInput: (v: string) => void;
   onAddSkill: (v?: string) => void;
   onRemoveSkill: (s: string) => void;
-  onExtractOpportunity: () => void;
+  onExtractOpportunity: (files?: UploadedFileItem[]) => void;
   onGenerateAIJD: () => void;
   aiBusy?: boolean;
   extractBusy?: boolean;
@@ -156,30 +156,22 @@ export default function JobTab({
   extractBusy,
 }: JobTabProps) {
   const briefLength = jdText.trim().length;
-  const [step, setStep] = useState<0 | 1 | 2>(0);
+  const [step, setStep] = useState<0 | 1>(0);
   const canExtract = sourceText.trim().length >= 80 || documents.length > 0;
   const steps = [
     {
       id: 0 as const,
-      label: "Source",
-      title: "Source material",
-      desc: "Start from pasted text, uploaded files, or manual entry.",
+      label: "Opportunity",
+      title: "Opportunity details",
+      desc: "Add source material and capture the pursuit details.",
     },
     {
       id: 1 as const,
-      label: "Opportunity",
-      title: "Opportunity details",
-      desc: "Capture the buyer, deadline, and pursuit details.",
-    },
-    {
-      id: 2 as const,
       label: "Client & Scope",
       title: "Client and delivery scope",
       desc: "Link the client, define support tracks, and finalize the brief.",
     },
   ];
-  const sourceStepValid =
-    canExtract || title.trim().length > 0;
   const opportunityStepValid =
     title.trim().length > 0 &&
     roleName.trim().length > 0 &&
@@ -192,13 +184,11 @@ export default function JobTab({
     skills.length > 0 &&
     briefLength >= 120;
   const currentStepValid =
-    step === 0 ? sourceStepValid : step === 1 ? opportunityStepValid : clientStepValid;
+    step === 0 ? opportunityStepValid : clientStepValid;
   const stepHelp =
     step === 0
-      ? "Add source text, upload documents, or start the opportunity details before continuing."
-      : step === 1
-        ? "Complete the title, delivery track, buyer, and deadline before continuing."
-        : "Complete the client details, support tracks, and opportunity brief before continuing.";
+      ? "Complete the title, delivery track, buyer, and deadline before continuing."
+      : "Complete the client details, support tracks, and opportunity brief before continuing.";
 
   return (
     <div className="grid gap-6">
@@ -207,12 +197,6 @@ export default function JobTab({
           <div>
             <div className="text-xs font-semibold uppercase tracking-[0.18em] text-neutral-500">
               Opportunity form
-            </div>
-            <div className="mt-1 text-sm font-medium text-neutral-900">
-              {steps[step].title}
-            </div>
-            <div className="mt-1 text-sm text-neutral-600">
-              {steps[step].desc}
             </div>
           </div>
           <div className="text-sm font-medium text-neutral-700">
@@ -226,6 +210,22 @@ export default function JobTab({
           />
         </div>
       </div>
+
+      {step === 0 && (
+      <div>
+        <label className="mb-2 block text-sm font-medium">
+          Opportunity documents
+        </label>
+        <FileDropUpload
+          files={documents}
+          onChange={setDocuments}
+          onExtract={onExtractOpportunity}
+          folder="opportunity-documents"
+          label="Drag proposal files here or upload"
+          helperText="Upload the source RFP, briefing note, or opportunity documents first. You can extract details from them before completing the form."
+        />
+      </div>
+      )}
 
       {step === 0 && (
       <div className={SECTION}>
@@ -242,7 +242,7 @@ export default function JobTab({
           </div>
           <button
             type="button"
-            onClick={onExtractOpportunity}
+            onClick={() => onExtractOpportunity()}
             disabled={!!extractBusy || !canExtract}
             className={cx(
               BTN.primary,
@@ -271,23 +271,6 @@ export default function JobTab({
       )}
 
       {step === 0 && (
-      <div>
-        <label className="mb-2 block text-sm font-medium">
-          Opportunity documents
-        </label>
-        <FileDropUpload
-          files={documents}
-          onChange={setDocuments}
-          onExtract={onExtractOpportunity}
-          extractBusy={extractBusy}
-          folder="opportunity-documents"
-          label="Drag proposal files here or upload"
-          helperText="Upload the source RFP, briefing note, or any opportunity documents you already have. These can be used on their own to prefill the form."
-        />
-      </div>
-      )}
-
-      {step === 1 && (
       <div className="grid gap-2 sm:grid-cols-2">
         <div>
           <label className="mb-1 block text-sm font-medium">
@@ -314,7 +297,7 @@ export default function JobTab({
       </div>
       )}
 
-      {step === 2 && (
+      {step === 1 && (
       <div className={SECTION}>
         <div className="text-sm font-semibold text-gray-900">Client</div>
         <div className="mt-1 text-sm text-gray-700">
@@ -446,7 +429,7 @@ export default function JobTab({
       </div>
       )}
 
-      {step === 1 && (
+      {step === 0 && (
       <div className="grid gap-2 sm:grid-cols-2">
         <div>
           <label className="mb-1 block text-sm font-medium">
@@ -473,7 +456,7 @@ export default function JobTab({
       </div>
       )}
 
-      {step === 1 && (
+      {step === 0 && (
       <div className="grid gap-2 sm:grid-cols-2">
         <div>
           <label className="mb-1 block text-sm font-medium">
@@ -507,7 +490,7 @@ export default function JobTab({
       </div>
       )}
 
-      {step === 1 && (
+      {step === 0 && (
       <div className="grid gap-2 sm:grid-cols-2">
         <div>
           <label className="mb-1 block text-sm font-medium">
@@ -523,7 +506,7 @@ export default function JobTab({
       </div>
       )}
 
-      {step === 2 && (
+      {step === 1 && (
       <div>
         <label className="mb-1 block text-sm font-medium">
           Support tracks
@@ -590,7 +573,7 @@ export default function JobTab({
       </div>
       )}
 
-      {step === 2 && (
+      {step === 1 && (
       <div>
         <label className="mb-1 block text-sm font-medium">
           Opportunity brief
@@ -607,7 +590,7 @@ export default function JobTab({
       </div>
       )}
 
-      {step === 2 && (
+      {step === 1 && (
       <div>
         <label className="mb-1 block text-sm font-medium">
           Document notes or reference links
@@ -621,29 +604,23 @@ export default function JobTab({
       </div>
       )}
 
-      {step === 2 && (
-      <div className="rounded-2xl border bg-gray-50 p-4 text-sm text-gray-700">
-        This opportunity form is proposal-first. Candidates, SMEs, and other collaborators can be added later only when this opportunity needs them.
-      </div>
-      )}
-
       <div className="flex justify-between gap-3">
         <button
           type="button"
-          onClick={() => setStep((prev) => (prev > 0 ? ((prev - 1) as 0 | 1 | 2) : prev))}
+          onClick={() => setStep((prev) => (prev > 0 ? ((prev - 1) as 0 | 1) : prev))}
           disabled={step === 0}
           className={cx(BTN.subtle, "rounded-2xl", step === 0 && "cursor-not-allowed opacity-50")}
         >
           Back
         </button>
-        {step < 2 ? (
+        {step < 1 ? (
           <div className="flex flex-col items-end gap-2">
             {!currentStepValid ? (
               <div className="text-right text-xs text-red-600">{stepHelp}</div>
             ) : null}
             <button
               type="button"
-              onClick={() => setStep((prev) => ((prev + 1) as 0 | 1 | 2))}
+              onClick={() => setStep((prev) => ((prev + 1) as 0 | 1))}
               disabled={!currentStepValid}
               className={cx(
                 BTN.primary,

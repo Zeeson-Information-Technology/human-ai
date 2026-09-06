@@ -80,19 +80,19 @@ export default async function AdminInterviewDetail({
       title="Structured Review"
       nav={getAdminNav(me.role)}
     >
-    <div className="mx-auto max-w-5xl px-4 py-2">
-      <div className="mb-4 flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Structured Review</h1>
+    <div className="mx-auto max-w-5xl px-4 py-2 text-white">
+      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <h1 className="text-2xl font-bold text-white">Structured Review</h1>
         <Link
           href="/admin/interviews"
-          className="rounded-lg border px-3 py-1 text-sm hover:bg-gray-50"
+          className="rounded-lg border border-white/15 bg-white/5 px-3 py-1 text-sm text-white/85 transition hover:bg-white/10 hover:text-white"
         >
           Back
         </Link>
       </div>
 
-      <div className="rounded-2xl border p-5">
-        <div className="text-sm text-gray-600">
+      <div className="rounded-2xl border border-white/10 bg-white/[0.06] p-5">
+        <div className="text-sm text-white/65">
           {doc.jobTitle ? (
             <>
               Opportunity: <span className="font-medium">{doc.jobTitle}</span>
@@ -101,33 +101,33 @@ export default async function AdminInterviewDetail({
               {" | "}
             </>
           ) : null}
-          Role: <span className="font-medium">{doc.roleName || "-"}</span> |
+          Role: <span className="font-medium text-white">{doc.roleName || "-"}</span> |
           Participant type:{" "}
-          <span className="font-medium uppercase">
+          <span className="font-medium uppercase text-white">
             {((doc as any).participantType || "participant") === "candidate"
               ? "participant"
               : (doc as any).participantType || "participant"}
           </span>{" "}
           |
-          Language: <span className="font-medium">{doc.language}</span> |
-          Status: <span className="font-medium uppercase">{doc.status}</span>
+          Language: <span className="font-medium text-white">{doc.language}</span> |
+          Status: <span className="font-medium uppercase text-white">{doc.status}</span>
         </div>
 
-        <div className="mt-2 text-sm text-gray-600">
+        <div className="mt-2 text-sm text-white/65">
           Started: {fmt(doc.startedAt)} | Finished: {fmt(doc.finishedAt)}
         </div>
 
         {doc.scorecard && (
-          <div className="mt-4 rounded-xl border bg-gray-50 p-4">
-            <div className="text-sm text-gray-600">Scorecard</div>
-            <div className="mt-1 text-lg font-semibold text-gray-800">
+          <div className="mt-4 rounded-xl border border-white/10 bg-white/[0.05] p-4">
+            <div className="text-sm text-white/60">Scorecard</div>
+            <div className="mt-1 text-lg font-semibold text-white">
               Overall: {doc.scorecard.overallScore} / 100
             </div>
-            <div className="text-sm text-gray-600">
+            <div className="text-sm text-white/65">
               Verdict: {doc.scorecard.verdict}
             </div>
             {doc.scorecard.summary && (
-              <p className="mt-2 whitespace-pre-wrap text-sm text-gray-800">
+              <p className="mt-2 whitespace-pre-wrap text-sm text-white/80">
                 {doc.scorecard.summary}
               </p>
             )}
@@ -135,11 +135,11 @@ export default async function AdminInterviewDetail({
         )}
 
         {doc.screeners && (
-          <div className="mt-4 rounded-xl border p-4">
+          <div className="mt-4 rounded-xl border border-white/10 bg-white/[0.05] p-4">
             <div className="flex items-center justify-between">
-              <div className="text-sm font-medium">Qualification Responses</div>
+              <div className="text-sm font-medium text-white">Qualification Responses</div>
               {doc.screenersSummary && (
-                <div className="text-xs text-gray-600">
+                <div className="text-xs text-white/60">
                   <span
                     className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 ${
                       doc.screenersSummary.qualifies
@@ -160,12 +160,12 @@ export default async function AdminInterviewDetail({
             {Array.isArray((doc as any).screeners?.legacy) &&
               (doc as any).screeners.legacy.length > 0 && (
                 <div className="mt-3">
-                  <div className="text-xs text-gray-500">Legacy questions</div>
+                  <div className="text-xs text-white/45">Legacy questions</div>
                   <div className="mt-2 grid gap-2">
                     {(doc as any).screeners.legacy.map((x: any, i: number) => (
-                      <div key={i} className="rounded-lg border p-3 text-sm">
-                        <div className="font-medium">{x.question}</div>
-                        <div className="mt-1 whitespace-pre-wrap text-gray-700">
+                      <div key={i} className="rounded-lg border border-white/10 bg-white/[0.05] p-3 text-sm">
+                        <div className="font-medium text-white">{x.question}</div>
+                        <div className="mt-1 whitespace-pre-wrap text-white/75">
                           {x.answer || "-"}
                         </div>
                       </div>
@@ -177,12 +177,12 @@ export default async function AdminInterviewDetail({
             {Array.isArray((doc as any).screeners?.rules) &&
               (doc as any).screeners.rules.length > 0 && (
                 <div className="mt-3">
-                  <div className="text-xs text-gray-500">Structured qualifiers</div>
+                  <div className="text-xs text-white/45">Structured qualifiers</div>
                   <div className="mt-2 grid gap-2">
                     {(doc as any).screeners.rules.map((r: any, i: number) => (
-                      <div key={i} className="rounded-lg border p-3 text-sm">
+                      <div key={i} className="rounded-lg border border-white/10 bg-white/[0.05] p-3 text-sm">
                         <div className="flex items-center justify-between">
-                          <div className="mr-3 font-medium">{r.question}</div>
+                          <div className="mr-3 font-medium text-white">{r.question}</div>
                           {r.qualifying && (
                             <span
                               className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs ${
@@ -196,8 +196,8 @@ export default async function AdminInterviewDetail({
                           )}
                         </div>
                         <div className="mt-1">
-                          <span className="text-gray-500">Answer:</span>{" "}
-                          <span className="text-gray-800">
+                          <span className="text-white/45">Answer:</span>{" "}
+                          <span className="text-white/80">
                             {typeof r.answer === "boolean"
                               ? String(r.answer)
                               : String(r.answer ?? "-")}
@@ -206,7 +206,7 @@ export default async function AdminInterviewDetail({
                         {(typeof r.min === "number" ||
                           typeof r.max === "number" ||
                           r.qualifyWhen) && (
-                          <div className="mt-1 text-xs text-gray-500">
+                          <div className="mt-1 text-xs text-white/45">
                             {typeof r.min === "number"
                               ? `Min ${r.min}${r.unit ? ` ${r.unit}` : ""}`
                               : ""}

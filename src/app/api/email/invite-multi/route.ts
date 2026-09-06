@@ -10,6 +10,7 @@ import dbConnect from "@/lib/db-connect";
 import { Job } from "@/model/opportunity";
 import sendEmail from "@/lib/sendSmtpMail";
 import { signInvite } from "@/lib/invite-token";
+import ParticipantRequest from "@/model/participant-request";
 
 type AddressLike = string | { address?: string | null };
 type RawSendResult = {
@@ -73,6 +74,8 @@ const Payload = z.object({
   // Optional personalization (keys are emails, values are names)
   nameMap: z.record(z.string(), z.string()).optional(),
   message: z.string().optional(),
+  participantType: z.enum(["candidate", "sme", "reviewer", "partner"]).optional(),
+  intakeMethod: z.enum(["ai-interview", "human-interview", "documents-only", "manual-review"]).optional(),
 });
 
 function buildGreeting(name?: string) {
@@ -149,6 +152,10 @@ export async function POST(req: NextRequest) {
         ).lean()
       : null;
 
+    if (!job) {
+      return NextResponse.json({ ok: false, error: "Opportunity not found" }, { status: 404 });
+    }
+
     const resolvedTitle =
       body.jobTitle || body.roleName || job?.title || job?.roleName || "Role";
     const resolvedCompany = body.company || job?.company || "your company";
@@ -191,13 +198,28 @@ export async function POST(req: NextRequest) {
     for (const to of body.emails) {
       try {
         const toLc = to.toLowerCase();
-        const ivt = signInvite({ email: toLc, code: code || "" });
+        const request = await ParticipantRequest.create({
+          opportunityId: job._id,
+          jobCode: job.code,
+          email: toLc,
+          participantType: body.participantType || "candidate",
+          intakeMethod: body.intakeMethod || "ai-interview",
+        });
+        const ivt = signInvite({
+          email: toLc,
+          code: code || "",
+          requestId: String(request._id),
+          participantType: body.participantType,
+          intakeMethod: body.intakeMethod,
+        });
 
         const url = new URL(baseLink);
         if (code && !url.searchParams.get("code"))
           url.searchParams.set("code", code);
         url.searchParams.set("email", toLc);
         url.searchParams.set("ivt", ivt);
+        if (body.participantType) url.searchParams.set("participantType", body.participantType);
+        if (body.intakeMethod) url.searchParams.set("intakeMethod", body.intakeMethod);
 
         const greeting = buildGreeting(body.nameMap?.[to]);
         const messageBlock = buildMessageBlock(body.message);
@@ -211,7 +233,12 @@ export async function POST(req: NextRequest) {
 
         const rawRes = (await sendEmail({
           to,
-          subject: `${resolvedCompany} invited you to AI interview`,
+        subject:
+          body.intakeMethod === "documents-only"
+            ? `${resolvedCompany} requested your documents`
+            : body.intakeMethod === "human-interview"
+              ? `${resolvedCompany} invited you to an interview`
+              : `${resolvedCompany} invited you to participate`,
           template: "zuri-invite",
           replacements,
           replyTo: process.env.CONTACT_TO_EMAIL || undefined,

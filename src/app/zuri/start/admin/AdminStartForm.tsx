@@ -22,6 +22,7 @@ export default function AdminStartForm() {
   const [tab, setTab] = useState<Tab>("job");
   const inquiryId = (searchParams.get("inquiry") || "").trim();
   const [prefillLoaded, setPrefillLoaded] = useState(false);
+  const prefillClientId = (searchParams.get("clientId") || "").trim();
 
   // Workspace basics (expanded later)
   const [title, setTitle] = useState("");
@@ -125,9 +126,9 @@ export default function AdminStartForm() {
     }
   }
 
-  async function handleExtractOpportunity() {
+  async function handleExtractOpportunity(filesOverride: UploadedFileItem[] = documents) {
     const trimmed = sourceText.trim();
-    if (trimmed.length < 80 && documents.length === 0) {
+    if (trimmed.length < 80 && filesOverride.length === 0) {
       setErr("Paste RFP text or upload source documents before extracting details.");
       showToast("Paste RFP text or upload source documents before extracting details.", "error");
       return;
@@ -154,7 +155,7 @@ export default function AdminStartForm() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           text: trimmed,
-          documents: documents.map((file) => ({
+          documents: filesOverride.map((file) => ({
             name: file.name,
             url: file.url,
             resourceType: file.resourceType,
@@ -280,7 +281,7 @@ export default function AdminStartForm() {
       setSkillInput("");
       showToast("Opportunity created.", "success");
       window.setTimeout(() => {
-        router.replace(`/admin/jobs/${encodeURIComponent(String(j.code || ""))}`);
+        router.replace(`/admin/opportunities/${encodeURIComponent(String(j.code || ""))}`);
       }, 500);
     } catch (e: any) {
       const { message } = normalizeError(e);
@@ -301,6 +302,12 @@ export default function AdminStartForm() {
     } catch {}
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams]);
+
+  useEffect(() => {
+    if (prefillClientId) {
+      setClientId(prefillClientId);
+    }
+  }, [prefillClientId]);
 
   useEffect(() => {
     async function loadInquiryPrefill() {

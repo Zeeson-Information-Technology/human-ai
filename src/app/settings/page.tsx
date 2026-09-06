@@ -25,7 +25,7 @@ export default function SettingsPage() {
       user?.role === "admin"
         ? [
             { href: "/admin", label: "Dashboard" },
-            { href: "/admin/jobs", label: "Jobs" },
+            { href: "/admin/opportunities", label: "Opportunities" },
             { href: "/admin/interviews", label: "Interviews" },
             { href: "/settings", label: "Settings", exact: true },
           ]

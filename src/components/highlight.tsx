@@ -1,10 +1,5 @@
 export default function Highlight() {
-  const items = [
-    "Proposal writing support",
-    "RFP response coordination",
-    "Compliance matrix reviews",
-    "Canada, US, UK and EU markets",
-  ];
+  const items = ["Capture", "Response", "Talent sourcing", "Delivery support"];
 
   return (
     <div className="overflow-hidden rounded-2xl border">

@@ -173,6 +173,19 @@ const SessionSchema = new Schema(
       default: "candidate",
       index: true,
     },
+    intakeMethod: {
+      type: String,
+      enum: ["ai-interview", "human-interview", "documents-only", "manual-review"],
+      default: "ai-interview",
+      index: true,
+    },
+    futureOpportunityConsent: { type: Boolean, default: false },
+    futureOpportunityConsentAt: { type: Date },
+    participantRequestId: { type: Schema.Types.ObjectId, ref: "ParticipantRequest", index: true },
+    proposedInterviewSlots: {
+      type: [{ startAt: { type: Date, required: true }, timezone: { type: String } }],
+      default: [],
+    },
 
     // Job linkage + snapshots for immutability
     jobCode: { type: String, uppercase: true, trim: true, index: true },

@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import DashboardShell from "@/components/dashboardBar";
 import IntlPhoneInput from "@/components/forms/IntlPhoneInput";
@@ -256,15 +255,6 @@ export default function AdminSettingsPage() {
       nav={getAdminNav(user?.role)}
     >
     <div className="mx-auto max-w-2xl py-2">
-      <div className="mb-4">
-        <Link
-          href="/admin"
-          className="inline-flex items-center gap-2 rounded-full border border-black/10 bg-white/70 px-3 py-1 text-sm text-gray-800 backdrop-blur hover:bg-gray-50"
-        >
-          <span aria-hidden>&larr;</span> Back to dashboard
-        </Link>
-      </div>
-
       <h2 className="mb-4 text-xl font-bold">Settings</h2>
 
       <div className="mb-6 flex flex-wrap gap-2">

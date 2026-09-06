@@ -2,7 +2,6 @@ export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
 import DashboardShell from "@/components/dashboardBar";
-import { revalidatePath } from "next/cache";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getAdminFromCookies } from "@/lib/admin-session";
@@ -11,12 +10,14 @@ import { getAdminNav } from "@/lib/admin-dashboard";
 import { getOperatorFromCookies } from "@/lib/get-operator";
 import { getEffectivePermissions, isPlatformAdminRole } from "@/lib/admin-auth";
 import { Opportunity } from "@/model/opportunity";
+import OpportunityActions from "@/components/admin/OpportunityActions";
 
-async function getJobs(operator: { id: string; role?: string }) {
+async function getJobs(operator: { id: string; role?: string }, archivedOnly = false) {
   await dbConnect();
-  const query = isPlatformAdminRole(operator.role)
-    ? {}
-    : { assignedUserId: operator.id };
+  const query = {
+    ...(isPlatformAdminRole(operator.role) ? {} : { assignedUserId: operator.id }),
+    ...(archivedOnly ? { active: false } : {}),
+  };
   const docs = await Opportunity.find(query).sort({ createdAt: -1 }).lean();
 
   return docs.map((d: any) => ({
@@ -33,22 +34,16 @@ async function getJobs(operator: { id: string; role?: string }) {
   }));
 }
 
-async function toggleActive(id: string) {
-  "use server";
-  await dbConnect();
-  const opportunity = await Opportunity.findById(id);
-  if (!opportunity) return;
-  opportunity.active = !opportunity.active;
-  await opportunity.save();
-  revalidatePath("/admin/jobs");
-}
-
 function previewJD(text: string, max = 160) {
   const clean = (text || "").replace(/\s+/g, " ").trim();
   return clean.length > max ? `${clean.slice(0, max)}...` : clean;
 }
 
-export default async function AdminJobsPage() {
+export default async function AdminJobsPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ view?: string }>;
+}) {
   const admin = await getAdminFromCookies();
   if (!admin) redirect("/admin/login");
 
@@ -56,9 +51,10 @@ export default async function AdminJobsPage() {
   if (!me) {
     redirect("/admin/login");
   }
+  const archivedOnly = (await searchParams)?.view === "archived";
   const permissions = getEffectivePermissions(me);
 
-  const jobs = await getJobs(me);
+  const jobs = await getJobs(me, archivedOnly);
 
   return (
     <DashboardShell
@@ -67,41 +63,13 @@ export default async function AdminJobsPage() {
         email: me.email,
         role: me.role as any,
       }}
-      title={isPlatformAdminRole(me.role) ? "Opportunities" : "My Opportunities"}
+      title={archivedOnly ? "Archived Opportunities" : isPlatformAdminRole(me.role) ? "Opportunities" : "My Opportunities"}
       nav={getAdminNav(me.role)}
     >
-    <div className="mx-auto max-w-6xl px-4 py-2">
-      <div className="mb-2">
-        <Link
-          href="/admin"
-          className="inline-flex items-center gap-1 rounded-lg border px-3 py-1 text-sm hover:bg-gray-50"
-          aria-label="Back to dashboard"
-        >
-          &larr; Back
-        </Link>
-      </div>
-
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Opportunities</h1>
-        <div className="flex items-center gap-2">
-          <Link
-            href="/admin/leads"
-            className="rounded-lg border px-3 py-2 text-sm hover:bg-gray-50"
-          >
-            Inquiries
-          </Link>
-          <Link
-            href="/admin/interviews"
-            className="rounded-lg border px-3 py-2 text-sm hover:bg-gray-50"
-          >
-            Participant Reviews
-          </Link>
-          <Link
-            href="/admin/operations"
-            className="rounded-lg border px-3 py-2 text-sm hover:bg-gray-50"
-          >
-            Operations Board
-          </Link>
+    <div className="mx-auto max-w-6xl px-4 py-2 text-white">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <h1 className="text-2xl font-bold text-white">{archivedOnly ? "Archived opportunities" : "Opportunities"}</h1>
+        <div className="flex flex-wrap items-center gap-2">
           {(isPlatformAdminRole(me.role) || permissions.canCreateOpportunity) && (
             <Link
               href="/admin/opportunities/new"
@@ -117,22 +85,22 @@ export default async function AdminJobsPage() {
         {jobs.map((job) => (
           <div
             key={job.id}
-            className="rounded-2xl border border-black/10 bg-white/70 p-5 shadow-lg backdrop-blur"
+            className="relative z-0 rounded-2xl border border-white/10 bg-white/[0.07] p-5 shadow-lg backdrop-blur [&:has(details[open])]:z-30"
           >
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
                 <Link
-                  href={`/admin/jobs/${job.code}`}
-                  className="block truncate text-lg font-semibold hover:underline"
+                  href={`/admin/opportunities/${job.code}`}
+                  className="block max-w-full truncate pr-2 text-lg font-semibold text-white hover:underline"
                 >
                   {job.title}
                 </Link>
-                <div className="mt-0.5 text-sm text-gray-600">
+                <div className="mt-0.5 text-sm text-white/65">
                   {job.company || "-"}
                   {job.buyerOrganization ? ` | Buyer: ${job.buyerOrganization}` : ""}
                   {" | "}Code: <span className="font-mono"> {job.code}</span>
                 </div>
-                <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-xs text-gray-500">
+                <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-xs text-white/55">
                   <span>
                     Status: {job.active ? "Open" : "Archived"}
                   </span>
@@ -142,81 +110,25 @@ export default async function AdminJobsPage() {
                   {job.marketFocus ? <span>Market: {job.marketFocus}</span> : null}
                 </div>
                 {job.assignedUserEmail && (
-                  <div className="mt-1 text-xs text-gray-500">
+                  <div className="mt-1 text-xs text-white/55">
                     Assigned to: {job.assignedUserEmail}
                   </div>
                 )}
               </div>
 
-              {me.role === "admin" && (
-                <form
-                  action={async () => {
-                    "use server";
-                    await toggleActive(job.id);
-                  }}
-                >
-                  <button
-                    type="submit"
-                    className={`cursor-pointer rounded-full px-3 py-1 text-xs font-semibold ${
-                      job.active
-                        ? "bg-emerald-600 text-white"
-                        : "bg-black text-white"
-                    }`}
-                    title={
-                      job.active
-                        ? "Archive this opportunity"
-                        : "Reopen this opportunity"
-                    }
-                  >
-                    {job.active ? "Archive opportunity" : "Reopen opportunity"}
-                  </button>
-                </form>
-              )}
+              <OpportunityActions code={job.code} active={job.active} canArchive={me.role === "admin"} />
+
             </div>
 
-            <p className="mt-3 line-clamp-3 text-sm text-gray-700">
+            <p className="mt-3 line-clamp-3 text-sm text-white/75">
               {previewJD(job.jdText)}
             </p>
 
-            <div className="mt-4 flex flex-wrap gap-2 text-sm">
-              <Link
-                href={`/admin/jobs/${job.code}`}
-                className="rounded-lg border px-3 py-1 hover:bg-gray-50"
-              >
-                Open opportunity
-              </Link>
-              <Link
-                href={`/admin/jobs/${job.code}?tab=reviews`}
-                className="rounded-lg border px-3 py-1 hover:bg-gray-50"
-              >
-                Participant reviews
-              </Link>
-              <Link
-                href={`/admin/jobs/${job.code}?tab=requests`}
-                className="rounded-lg border px-3 py-1 hover:bg-gray-50"
-              >
-                Participant requests
-              </Link>
-              <Link
-                href={`/admin/jobs/${job.code}/workbench`}
-                className="rounded-lg border px-3 py-1 hover:bg-gray-50"
-              >
-                Workbench
-              </Link>
-              {me.role === "admin" && (
-                <Link
-                  href={`/admin/opportunities/new?code=${job.code}`}
-                  className="rounded-lg border px-3 py-1 hover:bg-gray-50"
-                >
-                  Edit setup
-                </Link>
-              )}
-            </div>
           </div>
         ))}
 
         {jobs.length === 0 && (
-          <div className="rounded-2xl border bg-gray-50 p-8 text-center text-sm text-gray-600">
+          <div className="rounded-2xl border border-white/10 bg-white/[0.05] p-8 text-center text-sm text-white/65">
             No opportunities yet. Click <span className="font-semibold">Create opportunity</span> to start.
           </div>
         )}

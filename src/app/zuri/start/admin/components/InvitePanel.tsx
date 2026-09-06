@@ -1,9 +1,9 @@
 "use client";
-import React from "react";
+import React, { useState } from "react";
 import Link from "next/link";
 
 export default function InvitePanel({
-  jobCode,
+  responseLink,
   inviteEmails,
   onChangeEmail,
   onRemoveEmail,
@@ -11,8 +11,12 @@ export default function InvitePanel({
   onSendInvites,
   inviteBusy,
   inviteMsg,
+  participantType,
+  onParticipantTypeChange,
+  intakeMethod,
+  onIntakeMethodChange,
 }: {
-  jobCode: string;
+  responseLink: string;
   inviteEmails: string[];
   onChangeEmail: (idx: number, email: string) => void;
   onRemoveEmail: (idx: number) => void;
@@ -20,8 +24,12 @@ export default function InvitePanel({
   onSendInvites: () => void;
   inviteBusy: boolean;
   inviteMsg: string | null;
+  participantType: "candidate" | "sme" | "reviewer" | "partner";
+  onParticipantTypeChange: (value: "candidate" | "sme" | "reviewer" | "partner") => void;
+  intakeMethod: "ai-interview" | "human-interview" | "documents-only" | "manual-review";
+  onIntakeMethodChange: (value: "ai-interview" | "human-interview" | "documents-only" | "manual-review") => void;
 }) {
-  const origin = typeof window !== "undefined" ? window.location.origin : "";
+  const [copied, setCopied] = useState(false);
   const emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   const nonEmpty = inviteEmails.filter((e) => (e || "").trim().length > 0);
   const allValid = nonEmpty.length > 0 && nonEmpty.every((e) => emailRe.test(e.trim()));
@@ -29,21 +37,60 @@ export default function InvitePanel({
   return (
     <div>
       <h2 className="text-lg font-bold mb-2">Add Participants</h2>
-      <p className="mb-2 text-gray-600">
-        Share this response link or send invitations later if this opportunity
-        needs candidates, SMEs, or other collaborators.
-      </p>
+      <p className="mb-4 text-gray-600">Choose how this participant should contribute to the opportunity.</p>
+
+      <div className="mb-4 grid gap-3 sm:grid-cols-2">
+        <label className="grid gap-1 text-sm font-medium text-gray-900">
+          Participant type
+          <select
+            value={participantType}
+            onChange={(event) => onParticipantTypeChange(event.target.value as typeof participantType)}
+            className="rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900"
+          >
+            <option value="candidate">Candidate</option>
+            <option value="sme">SME</option>
+            <option value="reviewer">Reviewer</option>
+            <option value="partner">Delivery partner</option>
+          </select>
+        </label>
+        <label className="grid gap-1 text-sm font-medium text-gray-900">
+          Intake method
+          <select
+            value={intakeMethod}
+            onChange={(event) => onIntakeMethodChange(event.target.value as typeof intakeMethod)}
+            className="rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900"
+          >
+            <option value="ai-interview">AI interview</option>
+            <option value="human-interview">Human interview</option>
+            <option value="documents-only">Documents only</option>
+            <option value="manual-review">Manual review</option>
+          </select>
+        </label>
+      </div>
 
       <div className="mb-4">
-        <div className="font-mono text-xs bg-gray-500 rounded p-2 text-white">
-          Response link:{" "}
-          <a
-            href={`/jobs/apply?code=${jobCode}`}
-            target="_blank"
-            rel="noopener"
-          >
-            {`${origin}/jobs/apply?code=${jobCode}`}
-          </a>
+        <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-slate-900">
+          <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">Response link</div>
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+            <a href={responseLink} target="_blank" rel="noopener" className="min-w-0 flex-1 break-all font-mono text-xs text-emerald-700 underline">
+              {responseLink}
+            </a>
+            <button
+              type="button"
+              className="inline-flex shrink-0 cursor-pointer items-center justify-center rounded-xl bg-emerald-700 px-3 py-2 text-xs font-semibold text-white hover:bg-emerald-800"
+              onClick={async () => {
+                try {
+                  await navigator.clipboard.writeText(responseLink);
+                  setCopied(true);
+                  window.setTimeout(() => setCopied(false), 1600);
+                } catch {
+                  setCopied(false);
+                }
+              }}
+            >
+              {copied ? "Copied" : "Copy link"}
+            </button>
+          </div>
         </div>
       </div>
 
@@ -93,7 +140,7 @@ export default function InvitePanel({
 
       <div className="mt-4">
         <Link
-          href="/admin/jobs"
+          href="/admin/opportunities"
           className="text-sm text-gray-600 hover:underline"
         >
           Back to Opportunities

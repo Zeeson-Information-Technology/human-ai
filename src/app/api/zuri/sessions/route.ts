@@ -9,12 +9,18 @@ import { Types } from "mongoose";
 import { z } from "zod";
 import { verifyInvite } from "@/lib/invite-token";
 import User from "@/model/user";
+import ParticipantRequest from "@/model/participant-request";
+import sendEmail from "@/lib/sendSmtpMail";
 
 const CreateSessionSchema = z.object({
   jobCode: z.string().trim().optional(),
   roleName: z.string().trim().optional(),
   language: z.string().trim().min(2).optional(), // make optional; we’ll derive if missing
   participantType: z.enum(["candidate", "sme", "reviewer", "partner"]).optional(),
+  intakeMethod: z.enum(["ai-interview", "human-interview", "documents-only", "manual-review"]).optional(),
+  futureOpportunityConsent: z.boolean().optional(),
+  participantRequestId: z.string().trim().optional(),
+  proposedInterviewSlots: z.array(z.object({ startAt: z.coerce.date(), timezone: z.string().optional() })).optional(),
 
   // accept either name
   inviteToken: z.string().trim().optional(),
@@ -74,6 +80,10 @@ export async function POST(req: NextRequest) {
       roleName,
       language: langIn,
       participantType = "candidate",
+      intakeMethod = "ai-interview",
+      futureOpportunityConsent = false,
+      participantRequestId,
+      proposedInterviewSlots = [],
       inviteToken,
       ivt,
       candidate,
@@ -102,6 +112,13 @@ export async function POST(req: NextRequest) {
           { status: 400 }
         );
       }
+
+      if (payload.participantType) participantType = payload.participantType;
+      if (payload.intakeMethod) intakeMethod = payload.intakeMethod;
+      if (payload.requestId && participantRequestId && payload.requestId !== participantRequestId) {
+        return NextResponse.json({ ok: false, error: "Invite request does not match" }, { status: 400 });
+      }
+      participantRequestId = participantRequestId || payload.requestId;
 
       // Enforce / derive job code from token
       const codeFromToken = payload.code.toUpperCase();
@@ -260,6 +277,14 @@ export async function POST(req: NextRequest) {
       status: "running",
       startedAt: new Date(),
       participantType,
+      intakeMethod,
+      futureOpportunityConsent,
+      futureOpportunityConsentAt: futureOpportunityConsent ? new Date() : undefined,
+      participantRequestId:
+        participantRequestId && Types.ObjectId.isValid(participantRequestId)
+          ? new Types.ObjectId(participantRequestId)
+          : undefined,
+      proposedInterviewSlots,
 
       // Job linkage + snapshots
       jobCode: job?.code || jobCodeUp,
@@ -311,6 +336,48 @@ export async function POST(req: NextRequest) {
       screenersSummary: summary,
       // scorecard will be added at finalize
     });
+
+    if (participantRequestId && Types.ObjectId.isValid(participantRequestId)) {
+      const request = await ParticipantRequest.findOneAndUpdate(
+        { _id: participantRequestId, jobCode: jobCodeUp },
+        { $set: { status: "submitted", sessionId: doc._id, name: candidate.name.trim(), proposedSlots: proposedInterviewSlots } },
+        { new: true }
+      );
+      if (request && intakeMethod === "human-interview" && proposedInterviewSlots.length) {
+        try {
+          await sendEmail({
+            to: process.env.CONTACT_TO_EMAIL || "proposals@eumanai.com",
+            subject: `Human interview time proposed for ${job?.title || jobCodeUp || "opportunity"}`,
+            template: "participant-request-update",
+            replacements: {
+              heading: "A participant proposed an interview time",
+              name: candidate.name.trim(),
+              email: emailLc,
+              opportunity: job?.title || jobCodeUp || "opportunity",
+              detail: new Date(proposedInterviewSlots[0].startAt).toLocaleString(),
+              action: "Review the request in the opportunity Participant Requests tab.",
+            },
+          });
+        } catch (notificationError) {
+          console.error("Participant admin notification failed", notificationError);
+        }
+      }
+    } else if (job?._id && jobCodeUp) {
+      // A copied public link has no pre-created request. Preserve the same
+      // audit trail once the participant actually submits their information.
+      const request = await ParticipantRequest.create({
+        opportunityId: job._id,
+        jobCode: jobCodeUp,
+        email: emailLc,
+        name: candidate.name.trim(),
+        participantType,
+        intakeMethod,
+        status: "submitted",
+        sessionId: doc._id,
+        proposedSlots: proposedInterviewSlots,
+      });
+      await Session.updateOne({ _id: doc._id }, { $set: { participantRequestId: request._id } });
+    }
 
     // If candidate email matches a user, update their resume
     if (candidate?.email && resume?.url) {

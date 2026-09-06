@@ -280,6 +280,19 @@ async function readDocumentText(document: { name: string; url: string; resourceT
     }
   }
 
+  if (ext === "docx") {
+    try {
+      const res = await fetch(document.url, { cache: "no-store" });
+      if (!res.ok) return "";
+      const bytes = Buffer.from(await res.arrayBuffer());
+      const mammoth = await import("mammoth");
+      const result = await mammoth.extractRawText({ buffer: bytes });
+      return normalizeWhitespace(result.value || "").slice(0, 12000);
+    } catch {
+      return "";
+    }
+  }
+
   if (imageLike.has(ext) || document.resourceType === "image") {
     return ocrImageFromUrl(document.url);
   }

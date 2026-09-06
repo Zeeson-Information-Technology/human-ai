@@ -79,7 +79,7 @@ export default async function OpportunityWorkbenchPage({
     !isPlatformAdminRole(me.role) &&
     String(job.assignedUserId || "") !== String(me.id)
   ) {
-    redirect("/admin/jobs");
+    redirect("/admin/opportunities");
   }
 
   return (
@@ -105,13 +105,13 @@ export default async function OpportunityWorkbenchPage({
         </div>
         <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
           <Link
-            href={`/admin/jobs/${job.code}`}
+            href={`/admin/opportunities/${job.code}`}
             className="rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-center text-sm text-white/85 transition hover:bg-white/10 hover:text-white"
           >
             Back
           </Link>
           <Link
-            href="/admin/jobs"
+            href="/admin/opportunities"
             className="rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-center text-sm text-white/85 transition hover:bg-white/10 hover:text-white"
           >
             Opportunities

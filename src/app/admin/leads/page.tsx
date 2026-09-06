@@ -255,12 +255,6 @@ export default async function AdminLeadsPage() {
         </div>
 
         <div className="flex items-center gap-2">
-          <Link
-            href="/admin"
-            className="rounded-lg border px-3 py-1 text-sm hover:bg-gray-50"
-          >
-            Dashboard
-          </Link>
           {isAdmin && (
             <>
               <Link
@@ -364,7 +358,7 @@ export default async function AdminLeadsPage() {
                 </button>
                 {lead.workspaceCode ? (
                   <Link
-                    href={`/admin/jobs/${lead.workspaceCode}`}
+                    href={`/admin/opportunities/${lead.workspaceCode}`}
                     className="rounded-lg border px-3 py-2 text-sm hover:bg-gray-50"
                   >
                     Open opportunity

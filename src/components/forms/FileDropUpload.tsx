@@ -17,16 +17,14 @@ export default function FileDropUpload({
   files,
   onChange,
   onExtract,
-  extractBusy = false,
   folder = "opportunity-documents",
-  accept = ".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.csv,.txt,.rtf,.zip,.png,.jpg,.jpeg",
+  accept = ".pdf,.docx,.ppt,.pptx,.xls,.xlsx,.csv,.txt,.rtf,.zip,.png,.jpg,.jpeg",
   label = "Drag files here or upload",
   helperText = "Upload RFPs, briefs, statements of work, or supporting documents.",
 }: {
   files: UploadedFileItem[];
   onChange: (next: UploadedFileItem[]) => void;
-  onExtract?: () => void;
-  extractBusy?: boolean;
+  onExtract?: (files?: UploadedFileItem[]) => void;
   folder?: string;
   accept?: string;
   label?: string;
@@ -87,10 +85,13 @@ export default function FileDropUpload({
         });
       }
 
-      onChange([...files, ...uploaded]);
+      const nextFiles = [...files, ...uploaded];
+      onChange(nextFiles);
+      // Pass the fresh list so extraction can start without waiting for React state.
+      onExtract?.(nextFiles);
       if (inputRef.current) inputRef.current.value = "";
-    } catch (err: any) {
-      setError(err?.message || "Upload failed.");
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Upload failed.");
     } finally {
       setBusy(false);
       setDragging(false);
@@ -134,21 +135,6 @@ export default function FileDropUpload({
             ) : null}
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            {onExtract ? (
-              <button
-                type="button"
-                onClick={onExtract}
-                disabled={extractBusy || busy || files.length === 0}
-                className={cx(
-                  BTN.primary,
-                  "bg-gradient-to-r from-slate-900 via-slate-800 to-emerald-700 px-4 py-2 text-sm",
-                  (extractBusy || busy || files.length === 0) &&
-                    "cursor-not-allowed opacity-60"
-                )}
-              >
-                {extractBusy ? "Extracting..." : "Extract from files"}
-              </button>
-            ) : null}
             <button
               type="button"
               onClick={() => inputRef.current?.click()}
@@ -210,23 +196,6 @@ export default function FileDropUpload({
               </button>
             </div>
           ))}
-          {onExtract ? (
-            <div className="flex justify-end pt-2">
-              <button
-                type="button"
-                onClick={onExtract}
-                disabled={extractBusy || busy || files.length === 0}
-                className={cx(
-                  BTN.primary,
-                  "bg-gradient-to-r from-slate-900 via-slate-800 to-emerald-700 px-4 py-2 text-sm",
-                  (extractBusy || busy || files.length === 0) &&
-                    "cursor-not-allowed opacity-60"
-                )}
-              >
-                {extractBusy ? "Extracting..." : "Extract from uploaded files"}
-              </button>
-            </div>
-          ) : null}
         </div>
       ) : null}
     </div>

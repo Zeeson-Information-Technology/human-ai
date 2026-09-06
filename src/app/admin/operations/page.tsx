@@ -170,8 +170,8 @@ async function getOperationsBoard(
         opportunityCode,
         opportunityTitle,
         clientName,
-        workbenchHref: `/admin/jobs/${opportunityCode}/workbench`,
-        opportunityHref: `/admin/jobs/${opportunityCode}`,
+        workbenchHref: `/admin/opportunities/${opportunityCode}/workbench`,
+        opportunityHref: `/admin/opportunities/${opportunityCode}`,
         completedSubtasks,
         totalSubtasks,
         availableColumns: columns
@@ -327,15 +327,6 @@ export default async function AdminOperationsPage({
       nav={getAdminNav(me.role)}
     >
     <div className="mx-auto max-w-7xl px-4 py-2 text-white">
-      <div className="mb-2">
-        <Link
-          href="/admin"
-          className="inline-flex items-center gap-1 rounded-lg border border-white/15 bg-white/5 px-3 py-1 text-sm text-white/85 transition hover:bg-white/10 hover:text-white"
-        >
-          &larr; Back
-        </Link>
-      </div>
-
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold">Operations Board</h1>
@@ -347,18 +338,6 @@ export default async function AdminOperationsPage({
         </div>
         <div className="flex items-center gap-2">
           <OperationsTaskCreator opportunities={opportunities} label="Add task" />
-          <Link
-            href="/admin/jobs"
-            className="rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-sm text-white/85 transition hover:bg-white/10 hover:text-white"
-          >
-            Opportunities
-          </Link>
-          <Link
-            href="/admin/interviews"
-            className="rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-sm text-white/85 transition hover:bg-white/10 hover:text-white"
-          >
-            Participant Reviews
-          </Link>
         </div>
       </div>
 
