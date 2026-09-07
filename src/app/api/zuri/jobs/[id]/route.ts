@@ -1,7 +1,7 @@
 // src/app/api/zuri/jobs/[id]/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import dbConnect from "@/lib/db-connect";
-import { Job } from "@/model/job";
+import { Job } from "@/model/opportunity";
 import { Types } from "mongoose";
 import { z } from "zod";
 
@@ -110,3 +110,4 @@ export async function PATCH(
     );
   }
 }
+

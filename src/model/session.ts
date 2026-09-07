@@ -140,6 +140,17 @@ const ScorecardSchema = new Schema(
   { _id: false }
 );
 
+const StageLogSchema = new Schema(
+  {
+    at: { type: Date, default: Date.now },
+    from: { type: String, trim: true },
+    to: { type: String, trim: true, required: true },
+    by: { type: Schema.Types.ObjectId },
+    role: { type: String, trim: true },
+  },
+  { _id: false }
+);
+
 const SessionSchema = new Schema(
   {
     // Identity & security
@@ -156,10 +167,29 @@ const SessionSchema = new Schema(
       default: "pending",
       index: true,
     },
+    participantType: {
+      type: String,
+      enum: ["candidate", "sme", "reviewer", "partner"],
+      default: "candidate",
+      index: true,
+    },
+    intakeMethod: {
+      type: String,
+      enum: ["ai-interview", "human-interview", "documents-only", "manual-review"],
+      default: "ai-interview",
+      index: true,
+    },
+    futureOpportunityConsent: { type: Boolean, default: false },
+    futureOpportunityConsentAt: { type: Date },
+    participantRequestId: { type: Schema.Types.ObjectId, ref: "ParticipantRequest", index: true },
+    proposedInterviewSlots: {
+      type: [{ startAt: { type: Date, required: true }, timezone: { type: String } }],
+      default: [],
+    },
 
     // Job linkage + snapshots for immutability
     jobCode: { type: String, uppercase: true, trim: true, index: true },
-    jobId: { type: Schema.Types.ObjectId, ref: "Job" },
+    jobId: { type: Schema.Types.ObjectId, ref: "Opportunity" },
     jobTitle: { type: String }, // e.g., "Procurement Expert"
     company: { type: String },
     roleName: { type: String }, // e.g., "Customer Support"
@@ -202,6 +232,7 @@ const SessionSchema = new Schema(
     },
     offerNote: { type: String },
     contractNote: { type: String },
+    stageLog: { type: [StageLogSchema], default: [] },
 
     // Timestamps
     startedAt: { type: Date },

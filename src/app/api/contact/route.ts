@@ -1,23 +1,19 @@
-// /src/app/api/contact/route.ts
 export const runtime = "nodejs";
 
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import dbConnect from "@/lib/db-connect";
-import PilotRequest from "@/model/pilot-request";
+import Inquiry from "@/model/inquiry";
 import sendEmail from "@/lib/sendSmtpMail";
 
-// Normalize Nodemailer-like results (accepted: (string | Address)[]) into string[]
 type AddressLike = string | { address?: string | null };
 
-// What we return downstream / expose to client
 type SendResult = {
   messageId?: string | null;
   accepted?: string[];
   response?: string | null;
 } | null;
 
-// What sendEmail might actually return (looser)
 type RawSendResult = {
   messageId?: string | null;
   accepted?: AddressLike[];
@@ -31,7 +27,7 @@ const PayloadSchema = z.object({
   email: z.string().email(),
   company: z.string().min(2),
   message: z.string().min(10),
-  website: z.string().optional(), // honeypot
+  website: z.string().optional(),
 });
 
 function escapeHtml(str: string) {
@@ -43,7 +39,6 @@ function escapeHtml(str: string) {
     .replace(/'/g, "&#39;");
 }
 
-// Coerce RawSendResult -> SendResult (string[] accepted)
 function normalizeSendResult(raw: RawSendResult): SendResult {
   if (!raw) return null;
   const accepted =
@@ -71,7 +66,6 @@ export async function POST(req: Request) {
     }
     const body = parsed.data;
 
-    // Honeypot
     if (body.website) return NextResponse.json({ ok: true, skipped: true });
 
     const to = process.env.CONTACT_TO_EMAIL;
@@ -82,21 +76,21 @@ export async function POST(req: Request) {
       );
     }
 
-    // Save lead
     await dbConnect();
-    const created = await PilotRequest.create({
+    const created = await Inquiry.create({
       name: body.name.trim(),
       email: body.email.trim().toLowerCase(),
       company: body.company.trim(),
       message: body.message.trim(),
       source: "landing_form",
       handled: false,
+      assignedUserEmail: "",
     });
 
     const safeMsg = escapeHtml(created.message).replace(/\n/g, "<br/>");
     const year = new Date().getFullYear();
+    const internalSubject = `New proposal inquiry - ${created.company}`;
 
-    // Send emails and capture results (typed + normalized)
     let internalRes: SendResult = null;
     let confirmRes: SendResult = null;
     let internalErr: SendError = null;
@@ -105,7 +99,7 @@ export async function POST(req: Request) {
     try {
       const rawInternal: RawSendResult = await sendEmail({
         to,
-        subject: `New pilot request — ${created.company}`,
+        subject: internalSubject,
         template: "pilot-request",
         replacements: {
           name: created.name,
@@ -113,6 +107,7 @@ export async function POST(req: Request) {
           company: created.company,
           message: safeMsg,
           year,
+          subject: internalSubject,
         },
         replyTo: created.email,
       });
@@ -125,11 +120,10 @@ export async function POST(req: Request) {
       console.error("Internal email error:", e);
     }
 
-    // Send confirmation email after internal email
     try {
       const rawConfirm: RawSendResult = await sendEmail({
         to: created.email,
-        subject: "We received your pilot request",
+        subject: "Thanks - we received your request",
         template: "pilot-confirm",
         replacements: {
           name: created.name,
@@ -147,7 +141,6 @@ export async function POST(req: Request) {
       console.error("Confirm email error:", e);
     }
 
-    // Build response payload with email status
     const response = {
       ok: true,
       leadId: String(created._id),
@@ -172,7 +165,6 @@ export async function POST(req: Request) {
       },
     };
 
-    // If both emails failed, surface as a 207 Multi-Status-like signal (still 200 for client simplicity)
     return NextResponse.json(response);
   } catch (err) {
     console.error("Contact route error:", err);

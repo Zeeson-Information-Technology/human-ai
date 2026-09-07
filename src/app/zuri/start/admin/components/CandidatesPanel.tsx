@@ -1,7 +1,7 @@
 "use client";
 import React, { useState } from "react";
 
-function CandidatesSection({
+function ParticipantsSection({
   applied,
   vetted,
   loading,
@@ -23,7 +23,7 @@ function CandidatesSection({
               : "bg-white text-gray-900"
           }`}
         >
-          Applied
+          Pending
         </button>
         <button
           type="button"
@@ -34,16 +34,16 @@ function CandidatesSection({
               : "bg-white text-gray-900"
           }`}
         >
-          Vetted
+          Reviewed
         </button>
       </div>
       {loading ? (
-        <div className="text-gray-500">Loading candidates…</div>
+        <div className="text-gray-500">Loading participants...</div>
       ) : view === "applied" ? (
         <div className="grid gap-2">
           {applied.length === 0 && (
             <div className="text-xs text-gray-500">
-              No applied candidates yet.
+              No pending participant responses yet.
             </div>
           )}
           {applied.map((c: any) => (
@@ -61,7 +61,7 @@ function CandidatesSection({
         <div className="grid gap-2">
           {vetted.length === 0 && (
             <div className="text-xs text-gray-500">
-              No vetted candidates yet.
+              No reviewed participants yet.
             </div>
           )}
           {vetted.map((c: any) => (
@@ -99,17 +99,22 @@ export default function CandidatesPanel({
 }) {
   return (
     <div>
-      <div className="flex items-center justify-between mb-4">
-        <h2 className="text-lg font-bold">Candidates</h2>
+      <div className="mb-4 flex items-center justify-between">
+        <div>
+          <h2 className="text-lg font-bold">Participant Reviews</h2>
+          <p className="mt-1 text-sm text-gray-600">
+            Add and review candidates, SMEs, or other collaborators only when
+            this opportunity needs them.
+          </p>
+        </div>
         <div className="flex items-center gap-2">
           <a
             href={`/jobs/apply?code=${jobCode}`}
             target="_blank"
             rel="noopener"
-            className="rounded-full border px-3 py-1 text-xs text-gray-600 
-            bg-white hover:bg-gray-50 cursor-pointer"
+            className="rounded-full border px-3 py-1 text-xs text-gray-600 bg-white hover:bg-gray-50 cursor-pointer"
           >
-            Open Public Apply Link
+            Open response link
           </a>
           <button
             type="button"
@@ -123,23 +128,23 @@ export default function CandidatesPanel({
               } catch {}
             }}
           >
-            Copy Link
+            Copy response link
           </button>
         </div>
       </div>
 
-      <CandidatesSection applied={applied} vetted={vetted} loading={loading} />
+      <ParticipantsSection applied={applied} vetted={vetted} loading={loading} />
 
       <div className="mt-8">
-        <div className="font-semibold mb-1">
-          Recommended (Euman AI Certified) Candidates
-          <span className="ml-2 text-xs text-emerald-600 font-normal">
+        <div className="mb-1 font-semibold">
+          Suggested contributors
+          <span className="ml-2 text-xs font-normal text-emerald-600">
             (coming soon)
           </span>
         </div>
         <div className="rounded-lg border border-dashed p-4 text-xs text-gray-500 bg-gray-50">
-          This section will show recommended candidates certified by Euman AI
-          based on advanced vetting and skills matching.
+          This section will suggest candidates, SMEs, or other contributors
+          based on the opportunity needs and the structured review results.
         </div>
       </div>
     </div>

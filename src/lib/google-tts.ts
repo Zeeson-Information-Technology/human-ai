@@ -1,7 +1,8 @@
 // src/lib/google-tts.ts
-// Minimal Google Cloud Text-to-Speech client using service account JSON
+// Google Cloud Text-to-Speech client with token caching and fast timeout
 // Reads base64-encoded credentials from GOOGLE_APPLICATION_CREDENTIALS_JSON
 import fs from "node:fs";
+import type { JWT } from "google-auth-library";
 
 export type GoogleTTSOptions = {
   voiceName?: string; // e.g., "en-US-Neural2-J"
@@ -57,10 +58,48 @@ function decodeServiceAccount(): any {
   );
 }
 
+// Cache credentials, auth client, and access tokens to avoid cold-start latency.
+let cachedCreds: any | null = null;
+let cachedClient: JWT | null = null;
+let cachedToken: { value: string; expiresAt: number } | null = null;
+const TOKEN_LEEWAY_MS = 2 * 60 * 1000; // refresh 2 min before expiry
+const TOKEN_LIFETIME_MS = 50 * 60 * 1000; // default lifetime if none provided
+const GOOGLE_TTS_TIMEOUT_MS = 12_000; // fail fast so we can fall back to Polly
+
+async function getClient(): Promise<JWT> {
+  if (cachedClient) return cachedClient;
+  const creds = (cachedCreds ||= decodeServiceAccount());
+  const { GoogleAuth } = await import("google-auth-library");
+  const auth = new GoogleAuth({
+    credentials: creds,
+    scopes: ["https://www.googleapis.com/auth/cloud-platform"],
+  });
+  cachedClient = (await auth.getClient()) as JWT;
+  return cachedClient;
+}
+
+async function getCachedAccessToken(): Promise<string> {
+  const now = Date.now();
+  if (cachedToken && now < cachedToken.expiresAt - TOKEN_LEEWAY_MS) {
+    return cachedToken.value;
+  }
+  const client = await getClient();
+  const tokenResp = await client.getAccessToken();
+  if (!tokenResp || !tokenResp.token) {
+    throw new Error("Failed to obtain Google access token");
+  }
+  const expiresAt =
+    typeof (tokenResp as any).expiry_date === "number"
+      ? (tokenResp as any).expiry_date
+      : now + TOKEN_LIFETIME_MS;
+  cachedToken = { value: tokenResp.token, expiresAt };
+  return tokenResp.token;
+}
+
 function languageFromVoice(name?: string): string {
   const v = (name || "").trim();
   if (!v) return "en-US";
-  // Example: en-US-Neural2-J → languageCode "en-US" (first two hyphen parts)
+  // Example: en-US-Neural2-J -> languageCode "en-US" (first two hyphen parts)
   const parts = v.split("-");
   if (parts.length >= 2) return `${parts[0]}-${parts[1]}`;
   return "en-US";
@@ -69,18 +108,10 @@ function languageFromVoice(name?: string): string {
 export async function synthesizeWithGoogleTTS(
   text: string,
   opts: GoogleTTSOptions = {}
-): Promise<Uint8Array> {
+): Promise<Buffer> {
   if (!text || !text.trim()) throw new Error("Text required");
 
-  const creds = decodeServiceAccount();
-  const { GoogleAuth } = await import("google-auth-library");
-  const auth = new GoogleAuth({
-    credentials: creds,
-    scopes: ["https://www.googleapis.com/auth/cloud-platform"],
-  });
-  const client = await auth.getClient();
-  const token = await client.getAccessToken();
-  if (!token || !token.token) throw new Error("Failed to obtain Google access token");
+  const token = await getCachedAccessToken();
 
   const voiceName = opts.voiceName || process.env.ZURI_TTS_VOICE || "en-US-Neural2-J";
   const languageCode = languageFromVoice(voiceName);
@@ -93,14 +124,23 @@ export async function synthesizeWithGoogleTTS(
     audioConfig: { audioEncoding: "MP3", speakingRate, pitch },
   };
 
-  const res = await fetch("https://texttospeech.googleapis.com/v1/text:synthesize", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token.token}`,
-    },
-    body: JSON.stringify(body),
-  });
+  // Enforce a timeout so we can fall back quickly instead of hanging ~60s.
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), GOOGLE_TTS_TIMEOUT_MS);
+  let res: Response;
+  try {
+    res = await fetch("https://texttospeech.googleapis.com/v1/text:synthesize", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(body),
+      signal: controller.signal,
+    });
+  } finally {
+    clearTimeout(timeout);
+  }
   const json = (await res.json().catch(() => ({}))) as any;
   if (!res.ok) {
     const err = json?.error?.message || `Google TTS error ${res.status}`;

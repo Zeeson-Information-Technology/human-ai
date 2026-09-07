@@ -1,73 +1,75 @@
-﻿// src/components/footer.tsx
-import Link from "next/link";
-import Image from "next/image";
 import { brand } from "@/lib/brand";
+import Watermark from "@/components/Watermark";
+import Image from "next/image";
+import Link from "next/link";
 
-export default function Footer() {
+type FooterProps = {
+  variant?: "light" | "dark";
+};
+
+export default function Footer({ variant = "dark" }: FooterProps) {
   const year = new Date().getFullYear();
-
-  const products = [
-    { href: "/data-engine", label: "Data Engine" },
-    { href: "/zuri", label: "Zuri" },
-    { href: "/human-data", label: "Human data" },
-  ];
+  const isDark = variant === "dark";
 
   const services = [
-    { href: "/solutions/african-languages", label: "African languages" },
-    { href: "/solutions/health", label: "Healthcare" },
-    { href: "/solutions/financial-services", label: "Financial services" },
-    { href: "/solutions/telecom", label: "Telecom" },
+    { href: "/services", label: "All services" },
+    { href: "/services/bid-qualification", label: "Bid qualification" },
+    { href: "/services/response-development", label: "Response development" },
+    { href: "/services/compliance-tracking", label: "Compliance tracking" },
+    { href: "/zuri", label: "Zuri intelligence layer" },
   ];
 
   const company = [
-    { href: "/whitepaper", label: "Research" },
-    { href: "/case-studies", label: "Case studies" },
-    { href: "/candidate-reviews", label: "Candidate reviews" },
-    { href: "/jobs", label: "Careers" },
+    { href: "/about", label: "About" },
+    { href: "/contact", label: "Contact" },
+    { href: "/policies/privacy", label: "Privacy" },
+    { href: "/careers", label: "Careers" },
   ];
 
   return (
-    <footer className="mt-16 w-full border-t">
-      <div className="mx-auto w-full max-w-7xl px-4 pt-10 pb-0">
+    <footer
+      className={`mt-16 w-full border-t ${
+        isDark
+          ? "border-white/10 bg-[#05070b] text-white"
+          : "border-gray-200 bg-white text-gray-950"
+      }`}
+    >
+      <div className="mx-auto w-full max-w-7xl px-4 pb-0 pt-10">
         <div className="flex flex-col items-start justify-between gap-6 sm:flex-row">
           <div className="sm:-mt-4">
-            <Image
-              src="/euman-logo.png"
-              alt="Euman AI"
-              className="h-auto w-auto"
-              width={137}
-              height={32}
-              priority
-            />
-            <p className="mt-1 text-sm text-gray-600">
-              Human-in-the-loop AI for Africa's languages &amp; enterprises.
+            <Link href="/" className="inline-flex cursor-pointer items-center">
+              <Image
+                src="/euman_logo.png"
+                alt="Euman Intelligence"
+                className="h-auto w-auto"
+                width={137}
+                height={32}
+                priority
+              />
+            </Link>
+            <p
+              className={`mt-1 max-w-sm text-sm ${
+                isDark ? "text-white/65" : "text-gray-600"
+              }`}
+            >
+              Human judgment and AI-enabled execution for businesses navigating
+              proposals, bids, and RFPs.
             </p>
           </div>
 
-          <div className="grid grid-cols-2 gap-8 sm:grid-cols-4">
-            <div>
-              <h3 className="font-semibold">Products</h3>
-              <ul className="mt-4 space-y-2">
-                {products.map((link) => (
-                  <li key={link.href}>
-                    <Link
-                      href={link.href}
-                      className="text-gray-700 hover:text-black"
-                    >
-                      {link.label}
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </div>
+          <div className="grid grid-cols-2 gap-8 sm:grid-cols-3">
             <div>
               <h3 className="font-semibold">Services</h3>
               <ul className="mt-4 space-y-2">
                 {services.map((link) => (
-                  <li key={link.href}>
+                  <li key={link.label}>
                     <Link
                       href={link.href}
-                      className="text-gray-700 hover:text-black"
+                      className={
+                        isDark
+                          ? "text-white/65 hover:text-white"
+                          : "text-gray-700 hover:text-black"
+                      }
                     >
                       {link.label}
                     </Link>
@@ -79,10 +81,14 @@ export default function Footer() {
               <h3 className="font-semibold">Company</h3>
               <ul className="mt-4 space-y-2">
                 {company.map((link) => (
-                  <li key={link.href}>
+                  <li key={link.label}>
                     <Link
                       href={link.href}
-                      className="text-gray-700 hover:text-black"
+                      className={
+                        isDark
+                          ? "text-white/65 hover:text-white"
+                          : "text-gray-700 hover:text-black"
+                      }
                     >
                       {link.label}
                     </Link>
@@ -96,17 +102,37 @@ export default function Footer() {
                 <li>
                   <Link
                     href="/contact"
-                    className="text-gray-700 hover:text-black"
+                    className={
+                      isDark
+                        ? "text-white/65 hover:text-white"
+                        : "text-gray-700 hover:text-black"
+                    }
                   >
-                    Contact
+                    Start a conversation
                   </Link>
                 </li>
                 <li>
                   <Link
                     href={`mailto:${brand.email}`}
-                    className="text-gray-700 hover:text-black"
+                    className={
+                      isDark
+                        ? "text-white/65 hover:text-white"
+                        : "text-gray-700 hover:text-black"
+                    }
                   >
                     {brand.email}
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    href="/admin/login"
+                    className={
+                      isDark
+                        ? "text-white/65 hover:text-white"
+                        : "text-gray-700 hover:text-black"
+                    }
+                  >
+                    Admin login
                   </Link>
                 </li>
               </ul>
@@ -114,25 +140,38 @@ export default function Footer() {
           </div>
         </div>
 
-        <div className="my-6 h-px bg-gray-200" />
+        <div className={`my-6 h-px ${isDark ? "bg-white/10" : "bg-gray-200"}`} />
 
-        {/* Bottom bar: left = copyright + legal, right = socials */}
-        <div className="flex flex-col items-start justify-between gap-4 text-xs text-gray-500 sm:flex-row sm:items-center">
-          <div className="flex flex-wrap items-center gap-3 text-gray-600">
-            <p>
-              &copy; {year} {brand.name} &mdash; {brand.locations}
-            </p>
+        <div
+          className={`flex flex-col items-start justify-between gap-4 text-xs sm:flex-row sm:items-center ${
+            isDark ? "text-white/55" : "text-gray-500"
+          }`}
+        >
+          <div
+            className={`flex flex-wrap items-center gap-3 ${
+              isDark ? "text-white/60" : "text-gray-600"
+            }`}
+          >
+            <p>&copy; {year} {brand.name}</p>
             <span aria-hidden="true">&bull;</span>
             <Link
               href="/policies/privacy"
-              className="hover:text-gray-700 hover:underline"
+              className={
+                isDark
+                  ? "hover:text-white hover:underline"
+                  : "hover:text-gray-700 hover:underline"
+              }
             >
               Privacy
             </Link>
             <span aria-hidden="true">&bull;</span>
             <Link
               href="/policies/terms"
-              className="hover:text-gray-700 hover:underline"
+              className={
+                isDark
+                  ? "hover:text-white hover:underline"
+                  : "hover:text-gray-700 hover:underline"
+              }
             >
               Terms
             </Link>
@@ -143,7 +182,11 @@ export default function Footer() {
               target="_blank"
               rel="noopener noreferrer"
               aria-label="LinkedIn"
-              className="text-gray-500 transition hover:text-gray-800"
+              className={
+                isDark
+                  ? "text-white/55 transition hover:text-white"
+                  : "text-gray-500 transition hover:text-gray-800"
+              }
             >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
@@ -159,7 +202,11 @@ export default function Footer() {
               target="_blank"
               rel="noopener noreferrer"
               aria-label="X (Twitter)"
-              className="text-gray-500 transition hover:text-gray-800"
+              className={
+                isDark
+                  ? "text-white/55 transition hover:text-white"
+                  : "text-gray-500 transition hover:text-gray-800"
+              }
             >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
@@ -175,7 +222,11 @@ export default function Footer() {
               target="_blank"
               rel="noopener noreferrer"
               aria-label="Facebook"
-              className="text-gray-500 transition hover:text-gray-800"
+              className={
+                isDark
+                  ? "text-white/55 transition hover:text-white"
+                  : "text-gray-500 transition hover:text-gray-800"
+              }
             >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
@@ -188,8 +239,9 @@ export default function Footer() {
             </a>
           </div>
         </div>
-
-        {/* Watermark moved to global layout */}
+      </div>
+      <div className={isDark ? "border-t border-white/10" : "border-t border-gray-200"}>
+        <Watermark />
       </div>
     </footer>
   );

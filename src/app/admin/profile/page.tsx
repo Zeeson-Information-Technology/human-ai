@@ -1,6 +1,6 @@
-// src/app/admin/profile/page.tsx
 import Link from "next/link";
 import DashboardShell from "@/components/dashboardBar";
+import { getAdminNav } from "@/lib/admin-dashboard";
 import { redirect } from "next/navigation";
 import { getAdminFromCookies } from "@/lib/admin-session";
 import dbConnect from "@/lib/db-connect";
@@ -10,12 +10,10 @@ import AdminProfileClient from "./adminProfileClient";
 
 export default async function AdminProfilePage() {
   const admin = await getAdminFromCookies();
-  if (!admin) redirect("/zuri/start/login?role=client");
+  if (!admin) redirect("/admin/login");
 
-  // IMPORTANT: load the SAME user record your update route updates
   await dbConnect();
 
-  // Try session user first (this is what your /api/admin/update-profile uses)
   const me = await getSessionUser().catch(() => null);
 
   let userDoc = null as any;
@@ -26,7 +24,6 @@ export default async function AdminProfilePage() {
       phone: 1,
     }).lean();
   } else if (admin.email) {
-    // Fallback by email if no session id is available
     userDoc = await User.findOne(
       { email: admin.email },
       { name: 1, email: 1, phone: 1 }
@@ -43,14 +40,7 @@ export default async function AdminProfilePage() {
     <DashboardShell
       user={{ name: initial.name, email: initial.email, role: "admin" }}
       title="Admin Profile"
-      nav={[
-        { href: "/admin", label: "Dashboard", exact: true },
-        { href: "/admin/jobs", label: "Jobs" },
-        { href: "/admin/interviews", label: "Interviews" },
-        { href: "/admin/leads", label: "Leads" },
-        { href: "/admin/settings", label: "Settings" },
-        // (No Profile in top nav so footer shortcut can appear once)
-      ]}
+      nav={getAdminNav("admin")}
     >
       <div className="max-w-md">
         <div className="mb-4">
@@ -58,18 +48,18 @@ export default async function AdminProfilePage() {
             href="/admin"
             className="inline-flex items-center gap-2 rounded-full border border-black/10 bg-white/70 px-3 py-1 text-sm text-gray-800 backdrop-blur hover:bg-gray-50"
           >
-            <span aria-hidden>←</span> Back to admin dashboard
+            <span aria-hidden>&larr;</span> Back to admin dashboard
           </Link>
         </div>
 
-        <h2 className="text-xl font-bold mb-4">Profile Settings</h2>
+        <h2 className="mb-4 text-xl font-bold">Profile Settings</h2>
 
-        <div className="mb-4 rounded-xl border bg-white p-4 text-sm text-gray-600 space-y-1">
+        <div className="mb-4 space-y-1 rounded-xl border bg-white p-4 text-sm text-gray-600">
           <div>
-            <span className="text-gray-500">Name:</span> {initial.name || "—"}
+            <span className="text-gray-500">Name:</span> {initial.name || "-"}
           </div>
           <div>
-            <span className="text-gray-500">Email:</span> {initial.email || "—"}
+            <span className="text-gray-500">Email:</span> {initial.email || "-"}
           </div>
         </div>
 

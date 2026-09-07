@@ -5,6 +5,7 @@ import { verifyToken } from "@/lib/auth";
 export type AdminishRole =
   | "admin"
   | "company"
+  | "staff"
   | "recruiter"
   | "manager";
 
@@ -12,9 +13,53 @@ export function isAdminAreaRole(role?: string): role is AdminishRole {
   return (
     role === "admin" ||
     role === "company" ||
+    role === "staff" ||
     role === "recruiter" ||
     role === "manager"
   );
+}
+
+export function isPlatformAdminRole(role?: string): role is "admin" {
+  return role === "admin";
+}
+
+export function isScopedStaffRole(role?: string) {
+  return role === "staff" || role === "recruiter" || role === "manager";
+}
+
+export function normalizeTeamRole(role?: string) {
+  if (role === "recruiter" || role === "manager") return "staff";
+  return role || "";
+}
+
+export type TeamPermissions = {
+  canCreateOpportunity?: boolean;
+  canManageInquiries?: boolean;
+};
+
+export function getEffectivePermissions(user?: {
+  role?: string;
+  permissions?: TeamPermissions | null;
+} | null) {
+  if (isPlatformAdminRole(user?.role)) {
+    return {
+      canCreateOpportunity: true,
+      canManageInquiries: true,
+    };
+  }
+
+  if (user?.role === "company") {
+    return {
+      canCreateOpportunity: true,
+      canManageInquiries: true,
+    };
+  }
+
+  return {
+    canCreateOpportunity: Boolean(user?.permissions?.canCreateOpportunity),
+    canManageInquiries:
+      user?.permissions?.canManageInquiries !== false,
+  };
 }
 
 /**

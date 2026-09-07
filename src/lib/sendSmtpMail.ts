@@ -52,8 +52,8 @@ export default async function sendEmail({
 
   const prettyFrom =
     process.env.MAIL_FROM ||
-    `Equatoria <${
-      process.env.ZEPTOMAIL_FROM_ADDRESS || "noreply@diboruwa.com"
+    `Euman Intelligence <${
+      process.env.ZEPTOMAIL_FROM_ADDRESS || "noreply@eumanai.com"
     }>`;
   const bounce = process.env.ZEPTOMAIL_BOUNCE_ADDRESS || undefined;
 

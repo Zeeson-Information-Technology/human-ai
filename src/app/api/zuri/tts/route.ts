@@ -1,11 +1,12 @@
 // POST /api/zuri/tts  { text }
 // Returns base64 audio mp3 for quick client playback in dev.
+// Now using Google Text-to-Speech instead of AWS Polly.
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 import { NextRequest, NextResponse } from "next/server";
-import type { VoiceId } from "@aws-sdk/client-polly";
+import { synthesizeWithGoogleTTS } from "@/lib/google-tts";
 
 export async function POST(req: NextRequest) {
   try {
@@ -14,30 +15,15 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: false, error: "Text required" }, { status: 400 });
     }
 
-    const voiceId: VoiceId =
-      (process.env.ZURI_TTS_VOICE as VoiceId | undefined) ?? ("Joanna" as VoiceId);
-    const { polly } = await import("@/lib/aws-polly");
-    const client = await polly();
-    const { SynthesizeSpeechCommand } = await import("@aws-sdk/client-polly");
-    const cmd = new SynthesizeSpeechCommand({ OutputFormat: "mp3", Text: text, VoiceId: voiceId });
-    let res;
-    try {
-      res = await client.send(cmd);
-    } catch (e: any) {
-      if (String(e?.code || '').includes('ERR_INVALID_CHAR')) {
-        return NextResponse.json(
-          {
-            ok: false,
-            error:
-              'Invalid AWS credentials in env (authorization header). Remove quotes/newlines from AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY and restart.',
-          },
-          { status: 500 }
-        );
-      }
-      throw e;
-    }
-    const buf = res.AudioStream ? Buffer.from(await res.AudioStream.transformToByteArray()) : Buffer.from([]);
-    const b64 = buf.toString("base64");
+    // Use Google TTS
+    const audioBuffer = await synthesizeWithGoogleTTS(text, {
+      voiceName: process.env.GOOGLE_TTS_VOICE || "en-US-Neural2-J",
+      speakingRate: 1.0,
+      pitch: 0.0,
+      useSsml: false,
+    });
+
+    const b64 = audioBuffer.toString("base64");
     return NextResponse.json({ ok: true, audioBase64: b64, contentType: "audio/mpeg" });
   } catch (e) {
     console.error("tts error", e);

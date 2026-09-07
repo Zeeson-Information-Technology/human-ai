@@ -1,7 +1,12 @@
 // src/model/user.ts
-import { Schema, model, models, Document } from "mongoose";
+import { Schema, model, models, Document, Model } from "mongoose";
 
-export type UserRole = "admin" | "company" | "recruiter" | "manager";
+export type UserRole =
+  | "admin"
+  | "company"
+  | "staff"
+  | "recruiter"
+  | "manager";
 
 export interface UserDoc extends Document {
   email: string;
@@ -72,6 +77,12 @@ export interface UserDoc extends Document {
 
   // Password management
   mustChangePassword?: boolean;
+  accessRevokedAt?: Date | null;
+  accessRevokedBy?: string | null;
+  permissions?: {
+    canCreateOpportunity?: boolean;
+    canManageInquiries?: boolean;
+  };
 }
 
 const UserSchema = new Schema<UserDoc>(
@@ -80,7 +91,7 @@ const UserSchema = new Schema<UserDoc>(
     passwordHash: { type: String, required: true },
     role: {
       type: String,
-      enum: ["admin", "company", "recruiter", "manager"], // valid roles only
+      enum: ["admin", "company", "staff", "recruiter", "manager"],
       required: true,
     },
 
@@ -133,19 +144,35 @@ const UserSchema = new Schema<UserDoc>(
     ],
 
     mustChangePassword: { type: Boolean, default: false },
+    accessRevokedAt: { type: Date, default: null },
+    accessRevokedBy: { type: Schema.Types.ObjectId, ref: "User", default: null },
+    permissions: {
+      canCreateOpportunity: { type: Boolean, default: false },
+      canManageInquiries: { type: Boolean, default: true },
+    },
   },
   { timestamps: true }
 );
 
-export default models.User || model<UserDoc>("User", UserSchema);
+const existingUserModel = models.User as Model<UserDoc> | undefined;
+
+if (
+  existingUserModel &&
+  !existingUserModel.schema.path("permissions.canCreateOpportunity")
+) {
+  delete models.User;
+}
+
+export default (models.User as Model<UserDoc> | undefined) ||
+  model<UserDoc>("User", UserSchema);
 
 /**
  * Returns the UI class for a user role.
- * - "company", "admin", "recruiter", "manager" => "company"
+ * - "company", "admin", "staff", "recruiter", "manager" => "company"
  * - "talent" => "talent"
  */
 export function getUserUiClass(role: string): "company" | "talent" {
-  if (["admin", "company", "recruiter", "manager"].includes(role))
+  if (["admin", "company", "staff", "recruiter", "manager"].includes(role))
     return "company";
   return "talent";
 }

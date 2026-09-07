@@ -5,9 +5,11 @@ import User from "@/model/user";
 import bcrypt from "bcryptjs";
 import { z } from "zod";
 import { signToken } from "@/lib/auth";
+import { isAdminAreaRole } from "@/lib/admin-auth";
 
 // Accept only valid backend roles; normalize aliases later
 const LoginSchema = z.object({
+  area: z.enum(["admin"]).optional(),
   role: z.string().optional(), // Accept any string, normalize below
   email: z.string().email(),
   password: z.string().min(6),
@@ -17,7 +19,7 @@ const LoginSchema = z.object({
 export async function POST(req: Request) {
   await dbConnect();
 
-  let body = await req.json().catch(() => ({}));
+  const body = await req.json().catch(() => ({}));
 
   // Normalize role if present
   if (body.role === "client") body.role = "company";
@@ -32,13 +34,30 @@ export async function POST(req: Request) {
     );
   }
 
-  const { email, password, remember } = parsed.data;
+  const { area, email, password, remember } = parsed.data;
 
   const user = await User.findOne({ email: email.toLowerCase() });
   if (!user) {
     return NextResponse.json(
       { ok: false, error: "No account found for this email." },
       { status: 401 }
+    );
+  }
+
+  if (user.accessRevokedAt) {
+    return NextResponse.json(
+      { ok: false, error: "Access has been revoked for this account." },
+      { status: 403 }
+    );
+  }
+
+  if (area === "admin" && !isAdminAreaRole(user.role)) {
+    return NextResponse.json(
+      {
+        ok: false,
+        error: "This login is for Euman Intelligence team access.",
+      },
+      { status: 403 }
     );
   }
 

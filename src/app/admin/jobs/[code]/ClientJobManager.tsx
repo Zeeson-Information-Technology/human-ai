@@ -1,13 +1,24 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
+import PremiumToast from "@/components/feedback/PremiumToast";
+import { useTimedToast } from "@/components/feedback/useTimedToast";
+import PremiumSelect from "@/components/forms/PremiumSelect";
+import FileDropUpload, { type UploadedFileItem } from "@/components/forms/FileDropUpload";
+import Pagination from "@/components/navigation/Pagination";
+import { BTN, cx } from "@/components/ui-helper/buttonStyles";
+import {
+  InviteSendingOverlay,
+  InviteSentModal,
+  type InviteSuccessMeta,
+} from "@/components/modal/InviteFeedback";
+import InvitePanel from "@/app/zuri/start/admin/components/InvitePanel";
 
-// Reuse your streaming loader from the create page
 function LoaderOverlay({ show }: { show: boolean }) {
   if (!show) return null;
   return (
-    <div className="fixed inset-0 z-[60] bg-black/30 backdrop-blur-[2px] flex items-center justify-center">
+    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/30 backdrop-blur-[2px]">
       <div className="flex flex-col items-center gap-3">
         <svg className="h-8 w-8 animate-spin text-white/90" viewBox="0 0 24 24">
           <circle
@@ -21,143 +32,405 @@ function LoaderOverlay({ show }: { show: boolean }) {
           <path
             className="opacity-90"
             fill="currentColor"
-            d="M4 12a8 8 0 018-8v4A4 4 0 008 12H4z"
+            d="M4 12a8 8 0 0 1 8-8v4a4 4 0 0 0-4 4H4z"
           />
         </svg>
-        <div className="text-white/90 text-sm">Saving…</div>
+        <div className="text-sm text-white/90">Saving...</div>
       </div>
     </div>
   );
 }
 
-type Tab = "overview" | "candidates" | "invite";
-type InterviewType = "standard" | "resume-based" | "human-data" | "software";
-
-type ScreenerRule = {
-  question: string;
-  // ← matches your updated model’s union
-  kind: "number" | "currency" | "select" | "boolean" | "text";
-  category?:
-    | "experience"
-    | "language"
-    | "monthly-salary"
-    | "notice-period"
-    | "hourly-rate"
-    | "custom";
-  min?: number;
-  max?: number;
-  options?: string[];
-  idealAnswer?: any;
-  qualifying?: boolean;
-  qualifyWhen?: "lt" | "lte" | "eq" | "gte" | "gt" | "neq" | "in" | "nin";
-  qualifyValue?: any;
-  currency?: "NGN" | "USD" | "CAD" | "EUR" | "GBP";
-  unit?: string;
-};
+type Tab = "overview" | "workbench" | "requests" | "reviews";
 
 type JobDTO = {
   id: string;
   code: string;
   title: string;
   company?: string;
+  clientName?: string;
+  clientContactName?: string;
+  clientContactEmail?: string;
+  buyerOrganization?: string;
+  solicitationNumber?: string;
+  opportunitySource?: string;
+  submissionDeadline?: string;
+  marketFocus?: string;
   roleName?: string;
+  assignedUserId?: string;
+  assignedUserEmail?: string;
   jdText: string;
-  languages: string[];
   focusAreas: string[];
   adminFocusNotes?: string;
-  screenerQuestions?: string[];
-  screenerRules?: ScreenerRule[];
-  location?: string;
-  locationDetails?: string;
-  employmentType?: string;
-  seniority?: string;
-  commImportance?: number;
-  startDate?: string;
-  skills?: string[];
-  interviewType?: InterviewType;
-  salaryCurrency?: "NGN" | "USD" | "CAD" | "EUR" | "GBP";
-  monthlySalaryMin?: number;
-  monthlySalaryMax?: number;
-  hoursPerWeek?: number;
+  documents?: Array<{
+    name: string;
+    url: string;
+    publicId?: string;
+    bytes?: number;
+    resourceType?: string;
+    uploadedAt?: string;
+  }>;
   active: boolean;
   createdAt?: string;
-  updatedAt?: string;
+  workbench?: WorkbenchState;
 };
 
-// UI stages (accepts synonyms). Server normalizes to model stages.
-const STAGES = [
-  "applied",
-  "screening", // -> interviewing
-  "interviewing",
-  "offered", // -> offer
-  "hired",
-  "rejected",
-] as const;
+type TeamMember = {
+  _id: string;
+  email: string;
+  role: string;
+};
 
-type StageStatus =
-  | "applied"
-  | "screening"
-  | "interviewing"
-  | "offered"
-  | "hired"
-  | "rejected";
+type WorkbenchColumn = {
+  id: string;
+  title: string;
+  order: number;
+};
+
+type WorkbenchCard = {
+  id: string;
+  title: string;
+  description?: string;
+  columnId: string;
+  order: number;
+  creatorEmail?: string;
+  creatorName?: string;
+  creatorAvatarUrl?: string;
+  assigneeEmail?: string;
+  assigneeEmails?: string[];
+  dueDate?: string;
+  dueTime?: string;
+  priority?: WorkbenchPriority | "";
+  createdAt?: string;
+  links?: string[];
+  documents?: UploadedFileItem[];
+  subtasks?: Array<{
+    id: string;
+    title: string;
+    done?: boolean;
+  }>;
+};
+
+type WorkbenchState = {
+  columns: WorkbenchColumn[];
+  cards: WorkbenchCard[];
+};
+
+type WorkbenchPriority = "low" | "medium" | "high" | "urgent";
+
+type NewWorkbenchCardDraft = {
+  title: string;
+  description: string;
+  assignees: string;
+  dueDate: string;
+  dueTime: string;
+  priority: WorkbenchPriority | "";
+};
 
 type Offer = {
   title?: string;
   rate?: number;
   currency?: "USD" | "CAD" | "EUR" | "GBP" | "NGN";
-  type?: "full-time" | "part-time" | "hourly" | "contract";
-  startDate?: string;
-  notes?: string;
   status?: "draft" | "sent" | "accepted" | "declined" | "withdrawn";
 };
 
 type SessionItem = {
   id: string;
-  _id?: string; // from API
   status: "pending" | "running" | "finished" | "cancelled";
-  // Prefer server field; keep legacy for back-compat display
   pipelineStage?: "applied" | "interviewing" | "offer" | "contract" | "hired" | "rejected";
-  stageStatus?: StageStatus;
+  stageStatus?: "applied" | "screening" | "interviewing" | "offered" | "hired" | "rejected";
   offer?: Offer;
   candidate: { name: string; email: string };
   finishedAt?: string | Date;
   score?: number;
-  [k: string]: any;
+  __draftOffer?: Offer;
 };
+
+const STAGES = [
+  "applied",
+  "screening",
+  "interviewing",
+  "offered",
+  "hired",
+  "rejected",
+] as const;
+
+const PAGE_SIZE = 8;
+
+function defaultWorkbench(): WorkbenchState {
+  return {
+    columns: [
+      { id: "opportunities", title: "Opportunities", order: 0 },
+      { id: "todo", title: "To do", order: 1 },
+      { id: "in-progress", title: "In progress", order: 2 },
+      { id: "submitted", title: "Submitted", order: 3 },
+      { id: "lost", title: "Lost", order: 4 },
+      { id: "awarded", title: "Awarded", order: 5 },
+    ],
+    cards: [],
+  };
+}
+
+function makeId(prefix: string) {
+  return `${prefix}-${Math.random().toString(36).slice(2, 10)}`;
+}
+
+const PRIORITY_OPTIONS: Array<{ value: WorkbenchPriority | ""; label: string }> = [
+  { value: "", label: "No priority" },
+  { value: "low", label: "Low" },
+  { value: "medium", label: "Medium" },
+  { value: "high", label: "High" },
+  { value: "urgent", label: "Urgent" },
+];
+
+const EMPTY_CARD_DRAFT: NewWorkbenchCardDraft = {
+  title: "",
+  description: "",
+  assignees: "",
+  dueDate: "",
+  dueTime: "",
+  priority: "",
+};
+
+function parseAssigneeEmails(value: string) {
+  return value
+    .split(/[,;\n]/)
+    .map((entry) => entry.trim())
+    .filter(Boolean);
+}
+
+function getCardAssignees(card: WorkbenchCard) {
+  const assignees = card.assigneeEmails?.length
+    ? card.assigneeEmails
+    : card.assigneeEmail
+      ? [card.assigneeEmail]
+      : [];
+  return Array.from(new Set(assignees.filter(Boolean)));
+}
+
+function getInitials(value?: string) {
+  const source = (value || "").trim();
+  if (!source) return "EI";
+  const namePart = source.includes("@") ? source.split("@")[0] : source;
+  const words = namePart.split(/[.\s_-]+/).filter(Boolean);
+  return (words.length > 1 ? `${words[0][0]}${words[1][0]}` : namePart.slice(0, 2)).toUpperCase();
+}
+
+function formatDue(dueDate?: string, dueTime?: string) {
+  if (!dueDate && !dueTime) return "";
+  return [dueDate, dueTime].filter(Boolean).join(" ");
+}
+
+const INTERNAL_NOTE_LABELS = [
+  "Client rep",
+  "Buyer / issuing authority",
+  "Solicitation number",
+  "Source",
+  "Submission deadline",
+  "Market focus",
+  "Reference materials",
+];
+
+function formatInternalNotes(notes?: string) {
+  if (!notes?.trim()) return [];
+  let normalized = notes.trim();
+  for (const label of INTERNAL_NOTE_LABELS) {
+    normalized = normalized.replace(
+      new RegExp(`\s*${label.replace(/[.*+?^${}()|[\\]\\\\]/g, "\\$&")}:\s*`, "gi"),
+      `\n${label}: `
+    );
+  }
+
+  return normalized
+    .split(/\n+/)
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .map((line) => {
+      const separator = line.indexOf(":");
+      return separator > 0
+        ? { label: line.slice(0, separator).trim(), value: line.slice(separator + 1).trim() }
+        : { label: "Note", value: line };
+    });
+}
+
+function getSubtaskProgress(card: WorkbenchCard) {
+  const subtasks = card.subtasks || [];
+  return {
+    done: subtasks.filter((subtask) => subtask.done).length,
+    total: subtasks.length,
+  };
+}
+
+function priorityClass(priority?: WorkbenchPriority | "") {
+  switch (priority) {
+    case "urgent":
+      return "border-red-200 bg-red-50 text-red-700";
+    case "high":
+      return "border-orange-200 bg-orange-50 text-orange-700";
+    case "medium":
+      return "border-amber-200 bg-amber-50 text-amber-700";
+    case "low":
+      return "border-emerald-200 bg-emerald-50 text-emerald-700";
+    default:
+      return "border-gray-200 bg-gray-50 text-gray-600";
+  }
+}
+
+function priorityLabel(priority?: WorkbenchPriority | "") {
+  return PRIORITY_OPTIONS.find((option) => option.value === priority)?.label || "No priority";
+}
+
+function WorkbenchIcon({
+  name,
+  className = "h-3.5 w-3.5",
+}: {
+  name: "user" | "calendar" | "flag" | "link" | "paperclip" | "check";
+  className?: string;
+}) {
+  const common = {
+    className,
+    viewBox: "0 0 24 24",
+    fill: "none",
+    stroke: "currentColor",
+    strokeWidth: 2,
+    strokeLinecap: "round" as const,
+    strokeLinejoin: "round" as const,
+    "aria-hidden": true,
+  };
+  if (name === "calendar") {
+    return (
+      <svg {...common}>
+        <path d="M8 2v4M16 2v4M3 10h18" />
+        <rect x="3" y="5" width="18" height="16" rx="2" />
+      </svg>
+    );
+  }
+  if (name === "flag") {
+    return (
+      <svg {...common}>
+        <path d="M5 22V4M5 4h12l-2 5 2 5H5" />
+      </svg>
+    );
+  }
+  if (name === "link") {
+    return (
+      <svg {...common}>
+        <path d="M10 13a5 5 0 0 0 7.07 0l2-2a5 5 0 0 0-7.07-7.07l-1.15 1.15" />
+        <path d="M14 11a5 5 0 0 0-7.07 0l-2 2A5 5 0 0 0 12 20.07l1.15-1.15" />
+      </svg>
+    );
+  }
+  if (name === "paperclip") {
+    return (
+      <svg {...common}>
+        <path d="m21.44 11.05-8.49 8.49a6 6 0 0 1-8.49-8.49l8.49-8.49a4 4 0 1 1 5.66 5.66l-8.49 8.49a2 2 0 0 1-2.83-2.83l7.78-7.78" />
+      </svg>
+    );
+  }
+  if (name === "check") {
+    return (
+      <svg {...common}>
+        <path d="M9 11l3 3L22 4" />
+        <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
+      </svg>
+    );
+  }
+  return (
+    <svg {...common}>
+      <path d="M20 21a8 8 0 0 0-16 0" />
+      <circle cx="12" cy="7" r="4" />
+    </svg>
+  );
+}
+
+function reorderCards(cards: WorkbenchCard[]) {
+  const grouped = new Map<string, WorkbenchCard[]>();
+  for (const card of cards) {
+    const list = grouped.get(card.columnId) || [];
+    list.push(card);
+    grouped.set(card.columnId, list);
+  }
+
+  const nextCards: WorkbenchCard[] = [];
+  for (const [, group] of grouped.entries()) {
+    group
+      .sort((a, b) => a.order - b.order)
+      .forEach((card, index) => nextCards.push({ ...card, order: index }));
+  }
+  return nextCards;
+}
 
 export default function ClientJobManager({
   initialJob,
+  initialTab = "overview",
+  canEditWorkspace,
+  canManageAssignments,
+  workbenchOnly = false,
+  currentUserEmail = "",
 }: {
   initialJob: JobDTO;
+  initialTab?: Tab;
+  canEditWorkspace: boolean;
+  canManageAssignments: boolean;
+  workbenchOnly?: boolean;
+  currentUserEmail?: string;
 }) {
-  const [tab, setTab] = useState<Tab>("overview");
+  const [tab, setTab] = useState<Tab>(initialTab);
   const [job, setJob] = useState<JobDTO>(initialJob);
+  const [savedOverview, setSavedOverview] = useState<JobDTO>(initialJob);
+  const [isEditingOverview, setIsEditingOverview] = useState(false);
+  const [showAllSupportAreas, setShowAllSupportAreas] = useState(false);
+  const [showAllDocuments, setShowAllDocuments] = useState(false);
+  const [showBriefModal, setShowBriefModal] = useState(false);
+  const [actionsOpen, setActionsOpen] = useState(false);
+  const actionsRef = useRef<HTMLDivElement>(null);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
+  const { toast, showToast } = useTimedToast();
 
-  // Candidates state
-  const [applied, setApplied] = useState<SessionItem[]>([]);
-  const [vetted, setVetted] = useState<SessionItem[]>([]);
+  const [pendingResponses, setPendingResponses] = useState<SessionItem[]>([]);
+  const [reviewedResponses, setReviewedResponses] = useState<SessionItem[]>([]);
+  const [loadingResponses, setLoadingResponses] = useState(false);
+  const [responseView, setResponseView] = useState<"pending" | "reviewed">(
+    "pending"
+  );
+  const [pendingPage, setPendingPage] = useState(1);
+  const [reviewedPage, setReviewedPage] = useState(1);
 
-  const [loadingCandidates, setLoadingCandidates] = useState(false);
-
-  // Invite state
   const [inviteEmails, setInviteEmails] = useState<string[]>([""]);
+  const [participantType, setParticipantType] = useState<"candidate" | "sme" | "reviewer" | "partner">("candidate");
+  const [intakeMethod, setIntakeMethod] = useState<"ai-interview" | "human-interview" | "documents-only" | "manual-review">("ai-interview");
   const [inviteBusy, setInviteBusy] = useState(false);
   const [inviteMsg, setInviteMsg] = useState<string | null>(null);
-  // UI: copied state for candidate link
-  const [linkCopied, setLinkCopied] = useState(false);
+  const [inviteSuccess, setInviteSuccess] = useState<InviteSuccessMeta | null>(
+    null
+  );
+  const [participantRequests, setParticipantRequests] = useState<any[]>([]);
+  const [loadingParticipantRequests, setLoadingParticipantRequests] = useState(false);
+  const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
+  const [workbench, setWorkbench] = useState<WorkbenchState>(
+    initialJob.workbench || defaultWorkbench()
+  );
+  const [savedWorkbench, setSavedWorkbench] = useState<WorkbenchState>(
+    initialJob.workbench || defaultWorkbench()
+  );
+  const [workbenchBusy, setWorkbenchBusy] = useState(false);
+  const [newColumnTitle, setNewColumnTitle] = useState("");
+  const [editingColumnId, setEditingColumnId] = useState<string | null>(null);
+  const [editingColumnTitle, setEditingColumnTitle] = useState("");
+  const [newCard, setNewCard] = useState<Record<string, NewWorkbenchCardDraft>>({});
+  const [openComposerColumnId, setOpenComposerColumnId] = useState<string | null>(null);
+  const [activeWorkbenchCardId, setActiveWorkbenchCardId] = useState<string | null>(null);
+  const [draggedCardId, setDraggedCardId] = useState<string | null>(null);
+  const [hoverColumnId, setHoverColumnId] = useState<string | null>(null);
+  const [detailLinkInput, setDetailLinkInput] = useState("");
+  const [detailSubtaskInput, setDetailSubtaskInput] = useState("");
 
-  // Derived
-  const jdChars = (job.jdText || "").trim().length;
-  const jobInfoValid =
-    job.title.trim().length > 0 &&
-    (job.roleName || "").trim().length > 0 &&
-    jdChars >= 120;
+  const briefChars = (job.jdText || "").trim().length;
+  const workspaceValid =
+    job.title.trim().length > 0 && briefChars >= 120;
 
-  // Save updates
   async function saveJob(partial: Partial<JobDTO>) {
     setBusy(true);
     setErr(null);
@@ -168,12 +441,19 @@ export default function ClientJobManager({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(partial),
       });
-      const j = await res.json();
-      if (!res.ok || !j.ok) throw new Error(j.error || "Update failed");
-      setJob((prev) => ({ ...prev, ...j.job }));
-      setMsg("Saved!");
+      const data = await res.json();
+      if (!res.ok || !data.ok) throw new Error(data.error || "Update failed");
+      setJob((prev) => {
+        const next = { ...prev, ...data.job };
+        setSavedOverview(next);
+        return next;
+      });
+      setMsg("Opportunity updated.");
+      showToast("Opportunity updated.", "success");
+      setIsEditingOverview(false);
     } catch (e: any) {
-      setErr(e.message || "Error saving");
+      setErr(e.message || "Error saving opportunity");
+      showToast(e.message || "Error saving opportunity", "error");
     } finally {
       setBusy(false);
     }
@@ -181,565 +461,2182 @@ export default function ClientJobManager({
 
   async function updateSession(id: string, data: any) {
     const res = await fetch(`/api/admin/sessions/${id}`, {
-      method: "PATCH", // ⬅️ was PUT
+      method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(data),
     });
-    const j = await res.json();
-    if (!res.ok || !j.ok)
-      throw new Error(j.error || "Failed to update session");
-
-    // Normalize id for the UI (API returns _id)
-    const updated = { id: j.session._id || j.session.id, ...j.session };
-
-    // Soft-refresh the lists using the normalized id
-    setApplied((prev) => prev.map((s: any) => (s.id === id ? updated : s)));
-    setVetted((prev) => prev.map((s: any) => (s.id === id ? updated : s)));
+    const out = await res.json();
+    if (!res.ok || !out.ok) {
+      throw new Error(out.error || "Failed to update review");
+    }
+    const updated = { id: out.session._id || out.session.id, ...out.session };
+    setPendingResponses((prev) =>
+      prev.map((item) => (item.id === id ? updated : item))
+    );
+    setReviewedResponses((prev) =>
+      prev.map((item) => (item.id === id ? updated : item))
+    );
   }
 
-  // Load candidates on demand
+  async function saveWorkbench(nextWorkbench: WorkbenchState, successMessage?: string) {
+    setWorkbenchBusy(true);
+    setErr(null);
+    try {
+      const res = await fetch(`/api/admin/jobs/${job.code}/workbench`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(nextWorkbench),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.ok) throw new Error(data.error || "Failed to update workbench");
+      const persisted = data.workbench || nextWorkbench;
+      setWorkbench(persisted);
+      setSavedWorkbench(persisted);
+      if (successMessage) {
+        setMsg(successMessage);
+        showToast(successMessage, "success");
+      }
+    } catch (e: any) {
+      setErr(e.message || "Failed to update workbench");
+      showToast(e.message || "Failed to update workbench", "error");
+    } finally {
+      setWorkbenchBusy(false);
+    }
+  }
+
   useEffect(() => {
-    async function load() {
-      if (tab !== "candidates") return;
-      setLoadingCandidates(true);
+    async function loadTeamMembers() {
+      if (!canManageAssignments) return;
+      try {
+        const res = await fetch("/api/admin/sub-users", { cache: "no-store" });
+        const data = await res.json();
+        if (!res.ok || !data.ok) return;
+        setTeamMembers((data.users || []).filter((item: TeamMember) => item.role === "staff"));
+      } catch {}
+    }
+    loadTeamMembers();
+  }, [canManageAssignments]);
+
+  useEffect(() => {
+    async function loadResponses() {
+      if (tab !== "reviews") return;
+      setLoadingResponses(true);
       try {
         const res = await fetch(`/api/admin/jobs/${job.code}/sessions`);
-        const j = await res.json();
-        if (res.ok && j.ok) {
-          const normalize = (arr: any[]) =>
-            arr.map((s) => ({ id: s._id || s.id, ...s }));
-
-          const all = normalize(j.sessions);
-          setApplied(all.filter((s: any) => s.status !== "finished"));
-          setVetted(all.filter((s: any) => s.status === "finished"));
-        } else {
-          setErr(j.error || "Failed to load candidates");
+        const data = await res.json();
+        if (!res.ok || !data.ok) {
+          setErr(data.error || "Failed to load responses");
+          showToast(data.error || "Failed to load responses", "error");
+          return;
         }
+
+        const all = (data.sessions || []).map((s: any) => ({
+          id: s._id || s.id,
+          ...s,
+        }));
+        setPendingResponses(all.filter((s: any) => s.status !== "finished"));
+        setReviewedResponses(all.filter((s: any) => s.status === "finished"));
       } catch (e: any) {
-        setErr(e.message || "Failed to load candidates");
+        setErr(e.message || "Failed to load responses");
+        showToast(e.message || "Failed to load responses", "error");
       } finally {
-        setLoadingCandidates(false);
+        setLoadingResponses(false);
       }
     }
-    load();
-  }, [tab, job.code]);
+    loadResponses();
+  }, [job.code, tab]);
 
-  // Handlers
-  const toggleActive = async () => saveJob({ active: !job.active });
+  useEffect(() => {
+    if (tab !== "requests") return;
+    let cancelled = false;
+    setLoadingParticipantRequests(true);
+    fetch(`/api/admin/jobs/${job.code}/participant-requests`, { cache: "no-store" })
+      .then((res) => res.json())
+      .then((data) => {
+        if (!cancelled && data.ok) setParticipantRequests(data.requests || []);
+      })
+      .catch(() => {})
+      .finally(() => {
+        if (!cancelled) setLoadingParticipantRequests(false);
+      });
+    return () => { cancelled = true; };
+  }, [job.code, tab]);
 
-  const [inviteOk, setInviteOk] = useState<boolean | null>(null);
+  async function updateParticipantRequest(requestId: string, update: Record<string, unknown>) {
+    const res = await fetch(`/api/admin/jobs/${job.code}/participant-requests?requestId=${encodeURIComponent(requestId)}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(update),
+    });
+    const data = await res.json();
+    if (!res.ok || !data.ok) throw new Error(data.error || "Failed to update request");
+    setParticipantRequests((prev) => prev.map((item) => item.id === requestId ? { ...item, ...data.request } : item));
+    showToast("Participant request updated.", "success");
+  }
 
-  async function sendInvites() {
+  useEffect(() => {
+    const max = Math.max(1, Math.ceil(pendingResponses.length / PAGE_SIZE));
+    if (pendingPage > max) setPendingPage(max);
+  }, [pendingPage, pendingResponses.length]);
+
+  useEffect(() => {
+    const max = Math.max(1, Math.ceil(reviewedResponses.length / PAGE_SIZE));
+    if (reviewedPage > max) setReviewedPage(max);
+  }, [reviewedPage, reviewedResponses.length]);
+
+  const pendingPageCount = useMemo(
+    () => Math.max(1, Math.ceil(pendingResponses.length / PAGE_SIZE)),
+    [pendingResponses.length]
+  );
+  const reviewedPageCount = useMemo(
+    () => Math.max(1, Math.ceil(reviewedResponses.length / PAGE_SIZE)),
+    [reviewedResponses.length]
+  );
+  const pendingSlice = useMemo(() => {
+    const start = (pendingPage - 1) * PAGE_SIZE;
+    return pendingResponses.slice(start, start + PAGE_SIZE);
+  }, [pendingPage, pendingResponses]);
+  const reviewedSlice = useMemo(() => {
+    const start = (reviewedPage - 1) * PAGE_SIZE;
+    return reviewedResponses.slice(start, start + PAGE_SIZE);
+  }, [reviewedPage, reviewedResponses]);
+
+  async function sendRequests() {
+    const emails = inviteEmails.map((email) => email.trim()).filter(Boolean);
+    if (!emails.length) return;
     setInviteBusy(true);
     setInviteMsg(null);
-    setInviteOk(null);
     try {
       const res = await fetch("/api/email/invite-multi", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           jobCode: job.code,
-          emails: inviteEmails.filter((e) => e.trim()),
+          emails,
+          participantType,
+          intakeMethod,
         }),
       });
-      const j = await res.json();
-      if (!res.ok || !j.ok) throw new Error(j.error || "Invite failed");
-      setInviteMsg("Invites sent!");
-      setInviteOk(true);
+      const data = await res.json();
+      if (!res.ok || !data.ok) throw new Error(data.error || "Request failed");
+      setInviteSuccess({ count: data.sent ?? emails.length, emails });
+      showToast("Participant requests sent.", "success");
     } catch (e: any) {
-      setInviteMsg(e.message || "Invite error");
-      setInviteOk(false);
+      setInviteMsg(e.message || "Failed to send requests");
+      showToast(e.message || "Failed to send requests", "error");
     } finally {
       setInviteBusy(false);
     }
   }
 
-  // Little helper
-  function set<K extends keyof JobDTO>(key: K, value: JobDTO[K]) {
+  function setField<K extends keyof JobDTO>(key: K, value: JobDTO[K]) {
     setJob((prev) => ({ ...prev, [key]: value }));
   }
 
+  const canEditOverview = canEditWorkspace && isEditingOverview;
+
+  const responseLink =
+    typeof window !== "undefined"
+      ? `${window.location.origin}/jobs/apply?code=${job.code}`
+      : `/jobs/apply?code=${job.code}`;
+  const selectedResponseLink = `${responseLink}&participantType=${participantType}&intakeMethod=${intakeMethod}`;
+  const exportJsonHref = `/api/admin/jobs/${job.code}/export?format=json`;
+  const exportCsvHref = `/api/admin/jobs/${job.code}/export?format=csv`;
+  const orderedColumns = useMemo(
+    () => [...(workbench.columns || [])].sort((a, b) => a.order - b.order),
+    [workbench.columns]
+  );
+  const beginColumnEdit = (columnId: string, currentTitle: string) => {
+    setEditingColumnId(columnId);
+    setEditingColumnTitle(currentTitle);
+  };
+  const cancelColumnEdit = () => {
+    setEditingColumnId(null);
+    setEditingColumnTitle("");
+  };
+  const saveColumnTitle = async (columnId: string) => {
+    const title = editingColumnTitle.trim();
+    if (!title) return;
+    const nextWorkbench = {
+      ...workbench,
+      columns: workbench.columns.map((column) =>
+        column.id === columnId ? { ...column, title } : column
+      ),
+    };
+    cancelColumnEdit();
+    await saveWorkbench(nextWorkbench, "Workbench column updated.");
+  };
+  const cardsByColumn = useMemo(() => {
+    const grouped = new Map<string, WorkbenchCard[]>();
+    for (const card of workbench.cards || []) {
+      const list = grouped.get(card.columnId) || [];
+      list.push(card);
+      grouped.set(card.columnId, list);
+    }
+    for (const [columnId, cards] of grouped.entries()) {
+      grouped.set(
+        columnId,
+        [...cards].sort((a, b) => a.order - b.order)
+      );
+    }
+    return grouped;
+  }, [workbench.cards]);
+  const activeWorkbenchCard = useMemo(
+    () => workbench.cards.find((card) => card.id === activeWorkbenchCardId) || null,
+    [activeWorkbenchCardId, workbench.cards]
+  );
+  const currentComposerColumn = useMemo(
+    () => orderedColumns.find((column) => column.id === openComposerColumnId) || null,
+    [openComposerColumnId, orderedColumns]
+  );
+  const composerDraft = openComposerColumnId
+    ? newCard[openComposerColumnId] || EMPTY_CARD_DRAFT
+    : EMPTY_CARD_DRAFT;
+
+  function updateWorkbenchCard(
+    cardId: string,
+    updater: (card: WorkbenchCard) => WorkbenchCard
+  ) {
+    setWorkbench((prev) => ({
+      ...prev,
+      cards: prev.cards.map((item) => (item.id === cardId ? updater(item) : item)),
+    }));
+  }
+
+  async function createWorkbenchTask(columnId: string) {
+    const draft = newCard[columnId] || EMPTY_CARD_DRAFT;
+    if (!draft.title.trim()) return;
+
+    const assignees = parseAssigneeEmails(draft.assignees);
+    const nextWorkbench = {
+      ...workbench,
+      cards: [
+        ...workbench.cards,
+        {
+          id: makeId("card"),
+          title: draft.title.trim(),
+          description: draft.description.trim(),
+          columnId,
+          order: (cardsByColumn.get(columnId) || []).length,
+          creatorEmail: currentUserEmail,
+          creatorName: currentUserEmail,
+          creatorAvatarUrl: "",
+          assigneeEmail: assignees[0] || job.assignedUserEmail || "",
+          assigneeEmails: assignees.length
+            ? assignees
+            : job.assignedUserEmail
+              ? [job.assignedUserEmail]
+              : [],
+          dueDate: draft.dueDate,
+          dueTime: draft.dueTime,
+          priority: draft.priority,
+          createdAt: new Date().toLocaleDateString(),
+          links: [],
+          documents: [],
+          subtasks: [],
+        },
+      ],
+    };
+
+    setNewCard((prev) => ({
+      ...prev,
+      [columnId]: EMPTY_CARD_DRAFT,
+    }));
+    setOpenComposerColumnId(null);
+    await saveWorkbench(nextWorkbench, "Task added.");
+  }
+
+  useEffect(() => {
+    if (!actionsOpen) return;
+    const closeOnOutsideClick = (event: MouseEvent) => {
+      if (!actionsRef.current?.contains(event.target as Node)) setActionsOpen(false);
+    };
+    document.addEventListener("mousedown", closeOnOutsideClick);
+    return () => document.removeEventListener("mousedown", closeOnOutsideClick);
+  }, [actionsOpen]);
+
+  useEffect(() => {
+    if (!activeWorkbenchCardId) {
+      setDetailLinkInput("");
+      setDetailSubtaskInput("");
+    }
+  }, [activeWorkbenchCardId]);
+
   return (
-    <div className="rounded-2xl border p-5">
+    <div className="w-full min-w-0 rounded-2xl border p-4 sm:p-5">
+      {toast && <PremiumToast message={toast.msg} type={toast.type} />}
       <LoaderOverlay show={busy} />
+      <InviteSendingOverlay show={inviteBusy} />
 
-      {/* Top bar */}
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-        <div className="text-sm text-gray-600">
-          Code: <span className="font-mono">{job.code}</span> • Created:{" "}
-          {job.createdAt ? new Date(job.createdAt).toLocaleString() : "—"}
-        </div>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={toggleActive}
-            className={`rounded-lg px-3 py-1 text-sm font-medium cursor-pointer ${
-              job.active ? "bg-emerald-600 text-white" : "bg-black text-white"
-            }`}
-          >
-            {job.active ? "Active" : "Activate"}
-          </button>
-          <button
-            type="button"
-            className="rounded-lg border px-3 py-1 text-sm hover:bg-gray-50 cursor-pointer"
-            onClick={() => {
-              try {
-                const origin = typeof window !== "undefined" ? window.location.origin : "";
-                const url = `${origin}/jobs/apply?code=${job.code}`;
-                navigator.clipboard.writeText(url);
-                setLinkCopied(true);
-                window.setTimeout(() => setLinkCopied(false), 2000);
-              } catch {}
-            }}
-            title="Copy public candidate apply link"
-            aria-label="Copy public candidate apply link"
-          >
-            {linkCopied ? "Copied!" : "Copy candidate link"}
-          </button>
-          {linkCopied && (
-            <span className="text-xs text-emerald-700" aria-live="polite">Link copied</span>
-          )}
-        </div>
-      </div>
-
-      {/* Tabs */}
-      <div className="mb-4 flex gap-2">
-        {(["overview", "candidates", "invite"] as Tab[]).map((t) => (
-          <button
-            key={t}
-            onClick={() => setTab(t)}
-            className={`rounded-full px-3 py-1 border cursor-pointer ${
-              tab === t ? "bg-black text-white" : "bg-white text-gray-900"
-            }`}
-          >
-            {t === "overview"
-              ? "Overview / Edit"
-              : t[0].toUpperCase() + t.slice(1)}
-          </button>
-        ))}
-      </div>
-
-      {/* Messages */}
-      {msg && <div className="mb-3 text-emerald-700 text-sm">{msg}</div>}
-      {err && <div className="mb-3 text-red-600 text-sm">{err}</div>}
-
-      {/* OVERVIEW / EDIT */}
-      {tab === "overview" && (
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            saveJob(job);
-          }}
-          className="grid gap-4"
-        >
-          {/* Basic */}
-          <div className="grid gap-2 sm:grid-cols-2">
-            <div>
-              <label className="block text-sm font-medium mb-1">
-                Job Title
-              </label>
-              <input
-                value={job.title}
-                onChange={(e) => set("title", e.target.value)}
-                className="rounded-xl border p-3 w-full"
-                required
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-1">
-                Role Name
-              </label>
-              <input
-                value={job.roleName || ""}
-                onChange={(e) => set("roleName", e.target.value)}
-                className="rounded-xl border p-3 w-full"
-                required
-              />
-            </div>
+      {!workbenchOnly && (
+        <div className="mb-4 flex min-w-0 flex-col gap-3 md:flex-row md:items-center md:justify-between">
+          <div className="min-w-0 break-words text-sm text-gray-600">
+            Code: <span className="font-mono">{job.code}</span> | Created:{" "}
+            {job.createdAt ? new Date(job.createdAt).toLocaleString() : "-"}
           </div>
-
-          <input
-            value={job.company || ""}
-            onChange={(e) => set("company", e.target.value)}
-            placeholder="Company"
-            className="rounded-xl border p-3 w-full"
-          />
-
-          {/* Interview type */}
-          <div>
-            <div className="mb-1 text-sm font-medium">Interview Type</div>
-            <div className="flex flex-wrap gap-2">
-              {(
-                [
-                  "standard",
-                  "resume-based",
-                  "human-data",
-                  "software",
-                ] as InterviewType[]
-              ).map((k) => (
+          <div className="flex w-full flex-wrap items-center gap-2 md:w-auto md:justify-end">
+            {canEditWorkspace && (
+              <div ref={actionsRef} className="relative">
                 <button
                   type="button"
-                  key={k}
-                  onClick={() => set("interviewType", k)}
-                  className={`rounded-full border px-3 py-1 text-sm cursor-pointer ${
-                    job.interviewType === k
-                      ? "bg-emerald-600 text-white border-emerald-600"
-                      : "bg-white text-gray-900 border-white/20 hover:bg-gray-100"
-                  }`}
+                  onClick={() => setActionsOpen((value) => !value)}
+                  aria-expanded={actionsOpen}
+                  className="cursor-pointer rounded-lg border border-white/20 bg-white/10 px-3 py-2 text-sm font-medium text-white transition hover:bg-white hover:text-gray-900"
                 >
-                  {k === "human-data"
-                    ? "Human Data"
-                    : k === "resume-based"
-                    ? "Resume-based"
-                    : k === "software"
-                    ? "Software Engineer"
-                    : "Standard"}
+                  Actions
                 </button>
-              ))}
-            </div>
+                {actionsOpen ? (
+                  <div className="absolute right-0 z-20 mt-2 w-60 rounded-2xl border border-gray-200 bg-white p-2 text-left shadow-xl">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setActionsOpen(false);
+                        void saveJob({ active: !job.active });
+                      }}
+                      className="block w-full cursor-pointer rounded-xl px-3 py-2.5 text-left text-sm text-gray-900 transition hover:bg-gray-100"
+                    >
+                      {job.active ? "Archive opportunity" : "Reopen opportunity"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setActionsOpen(false);
+                        setTab("requests");
+                      }}
+                      className="mb-2 block w-full cursor-pointer rounded-xl border-b border-gray-100 px-3 py-2.5 text-left text-sm text-gray-900 transition hover:bg-gray-100"
+                    >
+                      Participant requests
+                    </button>
+                    <div className="px-3 pb-1 pt-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-gray-400">
+                      Navigate
+                    </div>
+                    {([
+                      ["workbench", "Workbench"],
+                      ["reviews", "Participant reviews"],
+                    ] as Array<[Tab, string]>).map(([value, label]) => (
+                      <button
+                        key={value}
+                        type="button"
+                        onClick={() => {
+                          setActionsOpen(false);
+                          setTab(value);
+                        }}
+                        className={`block w-full cursor-pointer whitespace-nowrap rounded-xl px-3 py-2.5 text-left text-sm transition hover:bg-gray-100 ${
+                          tab === value ? "bg-gray-50 font-semibold text-gray-900" : "text-gray-700"
+                        }`}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                ) : null}
+              </div>
+            )}
           </div>
+        </div>
+      )}
 
-          {/* JD */}
-          <div>
-            <div className="mb-1 text-sm font-medium">Job Description (JD)</div>
-            <textarea
-              value={job.jdText}
-              onChange={(e) => set("jdText", e.target.value)}
-              className="rounded-xl border p-3 h-[320px] w-full overflow-auto leading-6 font-mono text-[13px]"
-            />
-            <div className="mt-1 text-xs text-gray-500">
-              JD length: {jdChars}/120 {jdChars >= 120 ? "✓" : "(min 120)"}
+      {tab === "requests" && (
+        <div className="grid gap-6">
+          <InvitePanel
+            responseLink={selectedResponseLink}
+            inviteEmails={inviteEmails}
+            onChangeEmail={(index, email) => setInviteEmails((prev) => prev.map((value, i) => (i === index ? email : value)))}
+            onRemoveEmail={(index) => setInviteEmails((prev) => prev.filter((_, i) => i !== index))}
+            onAddEmail={() => setInviteEmails((prev) => [...prev, ""])}
+            onSendInvites={sendRequests}
+            inviteBusy={inviteBusy}
+            inviteMsg={inviteMsg}
+            participantType={participantType}
+            onParticipantTypeChange={setParticipantType}
+            intakeMethod={intakeMethod}
+            onIntakeMethodChange={setIntakeMethod}
+          />
+          <section className="rounded-2xl border border-slate-200 bg-white p-4 text-slate-900 shadow-sm">
+            <div className="flex items-center justify-between gap-3">
+              <div><h3 className="font-semibold">Participant requests</h3><p className="text-sm text-slate-500">Requests remain here before a participant submits.</p></div>
+              <span className="text-sm text-slate-500">{participantRequests.length}</span>
             </div>
-          </div>
+            {loadingParticipantRequests ? <div className="mt-4 text-sm text-slate-500">Loading requests...</div> : participantRequests.length === 0 ? <div className="mt-4 rounded-xl bg-slate-50 p-4 text-sm text-slate-600">No participant requests yet.</div> : <div className="mt-4 grid gap-3">
+              {participantRequests.map((request) => <div key={request.id} className="grid gap-3 rounded-xl border border-slate-200 p-3 sm:flex sm:items-center sm:justify-between">
+                <div className="min-w-0"><div className="truncate font-medium">{request.name || request.email}</div><div className="text-xs text-slate-500">{request.participantType} · {request.intakeMethod} · {request.status}</div>{request.proposedSlots?.[0]?.startAt && <div className="mt-1 text-xs text-amber-700">Proposed: {new Date(request.proposedSlots[0].startAt).toLocaleString()}</div>}</div>
+                {request.intakeMethod === "human-interview" && request.status === "submitted" && request.proposedSlots?.[0] && <div className="flex shrink-0 gap-2"><button type="button" onClick={() => updateParticipantRequest(request.id, { status: "scheduled", selectedSlot: request.proposedSlots[0] })} className="cursor-pointer rounded-lg bg-emerald-700 px-3 py-2 text-xs font-semibold text-white hover:bg-emerald-800">Schedule</button><button type="button" onClick={() => updateParticipantRequest(request.id, { status: "declined" })} className="cursor-pointer rounded-lg border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50">Decline</button></div>}
+              </div>)}
+            </div>}
+          </section>
+        </div>
+      )}
 
-          {/* Languages (dropdown for best contrast) */}
-          <div>
-            <label className="block text-sm font-medium mb-1">Languages</label>
-            <select
-              value=""
-              onChange={(e) => {
-                const v = e.target.value;
-                if (!v) return;
-                set(
-                  "languages",
-                  Array.from(new Set([...(job.languages || []), v]))
-                );
-                e.currentTarget.selectedIndex = 0;
-              }}
-              className="rounded-xl border px-3 py-2 bg-white text-gray-900 [color-scheme:light]
-                         dark:bg-gray-900 dark:text-gray-100 dark:border-gray-600 dark:[color-scheme:dark]"
-            >
-              <option value="">+ Add language…</option>
-              {[
-                ["en", "English"],
-                ["es", "Spanish"],
-                ["fr", "French"],
-                ["pt", "Portuguese"],
-                ["de", "German"],
-                ["yo", "Yorùbá"],
-                ["ig", "Igbo"],
-                ["ha", "Hausa"],
-                ["pcm", "Nigerian Pidgin"],
-              ].map(([code, label]) => (
-                <option key={code} value={code}>
-                  {label}
-                </option>
-              ))}
-            </select>
-            <div className="mt-2 flex flex-wrap gap-2">
-              {(job.languages || []).map((code) => (
-                <span
-                  key={code}
-                  className="inline-flex items-center gap-2 rounded-full border bg-white px-2.5 py-1 text-xs"
-                >
-                  {code}
-                  <button
-                    type="button"
-                    onClick={() =>
-                      set(
-                        "languages",
-                        (job.languages || []).filter((c) => c !== code)
-                      )
-                    }
-                    className="text-red-600"
-                  >
-                    ×
-                  </button>
-                </span>
-              ))}
-            </div>
-          </div>
-
-          {/* Focus areas / notes */}
-          <div className="grid gap-2 sm:grid-cols-2">
-            <div>
-              <label className="block text-sm font-medium mb-1">
-                Add focus area
-              </label>
-              <div className="flex gap-2">
+      {tab === "overview" && (
+        isEditingOverview ? (
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              saveJob(job);
+            }}
+            className="grid gap-4"
+          >
+            <div className="grid gap-2 sm:grid-cols-2">
+              <div>
+                <label className="mb-1 block text-sm font-medium">
+                  Opportunity title
+                </label>
                 <input
-                  placeholder="e.g., De-escalation"
-                  className="flex-1 rounded-lg border p-2"
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      e.preventDefault();
-                      const v = (e.currentTarget.value || "").trim();
-                      if (!v) return;
-                      set(
-                        "focusAreas",
-                        Array.from(new Set([...(job.focusAreas || []), v]))
+                  value={job.title}
+                  onChange={(e) => setField("title", e.target.value)}
+                  className="w-full rounded-xl border p-3"
+                  required
+                  disabled={!canEditOverview}
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-sm font-medium">
+                  Primary delivery track
+                </label>
+                <input
+                  value={job.roleName || ""}
+                  onChange={(e) => setField("roleName", e.target.value)}
+                  className="w-full rounded-xl border p-3"
+                  placeholder="Proposal response support"
+                  disabled={!canEditOverview}
+                />
+              </div>
+            </div>
+
+            <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
+              <div>
+                <label className="mb-1 block text-sm font-medium">Client</label>
+                <input
+                  value={job.clientName || job.company || ""}
+                  onChange={(e) => {
+                    setField("clientName", e.target.value);
+                    setField("company", e.target.value);
+                  }}
+                  placeholder="Client name"
+                  className="w-full rounded-xl border p-3"
+                  disabled={!canEditOverview}
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-sm font-medium">
+                  Client representative
+                </label>
+                <input
+                  value={job.clientContactName || ""}
+                  onChange={(e) => setField("clientContactName", e.target.value)}
+                  placeholder="Primary contact"
+                  className="w-full rounded-xl border p-3"
+                  disabled={!canEditOverview}
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-sm font-medium">
+                  Client contact email
+                </label>
+                <input
+                  value={job.clientContactEmail || ""}
+                  onChange={(e) => setField("clientContactEmail", e.target.value)}
+                  placeholder="client@company.com"
+                  type="email"
+                  className="w-full rounded-xl border p-3"
+                  disabled={!canEditOverview}
+                />
+              </div>
+            </div>
+
+            <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
+              <div>
+                <label className="mb-1 block text-sm font-medium">
+                  Buyer / issuing authority
+                </label>
+                <input
+                  value={job.buyerOrganization || ""}
+                  onChange={(e) => setField("buyerOrganization", e.target.value)}
+                  placeholder="Buyer organization"
+                  className="w-full rounded-xl border p-3"
+                  disabled={!canEditOverview}
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-sm font-medium">
+                  Solicitation number
+                </label>
+                <input
+                  value={job.solicitationNumber || ""}
+                  onChange={(e) => setField("solicitationNumber", e.target.value)}
+                  placeholder="Reference number"
+                  className="w-full rounded-xl border p-3"
+                  disabled={!canEditOverview}
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-sm font-medium">
+                  Opportunity source
+                </label>
+                <input
+                  value={job.opportunitySource || ""}
+                  onChange={(e) => setField("opportunitySource", e.target.value)}
+                  placeholder="sales-call, inquiry, referral"
+                  className="w-full rounded-xl border p-3"
+                  disabled={!canEditOverview}
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-sm font-medium">
+                  Submission deadline
+                </label>
+                <input
+                  value={job.submissionDeadline || ""}
+                  onChange={(e) => setField("submissionDeadline", e.target.value)}
+                  type="date"
+                  className="w-full rounded-xl border p-3"
+                  disabled={!canEditOverview}
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="mb-1 block text-sm font-medium">
+                Market focus
+              </label>
+              <input
+                value={job.marketFocus || ""}
+                onChange={(e) => setField("marketFocus", e.target.value)}
+                placeholder="Market, region, or buyer focus"
+                className="w-full rounded-xl border p-3"
+                disabled={!canEditOverview}
+              />
+            </div>
+
+            <div className="grid gap-2 sm:grid-cols-2">
+              <div>
+                <label className="mb-1 block text-sm font-medium">
+                  Primary assignee
+                </label>
+                {canManageAssignments && isEditingOverview ? (
+                  <select
+                    value={job.assignedUserId || ""}
+                    onChange={(e) => {
+                      const nextId = e.target.value;
+                      const selected = teamMembers.find(
+                        (member) => member._id === nextId
                       );
-                      e.currentTarget.value = "";
-                    }
+                      setJob((prev) => ({
+                        ...prev,
+                        assignedUserId: nextId,
+                        assignedUserEmail: selected?.email || "",
+                      }));
+                    }}
+                    className="w-full rounded-xl border p-3"
+                  >
+                    <option value="">Admin only / unassigned</option>
+                    {teamMembers.map((member) => (
+                      <option key={member._id} value={member._id}>
+                        {member.email}
+                      </option>
+                    ))}
+                  </select>
+                ) : null}
+              </div>
+              <div className="rounded-xl border bg-gray-50 p-3 text-sm text-gray-700">
+                <div className="font-medium text-gray-900">Access model</div>
+                <div className="mt-1">
+                  Admin sees every opportunity. Staff only sees opportunities assigned
+                  to them.
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <div className="mb-1 text-sm font-medium">Opportunity brief</div>
+              <textarea
+                value={job.jdText}
+                onChange={(e) => setField("jdText", e.target.value)}
+                className="h-[320px] w-full rounded-xl border p-3 font-mono text-[13px] leading-6"
+                disabled={!canEditOverview}
+              />
+              <div className="mt-1 text-xs text-gray-500">
+                Brief length: {briefChars}/120 {briefChars >= 120 ? "OK" : "(min 120)"}
+              </div>
+            </div>
+
+            <div>
+              <label className="mb-1 block text-sm font-medium">
+                Support areas
+              </label>
+              <div className="rounded-xl border p-3">
+                <input
+                  placeholder="Add a support area and press Enter"
+                  className="w-full rounded-lg border p-2"
+                  onKeyDown={(e) => {
+                    if (!canEditOverview) return;
+                    if (e.key !== "Enter") return;
+                    e.preventDefault();
+                    const value = (e.currentTarget.value || "").trim();
+                    if (!value) return;
+                    setField(
+                      "focusAreas",
+                      Array.from(new Set([...(job.focusAreas || []), value]))
+                    );
+                    e.currentTarget.value = "";
                   }}
                 />
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {(job.focusAreas || []).map((area) => (
+                    <span
+                      key={area}
+                      className="inline-flex items-center gap-2 rounded-full border bg-white px-2.5 py-1 text-xs text-gray-900"
+                    >
+                      {area}
+                      <button
+                        type="button"
+                        className="font-semibold text-gray-900"
+                        disabled={!canEditOverview}
+                        onClick={() =>
+                          setField(
+                            "focusAreas",
+                            (job.focusAreas || []).filter((item) => item !== area)
+                          )
+                        }
+                      >
+                        x
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div className="grid gap-4 xl:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
+              <div>
+                <label className="mb-1 block text-sm font-medium">
+                  Internal notes
+                </label>
+                <textarea
+                  value={job.adminFocusNotes || ""}
+                  onChange={(e) => setField("adminFocusNotes", e.target.value)}
+                  className="min-h-[160px] w-full rounded-xl border p-3"
+                  disabled={!canEditOverview}
+                />
+              </div>
+
+              <div>
+                <label className="mb-1 block text-sm font-medium">
+                  Opportunity documents
+                </label>
+                <div className="rounded-xl border bg-gray-50 p-3">
+                  {job.documents && job.documents.length > 0 ? (
+                    <div className="grid gap-2">
+                      {job.documents.map((document) => (
+                        <a
+                          key={`${document.url}-${document.name}`}
+                          href={document.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="rounded-lg border bg-white px-3 py-2 text-sm text-gray-900 hover:bg-gray-50"
+                        >
+                          {document.name}
+                        </a>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-sm text-gray-500">
+                      No uploaded documents yet.
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-3 flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setJob(savedOverview);
+                  setIsEditingOverview(false);
+                }}
+                className={cx(BTN.subtle, "cursor-pointer rounded-xl px-4 py-2 text-sm")}
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={busy || !workspaceValid}
+                className={cx(
+                  BTN.primary,
+                  "cursor-pointer rounded-xl px-4 py-2 text-sm",
+                  (busy || !workspaceValid) && "cursor-not-allowed opacity-50"
+                )}
+              >
+                Save opportunity
+              </button>
+              {!workspaceValid && (
+                <span className="text-xs text-red-600">
+                  Fill the required opportunity fields and keep the brief at 120+ characters.
+                </span>
+              )}
+            </div>
+          </form>
+        ) : (
+          <div className="grid gap-5">
+            <div className="flex min-w-0 flex-col items-start justify-between gap-4 rounded-2xl border bg-gradient-to-br from-white to-gray-50 p-5 md:flex-row">
+              <div className="min-w-0">
+                <div className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">
+                  Opportunity overview
+                </div>
+                <h2 className="mt-2 break-words text-2xl font-semibold text-gray-900">
+                  {job.title}
+                </h2>
+                <div className="mt-2 flex flex-wrap gap-2 text-sm text-gray-600">
+                  {job.clientName || job.company ? (
+                    <span className="rounded-full border bg-white px-3 py-1">
+                      Client: {job.clientName || job.company}
+                    </span>
+                  ) : null}
+                  {job.roleName ? (
+                    <span className="rounded-full border bg-white px-3 py-1">
+                      Track: {job.roleName}
+                    </span>
+                  ) : null}
+                  <span className="rounded-full border bg-white px-3 py-1">
+                    Assignee: {job.assignedUserEmail || "Admin only / unassigned"}
+                  </span>
+                </div>
+              </div>
+              {canEditWorkspace ? (
+                <button
+                  type="button"
+                  onClick={() => setIsEditingOverview(true)}
+                  className={cx(BTN.primary, "shrink-0 cursor-pointer whitespace-nowrap rounded-lg px-3 py-1.5 text-xs")}
+                >
+                  Edit opportunity
+                </button>
+              ) : null}
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+              {[
+                ["Buyer / issuing authority", job.buyerOrganization || "-"],
+                ["Solicitation number", job.solicitationNumber || "-"],
+                ["Opportunity source", job.opportunitySource || "-"],
+                ["Submission deadline", job.submissionDeadline || "-"],
+                ["Client representative", job.clientContactName || "-"],
+                ["Client contact email", job.clientContactEmail || "-"],
+                ["Market focus", job.marketFocus || "-"],
+                ["Access model", "Admin sees every opportunity. Staff only sees opportunities assigned to them."],
+              ].map(([label, value]) => (
+                <div key={label} className="rounded-2xl border bg-white p-4 shadow-sm">
+                  <div className="text-xs font-semibold uppercase tracking-[0.16em] text-gray-500">
+                    {label}
+                  </div>
+                  <div className="mt-2 break-words text-sm text-gray-900">{value}</div>
+                </div>
+              ))}
+            </div>
+
+            <div className="grid gap-4 xl:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)]">
+              <div className="min-w-0 rounded-2xl border bg-white p-5 shadow-sm">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="text-xs font-semibold uppercase tracking-[0.16em] text-gray-500">
+                    Opportunity brief
+                  </div>
+                  {job.jdText && job.jdText.length > 500 ? (
+                    <button
+                      type="button"
+                      onClick={() => setShowBriefModal(true)}
+                      className="flex h-6 w-6 shrink-0 cursor-pointer items-center justify-center rounded-full border border-gray-300 text-xs font-bold text-gray-600 transition hover:border-gray-500 hover:bg-gray-50"
+                      aria-label="View full opportunity brief"
+                      title="View full brief"
+                    >
+                      !
+                    </button>
+                  ) : null}
+                </div>
+                <div className="mt-3 line-clamp-7 whitespace-pre-wrap break-words text-sm leading-7 text-gray-800">
+                  {job.jdText || "No brief added yet."}
+                </div>
+              </div>
+
+              <div className="grid gap-4">
+                <div className="min-w-0 rounded-2xl border bg-white p-5 shadow-sm">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="text-xs font-semibold uppercase tracking-[0.16em] text-gray-500">
+                      Support areas
+                    </div>
+                    {job.focusAreas && job.focusAreas.length > 4 ? (
+                      <button
+                        type="button"
+                        onClick={() => setShowAllSupportAreas((value) => !value)}
+                        className="flex h-6 w-6 shrink-0 cursor-pointer items-center justify-center rounded-full border border-gray-300 text-xs font-bold text-gray-600 transition hover:border-gray-500 hover:bg-gray-50"
+                        aria-label={showAllSupportAreas ? "Show fewer support areas" : "Show all support areas"}
+                        title={showAllSupportAreas ? "Show fewer" : "Show all"}
+                      >
+                        !
+                      </button>
+                    ) : null}
+                  </div>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {job.focusAreas && job.focusAreas.length > 0 ? (
+                      (showAllSupportAreas ? job.focusAreas : job.focusAreas.slice(0, 4)).map((area, index) => (
+                        <span
+                          key={`${area}-${index}`}
+                          className="inline-flex min-w-0 max-w-full items-center break-words rounded-full border bg-gray-50 px-3 py-1 text-xs text-gray-900"
+                        >
+                          {area}
+                        </span>
+                      ))
+                    ) : (
+                      <span className="text-sm text-gray-500">No support areas yet.</span>
+                    )}
+                  </div>
+                </div>
+
+                <div className="min-w-0 rounded-2xl border bg-white p-5 shadow-sm">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="text-xs font-semibold uppercase tracking-[0.16em] text-gray-500">
+                      Opportunity documents
+                    </div>
+                    {job.documents && job.documents.length > 2 ? (
+                      <button
+                        type="button"
+                        onClick={() => setShowAllDocuments((value) => !value)}
+                        className="flex h-6 w-6 shrink-0 cursor-pointer items-center justify-center rounded-full border border-gray-300 text-xs font-bold text-gray-600 transition hover:border-gray-500 hover:bg-gray-50"
+                        aria-label={showAllDocuments ? "Show fewer documents" : "Show all documents"}
+                        title={showAllDocuments ? "Show fewer" : "Show all"}
+                      >
+                        !
+                      </button>
+                    ) : null}
+                  </div>
+                  <div className="mt-3 grid min-w-0 gap-2">
+                    {job.documents && job.documents.length > 0 ? (
+                      (showAllDocuments ? job.documents : job.documents.slice(0, 2)).map((document) => (
+                        <a
+                          key={`${document.url}-${document.name}`}
+                          href={document.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="min-w-0 max-w-full overflow-hidden break-words rounded-lg border bg-gray-50 px-3 py-2 text-sm text-gray-900 hover:bg-gray-100"
+                        >
+                          {document.name}
+                        </a>
+                      ))
+                    ) : (
+                      <div className="text-sm text-gray-500">
+                        No uploaded documents yet.
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="rounded-2xl border bg-white p-5 shadow-sm">
+              <div className="text-xs font-semibold uppercase tracking-[0.16em] text-gray-500">
+                Internal notes
+              </div>
+              {job.adminFocusNotes ? (
+                <div className="mt-3 grid min-w-0 gap-2">
+                  {formatInternalNotes(job.adminFocusNotes).map((note, index) => (
+                    <div
+                      key={`${note.label}-${index}`}
+                      className="grid min-w-0 gap-1 rounded-xl border border-gray-100 bg-gray-50 px-3 py-2 sm:grid-cols-[minmax(150px,0.35fr)_minmax(0,1fr)] sm:items-start sm:gap-4"
+                    >
+                      <div className="text-xs font-semibold uppercase tracking-[0.12em] text-gray-500">
+                        {note.label}
+                      </div>
+                      <div className="min-w-0 break-words text-sm leading-6 text-gray-900">
+                        {note.value}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="mt-3 text-sm text-gray-500">No internal notes yet.</div>
+              )}
+            </div>
+
+            {!canEditWorkspace ? (
+              <div className="text-xs text-gray-500">
+                Opportunity details are controlled by admin. You can still manage
+                workbench tasks, and reviews.
+              </div>
+            ) : null}
+          </div>
+        )
+      )}
+
+      {showBriefModal && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/50 p-4 backdrop-blur-[2px]">
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="full-opportunity-brief-title"
+            className="relative flex max-h-[85vh] w-full max-w-3xl min-w-0 flex-col overflow-hidden rounded-3xl bg-white p-5 text-gray-900 shadow-2xl sm:p-6"
+          >
+            <button
+              type="button"
+              onClick={() => setShowBriefModal(false)}
+              className="absolute right-4 top-4 flex h-8 w-8 cursor-pointer items-center justify-center rounded-full border border-gray-200 text-lg leading-none text-gray-500 transition hover:bg-gray-100 hover:text-gray-900"
+              aria-label="Close full opportunity brief"
+            >
+              x
+            </button>
+            <div className="pr-10">
+              <div className="text-xs font-semibold uppercase tracking-[0.16em] text-gray-500">
+                Opportunity brief
+              </div>
+              <h2 id="full-opportunity-brief-title" className="mt-2 text-xl font-semibold">
+                {job.title}
+              </h2>
+            </div>
+            <div className="mt-5 min-w-0 overflow-y-auto whitespace-pre-wrap break-words text-sm leading-7 text-gray-800">
+              {job.jdText || "No brief added yet."}
+            </div>
+            <div className="mt-5 flex justify-center border-t border-gray-100 pt-4">
+              <button
+                type="button"
+                onClick={() => setShowBriefModal(false)}
+                className={cx(BTN.subtle, "cursor-pointer rounded-xl px-5 py-2 text-sm")}
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {tab === "workbench" && !workbenchOnly && (
+        <div className="grid gap-4">
+          <div className="rounded-3xl border bg-gradient-to-br from-white to-gray-50 p-6 shadow-sm">
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+              <div>
+                <div className="text-sm font-medium text-gray-900">
+                  Opportunity workbench
+                </div>
+                <div className="mt-1 text-sm text-gray-600">
+                  Manage delivery tasks, deadlines, documents, links, and subtasks in a dedicated board view.
+                </div>
+                <div className="mt-3 flex flex-wrap gap-2 text-xs text-gray-500">
+                  <span className="rounded-full border bg-white px-3 py-1">
+                    {orderedColumns.length} columns
+                  </span>
+                  <span className="rounded-full border bg-white px-3 py-1">
+                    {workbench.cards.length} {workbench.cards.length === 1 ? "task" : "tasks"}
+                  </span>
+                </div>
+              </div>
+              <Link
+                href={`/admin/opportunities/${job.code}/workbench`}
+                className={cx(BTN.primary, "inline-flex cursor-pointer items-center rounded-xl px-4 py-2 text-sm")}
+              >
+                Open full workbench
+              </Link>
+            </div>
+          </div>
+
+          <div className="grid gap-3 md:grid-cols-3">
+            {orderedColumns.slice(0, 3).map((column) => {
+              const cards = cardsByColumn.get(column.id) || [];
+              return (
+                <div key={column.id} className="rounded-2xl border bg-white p-4 shadow-sm">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="font-medium text-gray-900">{column.title}</div>
+                    <div className="text-xs text-gray-500">{cards.length} tasks</div>
+                  </div>
+                  <div className="mt-3 grid gap-2">
+                    {cards.length > 0 ? (
+                      cards.slice(0, 2).map((card) => (
+                        <div key={card.id} className="rounded-xl border bg-gray-50 px-3 py-2 text-sm text-gray-900">
+                          {card.title}
+                        </div>
+                      ))
+                    ) : (
+                      <div className="text-sm text-gray-500">No tasks yet.</div>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {tab === "workbench" && workbenchOnly && (
+        <div className="flex h-full min-h-[calc(100vh-12rem)] flex-col gap-4">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <div className="text-sm font-medium">Opportunity workbench</div>
+              <div className="text-sm text-gray-600">
+                Create columns, add tasks, and drag tasks between columns as the work moves.
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <input
+                value={newColumnTitle}
+                onChange={(e) => setNewColumnTitle(e.target.value)}
+                placeholder="New column title"
+                className="rounded-lg border px-3 py-2 text-sm"
+              />
+              <button
+                type="button"
+                disabled={workbenchBusy}
+                onClick={async () => {
+                  if (!newColumnTitle.trim()) {
+                    showToast("Enter a column title.", "info");
+                    return;
+                  }
+                  const nextWorkbench = {
+                    ...workbench,
+                    columns: [
+                      ...workbench.columns,
+                      {
+                        id: makeId("col"),
+                        title: newColumnTitle.trim(),
+                        order: workbench.columns.length,
+                      },
+                    ],
+                  };
+                  setNewColumnTitle("");
+                  await saveWorkbench(nextWorkbench, "Workbench column added.");
+                }}
+                className={cx(
+                  BTN.primary,
+                  "cursor-pointer rounded-lg px-3 py-2 text-sm",
+                  workbenchBusy && "cursor-not-allowed opacity-50"
+                )}
+              >
+                Add column
+              </button>
+            </div>
+          </div>
+
+          <div className="scrollbar-beauty min-h-0 flex-1 overflow-x-auto overflow-y-hidden pb-3">
+            <div className="flex min-w-max items-start gap-4">
+            {orderedColumns.map((column) => {
+              const cards = cardsByColumn.get(column.id) || [];
+              return (
+                <div
+                  key={column.id}
+                  onDragOver={(e) => {
+                    e.preventDefault();
+                    if (draggedCardId) setHoverColumnId(column.id);
+                  }}
+                  onDragLeave={() => {
+                    if (hoverColumnId === column.id) setHoverColumnId(null);
+                  }}
+                  onDrop={async (e) => {
+                    e.preventDefault();
+                    const cardId = e.dataTransfer.getData("text/plain") || draggedCardId;
+                    if (!cardId) return;
+                    const draggedCard = workbench.cards.find((item) => item.id === cardId);
+                    if (!draggedCard || draggedCard.columnId === column.id) {
+                      setDraggedCardId(null);
+                      setHoverColumnId(null);
+                      return;
+                    }
+                    const nextCards = reorderCards(
+                      workbench.cards.map((item) =>
+                        item.id === cardId
+                          ? {
+                              ...item,
+                              columnId: column.id,
+                              order: (cardsByColumn.get(column.id) || []).length,
+                            }
+                          : item
+                      )
+                    );
+                    setDraggedCardId(null);
+                    setHoverColumnId(null);
+                    await saveWorkbench(
+                      { ...workbench, cards: nextCards },
+                      `Task moved to ${column.title}.`
+                    );
+                  }}
+                  className={cx(
+                    "flex h-[calc(100vh-18rem)] min-h-[480px] w-[320px] shrink-0 flex-col rounded-3xl border border-gray-200 bg-gradient-to-b from-white to-gray-50 p-4 shadow-sm transition",
+                    hoverColumnId === column.id && "border-emerald-400 bg-emerald-50/70 shadow-md"
+                  )}
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <div>
+                      {editingColumnId === column.id ? (
+                        <div className="flex items-center gap-2">
+                          <input
+                            value={editingColumnTitle}
+                            onChange={(e) => setEditingColumnTitle(e.target.value)}
+                            className="min-w-0 rounded-lg border px-3 py-1.5 text-sm text-gray-900"
+                            placeholder="Column title"
+                            autoFocus
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") {
+                                e.preventDefault();
+                                void saveColumnTitle(column.id);
+                              }
+                              if (e.key === "Escape") {
+                                e.preventDefault();
+                                cancelColumnEdit();
+                              }
+                            }}
+                          />
+                          <button
+                            type="button"
+                            disabled={workbenchBusy || !editingColumnTitle.trim()}
+                            onClick={() => void saveColumnTitle(column.id)}
+                            className={cx(
+                              BTN.primary,
+                              "cursor-pointer rounded-lg px-2.5 py-1.5 text-xs",
+                              (workbenchBusy || !editingColumnTitle.trim()) &&
+                                "cursor-not-allowed opacity-50"
+                            )}
+                          >
+                            Save
+                          </button>
+                          <button
+                            type="button"
+                            onClick={cancelColumnEdit}
+                            className="cursor-pointer rounded-lg border px-2.5 py-1.5 text-xs text-gray-700 hover:bg-gray-50"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="group flex items-center gap-2">
+                          <div className="font-medium text-gray-900">{column.title}</div>
+                          <button
+                            type="button"
+                            onClick={() => beginColumnEdit(column.id, column.title)}
+                            className="cursor-pointer rounded-md border border-gray-200 bg-white p-1 text-gray-600 opacity-0 transition hover:bg-gray-50 hover:text-gray-900 group-hover:opacity-100"
+                            aria-label={`Edit ${column.title} column`}
+                            title="Edit column title"
+                          >
+                            <svg
+                              className="h-3.5 w-3.5"
+                              viewBox="0 0 20 20"
+                              fill="currentColor"
+                              aria-hidden="true"
+                            >
+                              <path d="M14.69 2.86a1.5 1.5 0 0 1 2.12 2.12l-8.1 8.1-3.05.93.93-3.05 8.1-8.1ZM5.9 11.77l-.42 1.39 1.39-.42 7.74-7.74-.97-.97-7.74 7.74Z" />
+                              <path d="M4 15.25A1.25 1.25 0 0 0 5.25 16.5h9.5a.75.75 0 0 1 0 1.5h-9.5A2.75 2.75 0 0 1 2.5 15.25v-9.5a.75.75 0 0 1 1.5 0v9.5Z" />
+                            </svg>
+                          </button>
+                        </div>
+                      )}
+                      <div className="flex items-center gap-2">
+                        <div className="text-xs text-gray-500">{cards.length} work items</div>
+                        <button
+                          type="button"
+                          disabled={workbenchBusy}
+                          onClick={() => setOpenComposerColumnId(column.id)}
+                          className="cursor-pointer rounded-lg border border-gray-200 bg-white p-2 text-gray-700 transition hover:bg-gray-50 hover:text-gray-900 disabled:cursor-not-allowed disabled:opacity-50"
+                          aria-label={`Add task to ${column.title}`}
+                          title={`Add task to ${column.title}`}
+                        >
+                          <svg
+                            className="h-4 w-4"
+                            viewBox="0 0 20 20"
+                            fill="currentColor"
+                            aria-hidden="true"
+                          >
+                            <path d="M10 4.25a.75.75 0 0 1 .75.75v4.25H15a.75.75 0 0 1 0 1.5h-4.25V15a.75.75 0 0 1-1.5 0v-4.25H5a.75.75 0 0 1 0-1.5h4.25V5a.75.75 0 0 1 .75-.75Z" />
+                          </svg>
+                        </button>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      disabled={workbenchBusy || orderedColumns.length <= 1}
+                      onClick={async () => {
+                        const remainingColumns = workbench.columns
+                          .filter((item) => item.id !== column.id)
+                          .map((item, index) => ({ ...item, order: index }));
+                        const fallbackColumnId = remainingColumns[0]?.id || "todo";
+                        const remainingCards = workbench.cards.map((card, index) =>
+                          card.columnId === column.id
+                            ? { ...card, columnId: fallbackColumnId, order: index }
+                            : card
+                        );
+                        await saveWorkbench(
+                          {
+                            columns: remainingColumns,
+                            cards: remainingCards,
+                          },
+                          "Workbench column removed."
+                        );
+                      }}
+                      className="cursor-pointer rounded-full border border-red-200 bg-red-50 px-2.5 py-1 text-xs font-medium text-red-700 disabled:cursor-not-allowed disabled:opacity-40"
+                    >
+                      Remove
+                    </button>
+                  </div>
+
+                  <div className="mt-3 min-h-0 flex-1 space-y-3 overflow-y-auto pr-1">
+                    {cards.length === 0 ? (
+                      <div className="rounded-2xl border border-dashed border-gray-200 bg-white/80 px-4 py-6 text-center text-sm text-gray-500">
+                        No tasks in this column yet.
+                      </div>
+                    ) : null}
+                    {cards.map((card) => {
+                      const assignees = getCardAssignees(card);
+                      const due = formatDue(card.dueDate, card.dueTime);
+                      const subtaskProgress = getSubtaskProgress(card);
+                      const creatorLabel = card.creatorName || card.creatorEmail || currentUserEmail;
+
+                      return (
+                        <div
+                          key={card.id}
+                          draggable
+                          onDragStart={(e) => {
+                            e.dataTransfer.setData("text/plain", card.id);
+                            e.dataTransfer.effectAllowed = "move";
+                            setDraggedCardId(card.id);
+                          }}
+                          onDragEnd={() => {
+                            setDraggedCardId(null);
+                            setHoverColumnId(null);
+                          }}
+                          onClick={() => setActiveWorkbenchCardId(card.id)}
+                          role="button"
+                          tabIndex={0}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter" || e.key === " ") {
+                              e.preventDefault();
+                              setActiveWorkbenchCardId(card.id);
+                            }
+                          }}
+                          className={cx(
+                            "cursor-pointer rounded-2xl border border-gray-200 bg-white p-4 text-left shadow-sm transition hover:border-gray-300 hover:shadow-md",
+                            draggedCardId === card.id && "opacity-70 ring-2 ring-emerald-300"
+                          )}
+                        >
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="min-w-0">
+                              <div className="font-medium text-gray-900">{card.title}</div>
+                              {card.description ? (
+                                <div className="mt-1 line-clamp-3 whitespace-pre-wrap text-sm text-gray-600">
+                                  {card.description}
+                                </div>
+                              ) : null}
+                            </div>
+                            <div className="shrink-0">
+                              {card.creatorAvatarUrl ? (
+                                <img
+                                  src={card.creatorAvatarUrl}
+                                  alt=""
+                                  className="h-9 w-9 rounded-full border border-gray-200 object-cover"
+                                />
+                              ) : (
+                                <span className="flex h-9 w-9 items-center justify-center rounded-full border border-emerald-200 bg-emerald-50 text-xs font-semibold text-emerald-800">
+                                  {getInitials(creatorLabel)}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+
+                          <div className="mt-3 flex flex-wrap gap-2 text-[11px] text-gray-600">
+                            {card.priority ? (
+                              <span
+                                className={cx(
+                                  "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 font-medium",
+                                  priorityClass(card.priority)
+                                )}
+                              >
+                                <WorkbenchIcon name="flag" />
+                                {priorityLabel(card.priority)}
+                              </span>
+                            ) : null}
+                            {assignees.length > 0 ? (
+                              <span className="inline-flex max-w-full items-center gap-1 rounded-full border border-gray-200 bg-gray-50 px-2 py-0.5">
+                                <WorkbenchIcon name="user" />
+                                <span className="truncate">
+                                  {assignees.length === 1 ? assignees[0] : `${assignees.length} assignees`}
+                                </span>
+                              </span>
+                            ) : null}
+                            {due ? (
+                              <span className="inline-flex items-center gap-1 rounded-full border border-gray-200 bg-gray-50 px-2 py-0.5">
+                                <WorkbenchIcon name="calendar" />
+                                {due}
+                              </span>
+                            ) : null}
+                            {subtaskProgress.total > 0 ? (
+                              <span className="inline-flex items-center gap-1 rounded-full border border-gray-200 bg-gray-50 px-2 py-0.5">
+                                <WorkbenchIcon name="check" />
+                                {subtaskProgress.done}/{subtaskProgress.total}
+                              </span>
+                            ) : null}
+                            {(card.links || []).length > 0 ? (
+                              <span className="inline-flex items-center gap-1 rounded-full border border-gray-200 bg-gray-50 px-2 py-0.5">
+                                <WorkbenchIcon name="link" />
+                                {(card.links || []).length}
+                              </span>
+                            ) : null}
+                            {(card.documents || []).length > 0 ? (
+                              <span className="inline-flex items-center gap-1 rounded-full border border-gray-200 bg-gray-50 px-2 py-0.5">
+                                <WorkbenchIcon name="paperclip" />
+                                {(card.documents || []).length}
+                              </span>
+                            ) : null}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                </div>
+              );
+            })}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {tab === "workbench" && currentComposerColumn ? (
+        <div className="fixed inset-0 z-[68] flex items-center justify-center bg-black/45 p-4 backdrop-blur-[2px]">
+          <div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-3xl bg-white p-5 shadow-2xl sm:p-6">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <div className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">
+                  Create task
+                </div>
+                <div className="mt-2 text-2xl font-semibold text-gray-900">
+                  {currentComposerColumn.title}
+                </div>
+                <p className="mt-1 text-sm text-gray-600">
+                  Add a new work item to this column.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setOpenComposerColumnId(null);
+                  setNewCard((prev) => ({
+                    ...prev,
+                    [currentComposerColumn.id]: EMPTY_CARD_DRAFT,
+                  }));
+                }}
+                className="cursor-pointer rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700 transition hover:bg-gray-50"
+              >
+                Close
+              </button>
+            </div>
+
+            <div className="mt-6 grid gap-4">
+              <div>
+                <label className="mb-2 block text-sm font-medium text-gray-900">
+                  Task title
+                </label>
+                <input
+                  value={composerDraft.title}
+                  onChange={(e) =>
+                    setNewCard((prev) => ({
+                      ...prev,
+                      [currentComposerColumn.id]: {
+                        ...composerDraft,
+                        title: e.target.value,
+                      },
+                    }))
+                  }
+                  placeholder="Describe the task or next action"
+                  className="w-full rounded-2xl border border-gray-200 px-4 py-3 text-sm text-gray-900"
+                />
+              </div>
+
+              <div>
+                <label className="mb-2 block text-sm font-medium text-gray-900">
+                  Description
+                </label>
+                <textarea
+                  value={composerDraft.description}
+                  onChange={(e) =>
+                    setNewCard((prev) => ({
+                      ...prev,
+                      [currentComposerColumn.id]: {
+                        ...composerDraft,
+                        description: e.target.value,
+                      },
+                    }))
+                  }
+                  placeholder="Add context, deadline notes, or next steps"
+                  className="min-h-[112px] w-full rounded-2xl border border-gray-200 px-4 py-3 text-sm text-gray-900"
+                />
+              </div>
+
+              <div className="grid gap-4 md:grid-cols-2">
+                <div>
+                  <label className="mb-2 block text-sm font-medium text-gray-900">
+                    Assignees
+                  </label>
+                  <input
+                    value={composerDraft.assignees}
+                    onChange={(e) =>
+                      setNewCard((prev) => ({
+                        ...prev,
+                        [currentComposerColumn.id]: {
+                          ...composerDraft,
+                          assignees: e.target.value,
+                        },
+                      }))
+                    }
+                    placeholder="Add one or more emails"
+                    className="w-full rounded-2xl border border-gray-200 px-4 py-3 text-sm text-gray-900"
+                  />
+                </div>
+
+                <div>
+                  <label className="mb-2 block text-sm font-medium text-gray-900">
+                    Priority
+                  </label>
+                  <select
+                    value={composerDraft.priority}
+                    onChange={(e) =>
+                      setNewCard((prev) => ({
+                        ...prev,
+                        [currentComposerColumn.id]: {
+                          ...composerDraft,
+                          priority: e.target.value as WorkbenchPriority | "",
+                        },
+                      }))
+                    }
+                    className="w-full rounded-2xl border border-gray-200 px-4 py-3 text-sm text-gray-900"
+                  >
+                    {PRIORITY_OPTIONS.map((option) => (
+                      <option key={option.value || "none"} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid gap-4 md:grid-cols-2">
+                <div>
+                  <label className="mb-2 block text-sm font-medium text-gray-900">
+                    Due date
+                  </label>
+                  <input
+                    type="date"
+                    value={composerDraft.dueDate}
+                    onChange={(e) =>
+                      setNewCard((prev) => ({
+                        ...prev,
+                        [currentComposerColumn.id]: {
+                          ...composerDraft,
+                          dueDate: e.target.value,
+                        },
+                      }))
+                    }
+                    className="w-full rounded-2xl border border-gray-200 px-4 py-3 text-sm text-gray-900"
+                  />
+                </div>
+
+                <div>
+                  <label className="mb-2 block text-sm font-medium text-gray-900">
+                    Due time
+                  </label>
+                  <input
+                    type="time"
+                    value={composerDraft.dueTime}
+                    onChange={(e) =>
+                      setNewCard((prev) => ({
+                        ...prev,
+                        [currentComposerColumn.id]: {
+                          ...composerDraft,
+                          dueTime: e.target.value,
+                        },
+                      }))
+                    }
+                    className="w-full rounded-2xl border border-gray-200 px-4 py-3 text-sm text-gray-900"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-6 flex flex-wrap justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => {
+                  setOpenComposerColumnId(null);
+                  setNewCard((prev) => ({
+                    ...prev,
+                    [currentComposerColumn.id]: EMPTY_CARD_DRAFT,
+                  }));
+                }}
+                className={cx(BTN.subtle, "cursor-pointer rounded-xl px-4 py-2 text-sm")}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={workbenchBusy || !composerDraft.title.trim()}
+                onClick={() => void createWorkbenchTask(currentComposerColumn.id)}
+                className={cx(
+                  BTN.primary,
+                  "cursor-pointer rounded-xl px-4 py-2 text-sm",
+                  (workbenchBusy || !composerDraft.title.trim()) &&
+                    "cursor-not-allowed opacity-50"
+                )}
+              >
+                Create task
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {tab === "workbench" && activeWorkbenchCard && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/35 p-4 backdrop-blur-[2px]">
+          <div className="max-h-[90vh] w-full max-w-4xl overflow-x-hidden overflow-y-auto rounded-3xl bg-white p-4 shadow-2xl sm:p-6">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <div className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">
+                  Task details
+                </div>
+                <div className="mt-2 text-2xl font-semibold text-gray-900">
+                  {activeWorkbenchCard.title}
+                </div>
+                <div className="mt-2 flex flex-wrap gap-2 text-xs text-gray-500">
+                  <span className="rounded-full border bg-gray-50 px-2.5 py-1">
+                    Column: {orderedColumns.find((column) => column.id === activeWorkbenchCard.columnId)?.title || "Unknown"}
+                  </span>
+                  {activeWorkbenchCard.createdAt ? (
+                    <span className="rounded-full border bg-gray-50 px-2.5 py-1">
+                      Created: {activeWorkbenchCard.createdAt}
+                    </span>
+                  ) : null}
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setWorkbench(savedWorkbench);
+                  setActiveWorkbenchCardId(null);
+                }}
+                className={cx(BTN.subtle, "cursor-pointer rounded-xl px-3 py-2 text-sm")}
+              >
+                Close
+              </button>
+            </div>
+
+            <div className="mt-6 grid gap-4 md:grid-cols-2">
+              <label className="grid gap-1 text-sm font-medium text-gray-700">
+                Task title
+                <input
+                  value={activeWorkbenchCard.title}
+                  onChange={(e) =>
+                    updateWorkbenchCard(activeWorkbenchCard.id, (card) => ({
+                      ...card,
+                      title: e.target.value,
+                    }))
+                  }
+                  className="rounded-xl border px-3 py-2 text-sm text-gray-900"
+                />
+              </label>
+              <label className="grid gap-1 text-sm font-medium text-gray-700">
+                Move to
+                <select
+                  value={activeWorkbenchCard.columnId}
+                  onChange={(e) =>
+                    updateWorkbenchCard(activeWorkbenchCard.id, (card) => ({
+                      ...card,
+                      columnId: e.target.value,
+                    }))
+                  }
+                  className="rounded-xl border px-3 py-2 text-sm text-gray-900"
+                >
+                  {orderedColumns.map((column) => (
+                    <option key={column.id} value={column.id}>
+                      {column.title}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <div className="grid gap-1 text-sm font-medium text-gray-700">
+                Created by
+                <div className="flex items-center gap-3 rounded-xl border bg-gray-50 px-3 py-2 text-sm text-gray-900">
+                  {activeWorkbenchCard.creatorAvatarUrl ? (
+                    <img
+                      src={activeWorkbenchCard.creatorAvatarUrl}
+                      alt=""
+                      className="h-9 w-9 rounded-full border border-gray-200 object-cover"
+                    />
+                  ) : (
+                    <span className="flex h-9 w-9 items-center justify-center rounded-full border border-emerald-200 bg-emerald-50 text-xs font-semibold text-emerald-800">
+                      {getInitials(
+                        activeWorkbenchCard.creatorName ||
+                          activeWorkbenchCard.creatorEmail ||
+                          currentUserEmail
+                      )}
+                    </span>
+                  )}
+                  <span className="min-w-0 truncate">
+                    {activeWorkbenchCard.creatorName ||
+                      activeWorkbenchCard.creatorEmail ||
+                      currentUserEmail ||
+                      "Euman Intelligence"}
+                  </span>
+                </div>
+              </div>
+              <label className="grid gap-1 text-sm font-medium text-gray-700">
+                Assignees
+                <input
+                  value={getCardAssignees(activeWorkbenchCard).join(", ")}
+                  onChange={(e) =>
+                    updateWorkbenchCard(activeWorkbenchCard.id, (card) => ({
+                      ...card,
+                      assigneeEmail: parseAssigneeEmails(e.target.value)[0] || "",
+                      assigneeEmails: parseAssigneeEmails(e.target.value),
+                    }))
+                  }
+                  className="rounded-xl border px-3 py-2 text-sm text-gray-900"
+                  placeholder="name@company.com, teammate@company.com"
+                />
+              </label>
+              <label className="grid gap-1 text-sm font-medium text-gray-700">
+                Due date
+                <input
+                  type="date"
+                  value={activeWorkbenchCard.dueDate || ""}
+                  onChange={(e) =>
+                    updateWorkbenchCard(activeWorkbenchCard.id, (card) => ({
+                      ...card,
+                      dueDate: e.target.value,
+                    }))
+                  }
+                  className="rounded-xl border px-3 py-2 text-sm text-gray-900"
+                />
+              </label>
+              <label className="grid gap-1 text-sm font-medium text-gray-700">
+                Due time
+                <input
+                  type="time"
+                  value={activeWorkbenchCard.dueTime || ""}
+                  onChange={(e) =>
+                    updateWorkbenchCard(activeWorkbenchCard.id, (card) => ({
+                      ...card,
+                      dueTime: e.target.value,
+                    }))
+                  }
+                  className="rounded-xl border px-3 py-2 text-sm text-gray-900"
+                />
+              </label>
+              <label className="grid gap-1 text-sm font-medium text-gray-700">
+                Priority
+                <select
+                  value={activeWorkbenchCard.priority || ""}
+                  onChange={(e) =>
+                    updateWorkbenchCard(activeWorkbenchCard.id, (card) => ({
+                      ...card,
+                      priority: e.target.value as WorkbenchPriority | "",
+                    }))
+                  }
+                  className="rounded-xl border px-3 py-2 text-sm text-gray-900"
+                >
+                  {PRIORITY_OPTIONS.map((option) => (
+                    <option key={option.value || "none"} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
+
+            <label className="mt-5 grid gap-1 text-sm font-medium text-gray-700">
+              Description
+              <textarea
+                value={activeWorkbenchCard.description || ""}
+                onChange={(e) =>
+                  updateWorkbenchCard(activeWorkbenchCard.id, (card) => ({
+                    ...card,
+                    description: e.target.value,
+                  }))
+                }
+                className="min-h-[140px] rounded-2xl border px-3 py-3 text-sm leading-6 text-gray-900"
+                placeholder="Add context, delivery notes, blockers, or next steps."
+              />
+            </label>
+
+            <div className="mt-5 grid gap-5 xl:grid-cols-3">
+              <div className="min-w-0 rounded-2xl border bg-gray-50 p-4">
+                <div className="text-sm font-semibold text-gray-900">Links</div>
+                <div className="mt-3 grid gap-2">
+                  {(activeWorkbenchCard.links || []).map((link, index) => (
+                    <div
+                      key={`${link}-${index}`}
+                      className="flex items-center gap-2 rounded-xl border bg-white px-3 py-2"
+                    >
+                      <a
+                        href={link}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="min-w-0 flex-1 truncate text-sm text-gray-900 underline"
+                      >
+                        {link}
+                      </a>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          updateWorkbenchCard(activeWorkbenchCard.id, (card) => ({
+                            ...card,
+                            links: (card.links || []).filter((_, itemIndex) => itemIndex !== index),
+                          }))
+                        }
+                        className="cursor-pointer text-xs font-medium text-red-700"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  ))}
+                  <div className="flex flex-col gap-2">
+                    <input
+                      value={detailLinkInput}
+                      onChange={(e) => setDetailLinkInput(e.target.value)}
+                      placeholder="Add a relevant link"
+                      className="min-w-0 flex-1 rounded-xl border px-3 py-2 text-sm text-gray-900"
+                    />
+                    <button
+                      type="button"
+                      disabled={!detailLinkInput.trim()}
+                      onClick={() => {
+                        updateWorkbenchCard(activeWorkbenchCard.id, (card) => ({
+                          ...card,
+                          links: [...(card.links || []), detailLinkInput.trim()],
+                        }));
+                        setDetailLinkInput("");
+                      }}
+                      className={cx(
+                        BTN.primary,
+                        "cursor-pointer self-start rounded-xl px-3 py-2 text-sm",
+                        !detailLinkInput.trim() && "cursor-not-allowed opacity-50"
+                      )}
+                    >
+                      Add
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <div className="min-w-0 rounded-2xl border bg-gray-50 p-4">
+                <div className="text-sm font-semibold text-gray-900">Documents</div>
+                <div className="mt-3 grid gap-2">
+                  {(activeWorkbenchCard.documents || []).map((document, index) => (
+                    <div
+                      key={`${document.url}-${index}`}
+                      className="flex items-center gap-2 rounded-xl border bg-white px-3 py-2"
+                    >
+                      <a
+                        href={document.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="min-w-0 flex-1 truncate text-sm text-gray-900 underline"
+                      >
+                        {document.name}
+                      </a>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          updateWorkbenchCard(activeWorkbenchCard.id, (card) => ({
+                            ...card,
+                            documents: (card.documents || []).filter(
+                              (_, itemIndex) => itemIndex !== index
+                            ),
+                          }))
+                        }
+                        className="cursor-pointer text-xs font-medium text-red-700"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  ))}
+                  <FileDropUpload
+                    files={activeWorkbenchCard.documents || []}
+                    onChange={(files) =>
+                      updateWorkbenchCard(activeWorkbenchCard.id, (card) => ({
+                        ...card,
+                        documents: files,
+                      }))
+                    }
+                    folder="workbench-documents"
+                    label="Drag task files here or upload"
+                    helperText="Attach briefs, screenshots, notes, or supporting files to this task."
+                  />
+                </div>
+              </div>
+
+              <div className="min-w-0 rounded-2xl border bg-gray-50 p-4">
+                <div className="text-sm font-semibold text-gray-900">Subtasks</div>
+                <div className="mt-3 grid gap-2">
+                  {(activeWorkbenchCard.subtasks || []).map((subtask, index) => (
+                    <div
+                      key={subtask.id}
+                      className="flex items-center gap-2 rounded-xl border bg-white px-3 py-2"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={Boolean(subtask.done)}
+                        onChange={(e) =>
+                          updateWorkbenchCard(activeWorkbenchCard.id, (card) => ({
+                            ...card,
+                            subtasks: (card.subtasks || []).map((item) =>
+                              item.id === subtask.id ? { ...item, done: e.target.checked } : item
+                            ),
+                          }))
+                        }
+                      />
+                      <span
+                        className={cx(
+                          "flex-1 text-sm text-gray-900",
+                          subtask.done && "line-through text-gray-500"
+                        )}
+                      >
+                        {subtask.title}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          updateWorkbenchCard(activeWorkbenchCard.id, (card) => ({
+                            ...card,
+                            subtasks: (card.subtasks || []).filter((_, itemIndex) => itemIndex !== index),
+                          }))
+                        }
+                        className="cursor-pointer text-xs font-medium text-red-700"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  ))}
+                  <div className="flex flex-col gap-2">
+                    <input
+                      value={detailSubtaskInput}
+                      onChange={(e) => setDetailSubtaskInput(e.target.value)}
+                      placeholder="Add a subtask"
+                      className="min-w-0 flex-1 rounded-xl border px-3 py-2 text-sm text-gray-900"
+                    />
+                    <button
+                      type="button"
+                      disabled={!detailSubtaskInput.trim()}
+                      onClick={() => {
+                        updateWorkbenchCard(activeWorkbenchCard.id, (card) => ({
+                          ...card,
+                          subtasks: [
+                            ...(card.subtasks || []),
+                            {
+                              id: makeId("subtask"),
+                              title: detailSubtaskInput.trim(),
+                              done: false,
+                            },
+                          ],
+                        }));
+                        setDetailSubtaskInput("");
+                      }}
+                      className={cx(
+                        BTN.primary,
+                        "cursor-pointer self-start rounded-xl px-3 py-2 text-sm",
+                        !detailSubtaskInput.trim() && "cursor-not-allowed opacity-50"
+                      )}
+                    >
+                      Add
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-6 flex items-center justify-between gap-3">
+              <div className="text-xs text-gray-500">
+                Save changes to keep this task aligned with the board.
+              </div>
+              <div className="flex items-center gap-2">
                 <button
                   type="button"
                   onClick={() => {
-                    const el = document.querySelector<HTMLInputElement>(
-                      'input[placeholder="e.g., De-escalation"]'
-                    );
-                    const v = (el?.value || "").trim();
-                    if (!v) return;
-                    set(
-                      "focusAreas",
-                      Array.from(new Set([...(job.focusAreas || []), v]))
-                    );
-                    if (el) el.value = "";
+                    setWorkbench(savedWorkbench);
+                    setActiveWorkbenchCardId(null);
                   }}
-                  className="rounded-lg border px-3"
+                  className={cx(BTN.subtle, "cursor-pointer rounded-xl px-4 py-2 text-sm")}
                 >
-                  Add
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  disabled={workbenchBusy}
+                  onClick={async () => {
+                    const nextWorkbench = {
+                      ...workbench,
+                      cards: reorderCards(workbench.cards),
+                    };
+                    await saveWorkbench(nextWorkbench, "Task details saved.");
+                    setActiveWorkbenchCardId(null);
+                  }}
+                  className={cx(
+                    BTN.primary,
+                    "cursor-pointer rounded-xl px-4 py-2 text-sm",
+                    workbenchBusy && "cursor-not-allowed opacity-50"
+                  )}
+                >
+                  Save task
                 </button>
               </div>
-              <div className="mt-2 flex flex-wrap gap-2">
-                {(job.focusAreas || []).map((f) => (
-                  <span
-                    key={f}
-                    className="rounded-full border bg-white px-2.5 py-1 text-xs"
-                  >
-                    {f}
-                    <button
-                      type="button"
-                      className="ml-2 text-red-600"
-                      onClick={() =>
-                        set(
-                          "focusAreas",
-                          (job.focusAreas || []).filter((x) => x !== f)
-                        )
-                      }
-                    >
-                      ×
-                    </button>
-                  </span>
-                ))}
-              </div>
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-1">
-                Internal notes
-              </label>
-              <textarea
-                value={job.adminFocusNotes || ""}
-                onChange={(e) => set("adminFocusNotes", e.target.value)}
-                className="rounded-xl border p-3 min-h-[84px] w-full"
-              />
             </div>
           </div>
-
-          {/* Save */}
-          <div className="mt-3 flex items-center gap-2">
-            <button
-              type="submit"
-              disabled={!jobInfoValid}
-              className="rounded-xl bg-black px-4 py-2 font-medium text-white disabled:opacity-50"
-            >
-              Save changes
-            </button>
-            {!jobInfoValid && (
-              <span className="text-xs text-red-600">
-                Fill required fields and ensure JD ≥ 120 chars.
-              </span>
-            )}
-          </div>
-        </form>
+        </div>
       )}
 
-      {/* CANDIDATES */}
-      {tab === "candidates" && (
+      {tab === "reviews" && (
         <div className="grid gap-4">
-          {loadingCandidates ? (
-            <div className="text-gray-500">Loading candidates…</div>
+          {loadingResponses ? (
+            <div className="text-gray-500">Loading participant reviews...</div>
           ) : (
             <>
-              <div>
-                <div className="font-semibold">Applied Candidates</div>
-                <div className="grid gap-2 mt-2">
-                  {applied.length === 0 && (
-                    <div className="text-xs text-gray-500">
-                      No applied candidates yet.
-                    </div>
-                  )}
-                  {applied.map((c) => (
-                    <div
-                      key={c.id}
-                      className="rounded-lg border p-3 flex flex-col gap-2"
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div className="text-sm text-gray-600">
+                  Export reviewed participants and participant review summaries.
+                </div>
+                {canEditWorkspace && (
+                  <div className="flex flex-wrap gap-2">
+                    <a
+                      href={exportJsonHref}
+                      className="rounded-lg border px-3 py-2 text-sm hover:bg-gray-50"
                     >
-                      <div className="flex items-start justify-between">
-                        <div>
-                          <div className="font-medium">{c.candidate.name}</div>
-                          <div className="text-xs text-gray-600">
-                            {c.candidate.email}
-                          </div>
-                          <div className="text-xs text-gray-500">
-                            Status: {c.status}
-                          </div>
-                          <div className="mt-1 text-[11px]">
-                            Stage:{" "}
-                            <span className="inline-flex items-center rounded-full border px-2 py-0.5">
-                              {c.pipelineStage || c.stageStatus || "applied"}
-                            </span>
-                          </div>
-                        </div>
+                      Export JSON
+                    </a>
+                    <a
+                      href={exportCsvHref}
+                      className="rounded-lg border px-3 py-2 text-sm hover:bg-gray-50"
+                    >
+                      Export CSV
+                    </a>
+                  </div>
+                )}
+              </div>
 
-                        {/* stage picker */}
-                        <div className="flex items-center gap-2">
-                          <select
-                            className="rounded-md border px-2 py-1 text-sm"
-                            value={c.pipelineStage || c.stageStatus || "applied"}
+              <div className="flex gap-2">
+                {(
+                  [
+                    ["pending", "Pending responses"],
+                    ["reviewed", "Reviewed participants"],
+                  ] as const
+                ).map(([value, label]) => (
+                  <button
+                    key={value}
+                    onClick={() => {
+                      setResponseView(value);
+                      if (value === "pending") setPendingPage(1);
+                      else setReviewedPage(1);
+                    }}
+                    className={`cursor-pointer rounded-full border px-3 py-1 text-sm ${
+                      responseView === value
+                        ? "border-black bg-black text-white"
+                        : "bg-white text-gray-900 hover:bg-gray-100"
+                    }`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+
+              {responseView === "pending" && (
+                <div>
+                  <div className="font-semibold">Pending responses</div>
+                  <div className="mt-2 grid gap-2">
+                    {pendingResponses.length === 0 && (
+                      <div className="text-xs text-gray-500">
+                        No pending responses yet.
+                      </div>
+                    )}
+                    {pendingSlice.map((item) => (
+                      <div
+                        key={item.id}
+                        className="flex flex-col gap-2 rounded-lg border p-3"
+                      >
+                        <div className="flex items-start justify-between">
+                          <div>
+                            <div className="font-medium">
+                              {item.candidate.name}
+                            </div>
+                            <div className="text-xs text-gray-600">
+                              {item.candidate.email}
+                            </div>
+                            <div className="text-xs text-gray-500">
+                              Status: {item.status}
+                            </div>
+                            <div className="mt-1 text-[11px]">
+                              Stage:{" "}
+                              <span className="inline-flex items-center rounded-full border px-2 py-0.5">
+                                {item.pipelineStage ||
+                                  item.stageStatus ||
+                                  "applied"}
+                              </span>
+                            </div>
+                          </div>
+
+                          <PremiumSelect
+                            appearance="light"
+                            wrapperClassName="group relative inline-block w-40 rounded-md"
+                            className="py-2 text-sm"
+                            value={
+                              item.pipelineStage ||
+                              item.stageStatus ||
+                              "applied"
+                            }
                             onChange={async (e) => {
                               try {
-                                await updateSession(c.id, {
+                                await updateSession(item.id, {
                                   pipelineStage: e.target.value,
                                 });
-                                setMsg("Stage updated");
-                              } catch (e: any) {
-                                setErr(e.message || "Failed to update stage");
+                                setMsg("Review stage updated.");
+                              } catch (error: any) {
+                                setErr(
+                                  error.message || "Failed to update review stage"
+                                );
                               }
                             }}
                           >
-                            {STAGES.map((s) => (
-                              <option key={s} value={s}>
-                                {s}
+                            {STAGES.map((stage) => (
+                              <option key={stage} value={stage}>
+                                {stage}
                               </option>
                             ))}
-                          </select>
+                          </PremiumSelect>
                         </div>
-                      </div>
 
-                      {/* quick offer inline editor */}
-                      <details className="mt-1">
-                        <summary className="text-xs cursor-pointer">
-                          Offer…
-                        </summary>
-                        <div className="mt-2 grid gap-2 sm:grid-cols-[1fr_140px_100px]">
-                          <input
-                            className="rounded-md border px-2 py-1 text-sm"
-                            placeholder="Title (e.g., Frontend Dev)"
-                            defaultValue={c.offer?.title || ""}
-                            onChange={(e) =>
-                              (c.__draftOffer = {
-                                ...(c.__draftOffer || {}),
-                                title: e.target.value,
-                              })
-                            }
-                          />
-                          <input
-                            className="rounded-md border px-2 py-1 text-sm"
-                            placeholder="Rate"
-                            type="number"
-                            defaultValue={c.offer?.rate ?? ""}
-                            onChange={(e) =>
-                              (c.__draftOffer = {
-                                ...(c.__draftOffer || {}),
-                                rate: e.target.value
-                                  ? Number(e.target.value)
-                                  : undefined,
-                              })
-                            }
-                          />
-                          <select
-                            className="rounded-md border px-2 py-1 text-sm"
-                            defaultValue={c.offer?.currency || "USD"}
-                            onChange={(e) =>
-                              (c.__draftOffer = {
-                                ...(c.__draftOffer || {}),
-                                currency: e.target.value,
-                              })
-                            }
-                          >
-                            {["USD", "CAD", "EUR", "GBP", "NGN"].map((ccy) => (
-                              <option key={ccy}>{ccy}</option>
-                            ))}
-                          </select>
-                        </div>
-                        <div className="mt-2 flex items-center gap-2">
-                          <button
-                            type="button"
-                            className="rounded-md bg-black px-3 py-1 text-sm text-white"
-                            onClick={async () => {
-                          try {
-                                await updateSession(c.id, {
-                                  pipelineStage: "offered",
-                                  offer: {
-                                    ...(c.__draftOffer || {}),
-                                    status: "sent",
-                                  },
-                                });
-                                setMsg("Offer saved");
-                              } catch (e: any) {
-                                setErr(e.message || "Failed to save offer");
+                        <details className="mt-1">
+                          <summary className="cursor-pointer text-xs">
+                            Offer details...
+                          </summary>
+                          <div className="mt-2 grid gap-2 sm:grid-cols-[1fr_140px_100px]">
+                            <input
+                              className="rounded-md border px-2 py-1 text-sm"
+                              placeholder="Offer title"
+                              defaultValue={item.offer?.title || ""}
+                              onChange={(e) =>
+                                (item.__draftOffer = {
+                                  ...(item.__draftOffer || {}),
+                                  title: e.target.value,
+                                })
                               }
-                            }}
-                          >
-                            Save & mark Offered
-                          </button>
-                          {c.offer?.status && (
-                            <span className="text-xs text-gray-600">
-                              Current: {c.offer.status}
-                            </span>
-                          )}
+                            />
+                            <input
+                              className="rounded-md border px-2 py-1 text-sm [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                              placeholder="Rate"
+                              type="number"
+                              defaultValue={item.offer?.rate ?? ""}
+                              onChange={(e) =>
+                                (item.__draftOffer = {
+                                  ...(item.__draftOffer || {}),
+                                  rate: e.target.value
+                                    ? Number(e.target.value)
+                                    : undefined,
+                                })
+                              }
+                            />
+                            <PremiumSelect
+                              wrapperClassName="group relative inline-block w-full rounded-md"
+                              className="py-2 text-sm"
+                              appearance="light"
+                              defaultValue={item.offer?.currency || "USD"}
+                              onChange={(e) =>
+                                (item.__draftOffer = {
+                                  ...(item.__draftOffer || {}),
+                                  currency: e.target.value as Offer["currency"],
+                                })
+                              }
+                            >
+                              {["USD", "CAD", "EUR", "GBP", "NGN"].map((ccy) => (
+                                <option key={ccy}>{ccy}</option>
+                              ))}
+                            </PremiumSelect>
+                          </div>
+                          <div className="mt-2 flex items-center gap-2">
+                            <button
+                              type="button"
+                              className="rounded-md bg-black px-3 py-1 text-sm text-white"
+                              onClick={async () => {
+                                try {
+                                  await updateSession(item.id, {
+                                    pipelineStage: "offered",
+                                    offer: {
+                                      ...(item.__draftOffer || {}),
+                                      status: "sent",
+                                    },
+                                  });
+                                  setMsg("Offer details saved.");
+                                } catch (error: any) {
+                                  setErr(
+                                    error.message ||
+                                      "Failed to save offer details"
+                                  );
+                                }
+                              }}
+                            >
+                              Save and mark offered
+                            </button>
+                            {item.offer?.status && (
+                              <span className="text-xs text-gray-600">
+                                Current: {item.offer.status}
+                              </span>
+                            )}
+                          </div>
+                        </details>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="mt-3 flex justify-center">
+                    <Pagination
+                      page={pendingPage}
+                      totalPages={pendingPageCount}
+                      onChange={setPendingPage}
+                    />
+                  </div>
+                </div>
+              )}
+
+              {responseView === "reviewed" && (
+                <div>
+                  <div className="font-semibold">Reviewed participants</div>
+                  <div className="mt-2 grid gap-2">
+                    {reviewedResponses.length === 0 && (
+                      <div className="text-xs text-gray-500">
+                        No reviewed participants yet.
+                      </div>
+                    )}
+                    {reviewedSlice.map((item) => (
+                      <div
+                        key={item.id}
+                        className="rounded-lg border bg-emerald-50 p-3"
+                      >
+                        <div className="font-medium">{item.candidate.name}</div>
+                        <div className="text-xs text-gray-600">
+                          {item.candidate.email}
                         </div>
-                      </details>
-                    </div>
-                  ))}
+                        <div className="text-xs text-gray-500">
+                          Score: {item.score ?? "-"}
+                        </div>
+                        <div className="text-xs text-gray-500">
+                          Finished:{" "}
+                          {item.finishedAt
+                            ? new Date(item.finishedAt).toLocaleString()
+                            : "-"}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="mt-3 flex justify-center">
+                    <Pagination
+                      page={reviewedPage}
+                      totalPages={reviewedPageCount}
+                      onChange={setReviewedPage}
+                    />
+                  </div>
                 </div>
-              </div>
-              <div>
-                <div className="font-semibold">Vetted Candidates</div>
-                <div className="grid gap-2 mt-2">
-                  {vetted.length === 0 && (
-                    <div className="text-xs text-gray-500">
-                      No vetted candidates yet.
-                    </div>
-                  )}
-                  {vetted.map((c) => (
-                    <div
-                      key={c.id}
-                      className="rounded-lg border p-2 bg-emerald-50"
-                    >
-                      <div className="font-medium">{c.candidate.name}</div>
-                      <div className="text-xs text-gray-600">
-                        {c.candidate.email}
-                      </div>
-                      <div className="text-xs text-gray-500">
-                        Score: {c.score ?? "—"}
-                      </div>
-                      <div className="text-xs text-gray-500">
-                        Finished:{" "}
-                        {c.finishedAt
-                          ? new Date(c.finishedAt).toLocaleString()
-                          : "—"}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
+              )}
+
               <div className="mt-2">
                 <Link
                   href={`/admin/interviews?q=${encodeURIComponent(job.code)}`}
                   className="text-sm underline"
                 >
-                  View in Interviews list →
+                  Open participant reviews for this opportunity
                 </Link>
               </div>
             </>
@@ -747,77 +2644,16 @@ export default function ClientJobManager({
         </div>
       )}
 
-      {/* INVITE */}
-      {tab === "invite" && (
-        <div>
-          <p className="mb-2 text-gray-600">
-            Share this job link or invite candidates by email.
-          </p>
-          <div className="mb-4">
-            <div className="font-mono text-xs bg-gray-600 rounded p-2">
-              Job link:{" "}
-              <a
-                href={`/jobs/apply?code=${job.code}`}
-                target="_blank"
-                rel="noopener"
-              >
-                {typeof window !== "undefined" ? window.location.origin : ""}
-                /jobs/apply?code={job.code}
-              </a>
-            </div>
-          </div>
-
-          <div className="mb-4">
-            <div className="font-semibold text-sm mb-2">Invite by email</div>
-            {inviteEmails.map((email, idx) => (
-              <div key={idx} className="flex gap-2 mb-2">
-                <input
-                  value={email}
-                  onChange={(e) => {
-                    const arr = [...inviteEmails];
-                    arr[idx] = e.target.value;
-                    setInviteEmails(arr);
-                  }}
-                  placeholder="candidate@email.com"
-                  className="flex-1 rounded-lg border p-2"
-                  type="email"
-                />
-                <button
-                  type="button"
-                  onClick={() =>
-                    setInviteEmails(inviteEmails.filter((_, i) => i !== idx))
-                  }
-                  className="rounded-lg border px-2 text-xs text-red-600"
-                  disabled={inviteEmails.length === 1}
-                >
-                  Remove
-                </button>
-              </div>
-            ))}
-            <button
-              type="button"
-              onClick={() => setInviteEmails([...inviteEmails, ""])}
-              className="rounded-lg border px-3 py-1 text-sm hover:bg-gray-500 cursor-pointer"
-            >
-              + Add candidate
-            </button>
-            <button
-              type="button"
-              onClick={sendInvites}
-              disabled={inviteBusy}
-              className="mt-3 rounded-xl bg-black px-4 py-2 font-medium text-white 
-              hover:opacity-90 disabled:opacity-60 cursor-pointer disabled:cursor-not-allowed"
-            >
-              {inviteBusy ? "Sending…" : "Send Invites"}
-            </button>
-            {inviteMsg && (
-              <div className={`mt-2 ${inviteOk ? "text-emerald-700" : "text-red-600"}`}>
-                {inviteMsg}
-              </div>
-            )}
-          </div>
-        </div>
-      )}
+      <InviteSentModal
+        open={Boolean(inviteSuccess)}
+        count={inviteSuccess?.count || 0}
+        emails={inviteSuccess?.emails || []}
+        onClose={() => {
+          setInviteSuccess(null);
+          setInviteEmails([""]);
+          setInviteMsg(null);
+        }}
+      />
     </div>
   );
 }

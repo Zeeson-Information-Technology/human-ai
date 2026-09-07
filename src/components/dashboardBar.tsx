@@ -8,7 +8,7 @@ import UploadableAvatar from "@/components/UploadableAvatar";
 type UserLite = {
   name?: string;
   email?: string;
-  role: "admin" | "company" | "talent";
+  role: "admin" | "company" | "staff" | "recruiter" | "manager" | "talent";
 };
 
 type NavItem = {
@@ -46,7 +46,7 @@ export default function DashboardShell({
       ? pathname === item.href
       : pathname === item.href || pathname.startsWith(item.href + "/");
 
-  // Helpers to avoid duplicates in footer
+  // Helpers to avoid duplicates in footer.
   const hasItem = (pred: (n: NavItem) => boolean) => nav?.some(pred) ?? false;
   const labelEq = (a?: string, b?: string) =>
     (a || "").trim().toLowerCase() === (b || "").trim().toLowerCase();
@@ -64,9 +64,11 @@ export default function DashboardShell({
       ? "/admin/settings"
       : user.role === "company"
       ? "/company/settings"
-      : "/settings";
+      : user.role === "talent"
+      ? "/settings"
+      : "/admin/settings";
 
-  // Robust duplicate detection: match by href, label, or “endsWith('/settings')”
+  // Robust duplicate detection: match by href, label, or profile/settings suffixes.
   const hasProfile = hasItem(
     (n) =>
       n.href === profileHref ||
@@ -84,7 +86,7 @@ export default function DashboardShell({
   // Only show in footer if not already present in top nav
   const shouldShowFooterProfile = !hasProfile;
   const shouldShowFooterSettings =
-    (user.role === "company" || user.role === "admin") && !hasSettings;
+    (user.role === "admin" || user.role === "company") && !hasSettings;
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-black text-white">
@@ -100,10 +102,10 @@ export default function DashboardShell({
         }}
       />
 
-      <div className="relative mx-auto max-w-7xl px-4 py-6">
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-[260px_1fr]">
+      <div className="relative mx-auto max-w-[1600px] px-4 py-6 sm:px-6 lg:px-8">
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-[280px_minmax(0,1fr)] lg:gap-8">
           {/* Sidebar */}
-          <aside className="rounded-2xl border border-white/10 bg-white/10 p-4 backdrop-blur-md lg:sticky lg:top-6 self-start">
+          <aside className="self-start rounded-2xl border border-white/10 bg-white/10 p-4 backdrop-blur-md lg:sticky lg:top-6 lg:p-5">
             {/* Profile */}
             <div className="flex items-center gap-3 pb-4 border-b border-white/10">
               <UploadableAvatar
@@ -151,12 +153,14 @@ export default function DashboardShell({
 
             {/* Footer actions */}
             <div className="mt-6 border-t border-white/10 pt-4 grid gap-2">
-              <Link
-                href="/support"
-                className="rounded-lg px-3 py-2 text-sm text-white/85 hover:bg-white/10"
-              >
-                Contact support
-              </Link>
+              {user.role === "talent" && (
+                <Link
+                  href="/support"
+                  className="rounded-lg px-3 py-2 text-sm text-white/85 hover:bg-white/10"
+                >
+                  Contact support
+                </Link>
+              )}
 
               {shouldShowFooterProfile && (
                 <Link
@@ -195,7 +199,7 @@ export default function DashboardShell({
           </aside>
 
           {/* Main */}
-          <main className="rounded-2xl border border-white/10 bg-white/5 p-5 backdrop-blur-sm">
+          <main className="min-w-0 rounded-2xl border border-white/10 bg-white/5 p-5 backdrop-blur-sm sm:p-6 lg:p-8">
             {title ? <h1 className="mb-4 text-xl font-bold">{title}</h1> : null}
             {children}
           </main>

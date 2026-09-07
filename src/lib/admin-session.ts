@@ -2,11 +2,13 @@
 import { cookies } from "next/headers";
 import { verifyToken } from "@/lib/auth";
 import { isAdminAreaRole } from "@/lib/admin-auth";
+import dbConnect from "@/lib/db-connect";
+import User from "@/model/user";
 
 export type AdminSession = {
   id: string;
   email: string;
-  role: "admin" | "company" | "recruiter" | "manager";
+  role: "admin" | "company" | "staff" | "recruiter" | "manager";
   name?: string;
   company?: string;
   isVerified?: boolean;
@@ -33,12 +35,20 @@ export async function getAdminFromCookies(): Promise<AdminSession | null> {
     if (!payload && userCookie) payload = verifyToken(userCookie);
     if (!payload || typeof payload === "string") return null;
 
-    const role = String(payload.role || "");
+    await dbConnect();
+    const user = await User.findById(String(payload.userId || ""), {
+      email: 1,
+      role: 1,
+      accessRevokedAt: 1,
+    }).lean();
+    if (!user || (user as any).accessRevokedAt) return null;
+
+    const role = String((user as any).role || payload.role || "");
     if (!isAdminAreaRole(role)) return null;
 
     return {
       id: String(payload.userId || ""),
-      email: String(payload.email || ""),
+      email: String((user as any).email || payload.email || ""),
       role: role as AdminSession["role"],
     };
   } catch {

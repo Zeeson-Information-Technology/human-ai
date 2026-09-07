@@ -35,7 +35,7 @@ export default function WhyJoinUs() {
               via-teal-600 to-sky-600 shadow-lg 
               shadow-emerald-500/20 hover:shadow-emerald-600/30 
               hover:opacity-95 transition-transform hover:-translate-y-0.5 
-              min-w-[220px] md:min-w-[260px]"
+              sm:min-w-[220px] md:min-w-[260px]"
           >
             Get hired
           </Link>

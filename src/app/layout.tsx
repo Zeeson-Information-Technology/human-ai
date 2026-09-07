@@ -1,31 +1,29 @@
-// /src/app/layout.tsx
-import "./globals.css";
+import RouteProgress from "@/components/route-progress";
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import HashScroll from "../components/hash-scroll";
-import RouteProgress from "@/components/route-progress";
-import Watermark from "@/components/Watermark";
+import "./globals.css";
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
-  title: "Euman AI — Human-in-the-loop AI data & evaluations",
+  title: "Euman Intelligence - Human and AI intelligence for proposals",
   description:
-    "Consent-based data sourcing, meticulous labeling, safety evaluations, and secure handover — built in Africa, serving the world.",
+    "Euman Intelligence helps businesses navigate proposals, bids, and RFPs through a model that blends human judgment with AI-enabled execution.",
   openGraph: {
-    title: "Euman AI",
+    title: "Euman Intelligence",
     description:
-      "Enterprise-grade data, evaluations, and secure handover for AI labs and regulated industries.",
+      "Human judgment and AI-enabled execution for proposals, bids, and RFP responses.",
     url: siteUrl,
-    siteName: "Euman AI",
+    siteName: "Euman Intelligence",
     images: [{ url: "/og-image.png", width: 1200, height: 630 }],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Euman AI",
+    title: "Euman Intelligence",
     description:
-      "Enterprise-grade data, evaluations, and secure handover for AI.",
+      "Human judgment and AI-enabled execution for proposals, bids, and RFP responses.",
     images: ["/og-image.png"],
   },
   icons: {
@@ -48,7 +46,6 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className="scroll-smooth" suppressHydrationWarning>
-      {/* Extension-injected attributes (e.g., Grammarly) can differ on the client */}
       <body
         className="min-h-screen bg-white text-gray-900 antialiased"
         suppressHydrationWarning
@@ -60,7 +57,6 @@ export default function RootLayout({
           </Suspense>
           {children}
         </main>
-        <Watermark />
       </body>
     </html>
   );

@@ -1,9 +1,9 @@
 // Central brand constants for easy updates
-export const BRAND_COMPANY = "Euman AI";
+export const BRAND_COMPANY = "Euman Intelligence";
 export const BRAND_PRODUCT = "Zuri";
 export const BRAND_FULL = `${BRAND_COMPANY} • ${BRAND_PRODUCT}`;
 export const BRAND_DOMAIN = "eumanai.com";
-export const BRAND_CONTACT_EMAIL = `hello@${BRAND_DOMAIN}`;
+export const BRAND_CONTACT_EMAIL = `proposals@${BRAND_DOMAIN}`;
 
 // Legacy object shape used by footer and possibly other components
 export const brand = {
@@ -12,5 +12,5 @@ export const brand = {
   full: BRAND_FULL,
   domain: BRAND_DOMAIN,
   email: BRAND_CONTACT_EMAIL,
-  locations: "Lagos",
+  locations: "Global",
 };

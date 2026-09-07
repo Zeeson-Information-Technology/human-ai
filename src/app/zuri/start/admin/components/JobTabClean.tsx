@@ -1,10 +1,11 @@
 "use client";
-import React, { useState } from "react";
+
+import { useState } from "react";
 import PremiumSelect from "@/components/forms/PremiumSelect";
-import Image from "next/image";
-import { suggestNormalizedTitle } from "@/lib/smart-input";
-import { apiFetch } from "@/lib/api";
-import SkillSuggest from "./SkillSuggest";
+import FileDropUpload, {
+  type UploadedFileItem,
+} from "@/components/forms/FileDropUpload";
+import { BTN, cx } from "@/components/ui-helper/buttonStyles";
 
 type JobTabProps = {
   title: string;
@@ -13,12 +14,41 @@ type JobTabProps = {
   setRoleName: (v: string) => void;
   company: string;
   setCompany: (v: string) => void;
-
-  // JD
+  clientId: string;
+  setClientId: (v: string) => void;
+  clientName: string;
+  setClientName: (v: string) => void;
+  createClientInline: boolean;
+  setCreateClientInline: (v: boolean) => void;
+  clients: {
+    id: string;
+    name: string;
+    primaryContactName?: string;
+    primaryContactEmail?: string;
+  }[];
+  clientsLoading?: boolean;
+  clientRepName: string;
+  setClientRepName: (v: string) => void;
+  clientRepEmail: string;
+  setClientRepEmail: (v: string) => void;
+  buyerOrganization: string;
+  setBuyerOrganization: (v: string) => void;
+  solicitationNumber: string;
+  setSolicitationNumber: (v: string) => void;
+  opportunitySource: string;
+  setOpportunitySource: (v: string) => void;
+  documents: UploadedFileItem[];
+  setDocuments: (v: UploadedFileItem[]) => void;
+  documentRefs: string;
+  setDocumentRefs: (v: string) => void;
+  submissionDeadline: string;
+  setSubmissionDeadline: (v: string) => void;
+  marketFocus: string;
+  setMarketFocus: (v: string) => void;
+  sourceText: string;
+  setSourceText: (v: string) => void;
   jdText: string;
   setJdText: (v: string) => void;
-
-  // Details
   location: "remote" | "hybrid" | "onsite";
   setLocation: (v: "remote" | "hybrid" | "onsite") => void;
   locationDetails: string;
@@ -31,8 +61,6 @@ type JobTabProps = {
   setCommImportance: (v: number) => void;
   startDate: string;
   setStartDate: (v: string) => void;
-
-  // Compensation
   salaryCurrency: "NGN" | "USD" | "CAD" | "EUR" | "GBP";
   setSalaryCurrency: (v: "NGN" | "USD" | "CAD" | "EUR" | "GBP") => void;
   monthlySalaryMin: string;
@@ -41,478 +69,469 @@ type JobTabProps = {
   setMonthlySalaryMax: (v: string) => void;
   hoursPerWeek: string;
   setHoursPerWeek: (v: string) => void;
-
-  // Skills
   skills: string[];
   skillInput: string;
   setSkillInput: (v: string) => void;
   onAddSkill: (v?: string) => void;
   onRemoveSkill: (s: string) => void;
-
+  onExtractOpportunity: (files?: UploadedFileItem[]) => void;
   onGenerateAIJD: () => void;
   aiBusy?: boolean;
+  extractBusy?: boolean;
   onNext: () => void;
   nextDisabled?: boolean;
 };
 
-export default function JobTab(props: JobTabProps) {
-  const {
-    title,
-    setTitle,
-    roleName,
-    setRoleName,
-    company,
-    setCompany,
-    jdText,
-    setJdText,
-    location,
-    setLocation,
-    locationDetails,
-    setLocationDetails,
-    employmentType,
-    setEmploymentType,
-    seniority,
-    setSeniority,
-    commImportance,
-    setCommImportance,
-    startDate,
-    setStartDate,
-    salaryCurrency,
-    setSalaryCurrency,
-    monthlySalaryMin,
-    setMonthlySalaryMin,
-    monthlySalaryMax,
-    setMonthlySalaryMax,
-    hoursPerWeek,
-    setHoursPerWeek,
-    skills,
-    skillInput,
-    setSkillInput,
-    onAddSkill,
-    onRemoveSkill,
-    onGenerateAIJD,
-    aiBusy,
-    onNext,
-    nextDisabled,
-  } = props;
+const SOURCE_OPTIONS = [
+  { value: "sales-call", label: "Sales call" },
+  { value: "website-inquiry", label: "Website inquiry" },
+  { value: "referral", label: "Referral" },
+  { value: "existing-client", label: "Existing client" },
+  { value: "email-intro", label: "Email intro" },
+  { value: "other", label: "Other" },
+];
 
-  const [locationScope, setLocationScope] = useState<
-    "city" | "region" | "country" | "continent" | "global"
-  >("country");
-  const [titleReady, setTitleReady] = useState(false);
-  const [titleAlts, setTitleAlts] = useState<string[]>([]);
-  const [titleBusy, setTitleBusy] = useState(false);
-  const [lastTitleAi, setLastTitleAi] = useState<string>("");
-  const [showHints, setShowHints] = useState(false);
+const SUPPORT_PRESETS = [
+  "Proposal writing",
+  "RFP response coordination",
+  "Compliance matrix",
+  "Executive summary",
+  "Content library review",
+  "SME coordination",
+  "Tender monitoring",
+  "Candidate sourcing",
+];
 
-  const titleValid = (title || "").trim().length > 0;
-  const roleValid = (roleName || "").trim().length > 0;
-  const companyValid = (company || "").trim().length > 0;
-  const jdValid = (jdText || "").trim().length >= 120;
-  const locationDetailsRequired = location !== "remote" && locationScope !== "global";
-  const locationDetailsValid = !locationDetailsRequired || (locationDetails || "").trim().length > 0;
-  const salaryFromValid = (monthlySalaryMin || "").trim().length > 0;
-  const salaryToValid = (monthlySalaryMax || "").trim().length > 0;
-  const salaryOrderValid =
-    salaryFromValid && salaryToValid && !Number.isNaN(Number(monthlySalaryMin)) && !Number.isNaN(Number(monthlySalaryMax))
-      ? Number(monthlySalaryMin) <= Number(monthlySalaryMax)
-      : false;
-  const startValid = (startDate || "").trim().length > 0;
-  const commValid = Number.isFinite(commImportance) && commImportance >= 1 && commImportance <= 5;
-  const currencyValid = (salaryCurrency || "").trim().length > 0;
-  const hoursValid = (hoursPerWeek || "").trim().length > 0 && !Number.isNaN(Number(hoursPerWeek)) && Number(hoursPerWeek) > 0;
-  const skillsValid = skills.length > 0;
+const INPUT =
+  "w-full rounded-3xl border border-neutral-200 bg-white px-4 py-3 text-sm text-gray-900 shadow-sm transition placeholder:text-gray-400 focus:border-neutral-300 focus:outline-none focus:ring-2 focus:ring-black/5";
 
-  function focusById(id: string) {
-    try {
-      const el = document.getElementById(id) as HTMLElement | null;
-      el?.scrollIntoView({ behavior: "smooth", block: "center" });
-      el?.focus?.();
-    } catch {}
-  }
-  function gotoFirstInvalid() {
-    if (!titleValid) return focusById("job-title");
-    if (!roleValid) return focusById("role-name");
-    if (!companyValid) return focusById("company-name");
-    if (!jdValid) return focusById("jd-text");
-    if (!locationDetailsValid) return focusById("location-details");
-    if (!startValid) return focusById("start-date");
-    if (!commValid) return focusById("comm-importance");
-    if (!salaryFromValid) return focusById("salary-from");
-    if (!salaryToValid || !salaryOrderValid) return focusById("salary-to");
-    if (!currencyValid) return focusById("salary-currency");
-    if (!hoursValid) return focusById("hours-week");
-    if (!skillsValid) return focusById("skills-input");
-  }
+const SECTION =
+  "rounded-[28px] border border-neutral-200 bg-white p-5 shadow-sm";
 
-  function cap(s: string) {
-    return s ? s.charAt(0).toUpperCase() + s.slice(1) : s;
-  }
+export default function JobTab({
+  title,
+  setTitle,
+  roleName,
+  setRoleName,
+  company,
+  setCompany,
+  clientId,
+  setClientId,
+  clientName,
+  setClientName,
+  createClientInline,
+  setCreateClientInline,
+  clients,
+  clientsLoading,
+  clientRepName,
+  setClientRepName,
+  clientRepEmail,
+  setClientRepEmail,
+  buyerOrganization,
+  setBuyerOrganization,
+  solicitationNumber,
+  setSolicitationNumber,
+  opportunitySource,
+  setOpportunitySource,
+  documents,
+  setDocuments,
+  documentRefs,
+  setDocumentRefs,
+  submissionDeadline,
+  setSubmissionDeadline,
+  marketFocus,
+  setMarketFocus,
+  sourceText,
+  setSourceText,
+  jdText,
+  setJdText,
+  skillInput,
+  setSkillInput,
+  skills,
+  onAddSkill,
+  onRemoveSkill,
+  onExtractOpportunity,
+  onNext,
+  nextDisabled,
+  extractBusy,
+}: JobTabProps) {
+  const briefLength = jdText.trim().length;
+  const [step, setStep] = useState<0 | 1>(0);
+  const canExtract = sourceText.trim().length >= 80 || documents.length > 0;
+  const steps = [
+    {
+      id: 0 as const,
+      label: "Opportunity",
+      title: "Opportunity details",
+      desc: "Add source material and capture the pursuit details.",
+    },
+    {
+      id: 1 as const,
+      label: "Client & Scope",
+      title: "Client and delivery scope",
+      desc: "Link the client, define support tracks, and finalize the brief.",
+    },
+  ];
+  const opportunityStepValid =
+    title.trim().length > 0 &&
+    roleName.trim().length > 0 &&
+    buyerOrganization.trim().length > 0 &&
+    submissionDeadline.trim().length > 0;
+  const clientStepValid =
+    (clientId || clientName.trim().length > 0) &&
+    clientRepName.trim().length > 0 &&
+    clientRepEmail.trim().length > 0 &&
+    skills.length > 0 &&
+    briefLength >= 120;
+  const currentStepValid =
+    step === 0 ? opportunityStepValid : clientStepValid;
+  const stepHelp =
+    step === 0
+      ? "Complete the title, delivery track, buyer, and deadline before continuing."
+      : "Complete the client details, support tracks, and opportunity brief before continuing.";
 
   return (
-    <div className="grid gap-5">
-      {/* Basic */}
+    <div className="grid gap-6">
+      <div className="rounded-[28px] border border-neutral-200 bg-white p-4 shadow-sm">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <div className="text-xs font-semibold uppercase tracking-[0.18em] text-neutral-500">
+              Opportunity form
+            </div>
+          </div>
+          <div className="text-sm font-medium text-neutral-700">
+            Step {step + 1} of {steps.length}
+          </div>
+        </div>
+        <div className="mt-4 h-2 overflow-hidden rounded-full bg-neutral-200">
+          <div
+            className="h-full rounded-full bg-black transition-all"
+            style={{ width: `${((step + 1) / steps.length) * 100}%` }}
+          />
+        </div>
+      </div>
+
+      {step === 0 && (
+      <div>
+        <label className="mb-2 block text-sm font-medium">
+          Opportunity documents
+        </label>
+        <FileDropUpload
+          files={documents}
+          onChange={setDocuments}
+          onExtract={onExtractOpportunity}
+          folder="opportunity-documents"
+          label="Drag proposal files here or upload"
+          helperText="Upload the source RFP, briefing note, or opportunity documents first. You can extract details from them before completing the form."
+        />
+      </div>
+      )}
+
+      {step === 0 && (
+      <div className={SECTION}>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <div className="text-sm font-semibold text-gray-900">
+              Opportunity source material
+            </div>
+            <div className="mt-1 text-sm text-gray-600">
+              Use pasted source text, uploaded documents, or fill the form
+              manually. Extraction works from either the pasted notice or the
+              uploaded files.
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => onExtractOpportunity()}
+            disabled={!!extractBusy || !canExtract}
+            className={cx(
+              BTN.primary,
+              "min-w-[160px] bg-gradient-to-r from-slate-900 via-slate-800 to-emerald-700 px-4 py-3 text-sm",
+              (!!extractBusy || !canExtract) && "cursor-not-allowed opacity-60"
+            )}
+          >
+            {extractBusy ? "Extracting..." : "Extract from source"}
+          </button>
+        </div>
+
+        <div className="mt-4">
+          <textarea
+            value={sourceText}
+            onChange={(e) => setSourceText(e.target.value)}
+            className="min-h-[200px] w-full rounded-[28px] border border-neutral-200 bg-white px-4 py-3 text-sm leading-6 text-gray-900 shadow-sm transition placeholder:text-gray-400 focus:border-neutral-300 focus:outline-none focus:ring-2 focus:ring-black/5"
+            placeholder="Paste the buyer notice, RFP summary, portal listing, or tender text here. If left empty, extraction can still use uploaded text or image files."
+          />
+          <div className="mt-2 text-xs text-gray-500">
+            You can leave this empty if you only have the opportunity
+            documents. You can also skip extraction entirely and complete the
+            fields below yourself.
+          </div>
+        </div>
+      </div>
+      )}
+
+      {step === 0 && (
       <div className="grid gap-2 sm:grid-cols-2">
         <div>
-          <label className="block text-sm font-medium mb-1">Job Title</label>
+          <label className="mb-1 block text-sm font-medium">
+            Opportunity title
+          </label>
           <input
-            id="job-title"
             value={title}
-            onChange={(e) => {
-              setTitle(e.target.value);
-              if (titleReady) setTitleReady(false);
-            }}
-            onBlur={() => {
-              const { suggestion, changed } = suggestNormalizedTitle(title);
-              if (changed) setTitle(suggestion);
-              setTitleReady(true);
-              // AI suggestions (title-only), gated to preserve tokens
-              const tval = (changed ? suggestion : title).trim();
-              if (!tval || tval.length < 4) return;
-              if (lastTitleAi === tval) return;
-              setTitleBusy(true);
-              apiFetch<{ ok: boolean; suggestion: string; alternates: string[]; confidence: number }>(
-                "/api/suggest/title",
-                {
-                  method: "POST",
-                  headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({ text: tval }),
-                  retries: 0,
-                }
-              )
-                .then((res) => {
-                  if (res?.ok) {
-                    const s = res.suggestion?.trim();
-                    if (s && s !== tval) {
-                      setTitleAlts(Array.from(new Set([s, ...(res.alternates || [])])).slice(0, 5));
-                    } else {
-                      setTitleAlts((res.alternates || []).slice(0, 5));
-                    }
-                    setLastTitleAi(tval);
-                  }
-                })
-                .catch(() => {})
-                .finally(() => setTitleBusy(false));
-            }}
-            placeholder="e.g., Frontend Developer"
-            className={`w-full rounded-xl p-3 cursor-text border ${
-              showHints && !titleValid ? "border-red-400 focus:ring-2 focus:ring-red-300" : ""
-            }`}
-            aria-invalid={showHints && !titleValid}
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder="e.g., Ministry of Health RFP response support"
+            className={INPUT}
           />
-          {(() => {
-            const { suggestion, changed } = suggestNormalizedTitle(title);
-            if (!changed || !suggestion) return null;
-            return (
-              <div className="mt-1 text-xs text-neutral-600">
-                Did you mean <button type="button" className="underline text-emerald-700" onClick={() => setTitle(suggestion)}>{suggestion}</button>?
-              </div>
-            );
-          })()}
-          {showHints && !titleValid && (
-            <div className="mt-1 text-[11px] text-red-600">Job title is required.</div>
-          )}
-          {titleAlts.length > 0 && (
-            <div className="mt-1 flex flex-wrap items-center gap-2">
-              <span className="text-[11px] uppercase tracking-wide text-neutral-500">Suggestions:</span>
-              {titleAlts.map((s) => (
-                <button
-                  key={s}
-                  type="button"
-                  className="rounded-full border px-2.5 py-0.5 text-xs hover:bg-emerald-50 hover:border-emerald-300 cursor-pointer"
-                  onClick={() => {
-                    setTitle(s);
-                    setTitleAlts([]);
-                  }}
-                >
-                  {s}
-                </button>
-              ))}
-            </div>
-          )}
         </div>
         <div>
-          <label className="block text-sm font-medium mb-1">Role Name</label>
+          <label className="mb-1 block text-sm font-medium">
+            Primary delivery track
+          </label>
           <input
-            id="role-name"
             value={roleName}
             onChange={(e) => setRoleName(e.target.value)}
-            placeholder="e.g., Frontend Engineer"
-            className={`w-full rounded-xl p-3 cursor-text border ${
-              showHints && !roleValid ? "border-red-400 focus:ring-2 focus:ring-red-300" : ""
-            }`}
-            aria-invalid={showHints && !roleValid}
+            placeholder="e.g., Proposal response support"
+            className={INPUT}
           />
-          {showHints && !roleValid && (
-            <div className="mt-1 text-[11px] text-red-600">Role name is required.</div>
-          )}
-          {(() => {
-            const { suggestion, changed } = suggestNormalizedTitle(roleName);
-            if (!changed || !suggestion) return null;
-            return (
-              <div className="mt-1 text-xs text-neutral-600">
-                Did you mean <button type="button" className="underline text-emerald-700" onClick={() => setRoleName(suggestion)}>{suggestion}</button>?
-              </div>
-            );
-          })()}
         </div>
       </div>
-      <div>
-        <input
-          id="company-name"
-          value={company}
-          onChange={(e) => setCompany(e.target.value)}
-          placeholder="Company"
-          className={`w-full rounded-xl p-3 cursor-text border ${
-            showHints && !companyValid ? "border-red-400 focus:ring-2 focus:ring-red-300" : ""
-          }`}
-          aria-invalid={showHints && !companyValid}
-        />
-        {showHints && !companyValid && (
-          <div className="mt-1 text-[11px] text-red-600">Company is required.</div>
+      )}
+
+      {step === 1 && (
+      <div className={SECTION}>
+        <div className="text-sm font-semibold text-gray-900">Client</div>
+        <div className="mt-1 text-sm text-gray-700">
+          Link this opportunity to the customer you are supporting, or create a
+          new client record if this is the first pursuit for them.
+        </div>
+
+        <div className="mt-4 grid gap-4 sm:grid-cols-[minmax(0,1fr)_auto]">
+          <div>
+            <label className="mb-1 block text-sm font-medium text-gray-900">
+              Existing client
+            </label>
+            <PremiumSelect
+              value={clientId}
+              onChange={(e) => {
+                const next = e.target.value;
+                setClientId(next);
+                if (next) setCreateClientInline(false);
+              }}
+              wrapperClassName="group relative inline-block w-full rounded-3xl ring-1 ring-neutral-200 shadow-sm hover:shadow transition"
+              className="rounded-3xl px-4 py-3 pr-10 text-sm"
+              appearance="light"
+              disabled={clientsLoading}
+            >
+              <option value="">
+                {clientsLoading ? "Loading clients..." : "Select client..."}
+              </option>
+              {clients.map((client) => (
+                <option key={client.id} value={client.id}>
+                  {client.name}
+                </option>
+              ))}
+            </PremiumSelect>
+          </div>
+          <div className="flex items-end">
+            <button
+              type="button"
+              onClick={() => {
+                setCreateClientInline(!createClientInline);
+                if (!createClientInline) setClientId("");
+              }}
+              className={cx(
+                BTN.primary,
+                "min-w-[170px] bg-gradient-to-r from-slate-900 via-slate-800 to-emerald-700 px-4 py-3 text-sm"
+              )}
+            >
+              {createClientInline ? "Use existing client" : "Add new client"}
+            </button>
+          </div>
+        </div>
+
+        {createClientInline && (
+          <div className="mt-4 rounded-[24px] border border-neutral-200 bg-neutral-50/80 p-4">
+            <div className="mb-1 text-sm font-semibold text-gray-900">
+              New client details
+            </div>
+            <div className="mb-3 text-xs text-gray-700">
+              Capture the client you are serving for this opportunity.
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div>
+                <label className="mb-1 block text-sm font-medium text-gray-900">
+                  Client name
+                </label>
+                <input
+                  value={clientName}
+                  onChange={(e) => {
+                    setClientName(e.target.value);
+                    setCompany(e.target.value);
+                  }}
+                  placeholder="e.g., New Consulting"
+                  className={INPUT}
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-sm font-medium text-gray-900">
+                  Client representative
+                </label>
+                <input
+                  value={clientRepName}
+                  onChange={(e) => setClientRepName(e.target.value)}
+                  placeholder="e.g., Jerry Smith"
+                  className={INPUT}
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-sm font-medium text-gray-900">
+                  Client contact email
+                </label>
+                <input
+                  value={clientRepEmail}
+                  onChange={(e) => setClientRepEmail(e.target.value)}
+                  placeholder="e.g., client@company.com"
+                  className={INPUT}
+                  type="email"
+                />
+              </div>
+            </div>
+          </div>
+        )}
+
+        {!createClientInline && (
+          <div className="mt-4 grid gap-4 sm:grid-cols-2">
+            <div>
+              <label className="mb-1 block text-sm font-medium text-gray-900">
+                Client representative
+              </label>
+              <input
+                value={clientRepName}
+                onChange={(e) => setClientRepName(e.target.value)}
+                placeholder="e.g., Jerry Smith"
+                className={INPUT}
+              />
+            </div>
+            <div>
+              <label className="mb-1 block text-sm font-medium text-gray-900">
+                Client contact email
+              </label>
+              <input
+                value={clientRepEmail}
+                onChange={(e) => setClientRepEmail(e.target.value)}
+                placeholder="e.g., client@company.com"
+                className={INPUT}
+                type="email"
+              />
+            </div>
+          </div>
         )}
       </div>
+      )}
 
-      {/* Location & type */}
-      <div className="grid gap-3 sm:grid-cols-4">
+      {step === 0 && (
+      <div className="grid gap-2 sm:grid-cols-2">
         <div>
-          <label className="block text-sm font-medium mb-1">Location</label>
-          <PremiumSelect
-            value={location}
-            onChange={(e) =>
-              setLocation((e.target as HTMLSelectElement).value as any)
-            }
-            appearance="light"
-          >
-            <option value="remote">Remote</option>
-            <option value="hybrid">Hybrid</option>
-            <option value="onsite">Onsite</option>
-          </PremiumSelect>
+          <label className="mb-1 block text-sm font-medium">
+            Buyer / issuing authority
+          </label>
+          <input
+            value={buyerOrganization}
+            onChange={(e) => setBuyerOrganization(e.target.value)}
+            placeholder="e.g., Department of National Defence Canada"
+            className={INPUT}
+          />
         </div>
         <div>
-          <label className="block text-sm font-medium mb-1">Location scope</label>
-          <PremiumSelect
-            value={locationScope}
-            onChange={(e) => {
-              const v = (e.target as HTMLSelectElement).value as
-                | "city"
-                | "region"
-                | "country"
-                | "continent"
-                | "global";
-              setLocationScope(v);
-              if (v === "global") {
-                try {
-                  setLocationDetails("Global");
-                } catch {}
-              } else if ((locationDetails || "").toLowerCase() === "global") {
-                setLocationDetails("");
-              }
-            }}
-            appearance="light"
-          >
-            <option value="city">City</option>
-            <option value="region">State / Region</option>
-            <option value="country">Country</option>
-            <option value="continent">Continent</option>
-            <option value="global">Global</option>
-          </PremiumSelect>
-        </div>
-        <div>
-          <label className="block text-sm font-medium mb-1">Employment Type</label>
-          <PremiumSelect
-            value={employmentType}
-            onChange={(e) =>
-              setEmploymentType((e.target as HTMLSelectElement).value)
-            }
-            appearance="light"
-          >
-            <option value="full-time">Full-time</option>
-            <option value="part-time">Part-time</option>
-            <option value="contract">Contract</option>
-            <option value="internship">Internship</option>
-          </PremiumSelect>
-        </div>
-        <div>
-          <label className="block text-sm font-medium mb-1">Seniority</label>
-          <PremiumSelect
-            value={seniority}
-            onChange={(e) => setSeniority((e.target as HTMLSelectElement).value)}
-            appearance="light"
-          >
-            <option value="junior">Junior</option>
-            <option value="mid">Mid</option>
-            <option value="senior">Senior</option>
-            <option value="lead">Lead</option>
-          </PremiumSelect>
+          <label className="mb-1 block text-sm font-medium">
+            Market focus
+          </label>
+          <input
+            value={marketFocus}
+            onChange={(e) => setMarketFocus(e.target.value)}
+            placeholder="e.g., Canada, US, UK"
+            className={INPUT}
+          />
         </div>
       </div>
-      <div className="grid gap-3 sm:grid-cols-3">
-        <div>
-          <label className="block text-sm font-medium mb-1">Location details</label>
-          <input
-            id="location-details"
-            value={locationDetails}
-            onChange={(e) => setLocationDetails(e.target.value)}
-            placeholder={
-              locationScope === "global"
-                ? "Global"
-                : locationScope === "city"
-                ? "e.g., Lagos"
-                : locationScope === "region"
-                ? "e.g., Ontario"
-                : locationScope === "country"
-                ? "e.g., Canada"
-                : "e.g., Africa"
-            }
-            className={`w-full rounded-xl p-3 border ${
-              showHints && !locationDetailsValid ? "border-red-400 focus:ring-2 focus:ring-red-300" : ""
-            }`}
-            disabled={locationScope === "global"}
-          />
-          {showHints && !locationDetailsValid && (
-            <div className="mt-1 text-[11px] text-red-600">Location details are required (unless scope is Global).</div>
-          )}
-        </div>
-        <div>
-          <label className="block text-sm font-medium mb-1">Start date</label>
-          <input
-            id="start-date"
-            value={startDate}
-            onChange={(e) => setStartDate(e.target.value)}
-            className="w-full rounded-xl border p-3 bg-white text-neutral-900 [color-scheme:light] dark:bg-neutral-900 dark:text-neutral-100 dark:border-neutral-700"
-            type="date"
-          />
-          {showHints && !startValid && (
-            <div className="mt-1 text-[11px] text-red-600">Please select a start date.</div>
-          )}
-        </div>
-        <div>
-          <label className="block text-sm font-medium mb-1">Communication importance (1-5)</label>
-          <input
-            id="comm-importance"
-            value={commImportance === 0 ? "" : String(commImportance)}
-            onChange={(e) => {
-              const raw = e.target.value;
-              const v = raw.replace(/[^0-9]/g, "");
-              if (v === "") {
-                setCommImportance(0); // invalid state to allow highlighting
-                return;
-              }
-              const num = Math.min(5, Math.max(1, parseInt(v, 10)));
-              setCommImportance(num);
-            }}
-            className={`w-full rounded-xl p-3 border ${showHints && !commValid ? "border-red-400 focus:ring-2 focus:ring-red-300" : ""}`}
-            type="text"
-            inputMode="numeric"
-            pattern="[0-9]*"
-            placeholder="1 to 5"
-            aria-invalid={showHints && !commValid}
-          />
-          {showHints && !commValid && (
-            <div className="mt-1 text-[11px] text-red-600">Enter a value from 1 to 5.</div>
-          )}
-        </div>
-      </div>
+      )}
 
-      {/* AI context preview (only after user adds something) */}
-      {(() => {
-        const detail = locationScope === "global" ? "Global" : (locationDetails || "").trim();
-        const show = location !== "remote" || locationScope !== "country" || !!detail;
-        if (!show) return null;
-        return (
-          <div className="rounded-xl border bg-white px-3 py-2 text-sm text-neutral-700">{cap(location)}{detail ? ` - ${detail}` : ""}</div>
-        );
-      })()}
-
-      {/* Compensation & hours */}
-      <div className="grid gap-3 sm:grid-cols-4">
+      {step === 0 && (
+      <div className="grid gap-2 sm:grid-cols-2">
         <div>
-          <label className="block text-sm font-medium mb-1">Currency</label>
+          <label className="mb-1 block text-sm font-medium">
+            Solicitation / reference number
+          </label>
+          <input
+            value={solicitationNumber}
+            onChange={(e) => setSolicitationNumber(e.target.value)}
+            placeholder="e.g., W8486-240001/A"
+            className={INPUT}
+          />
+        </div>
+        <div>
+          <label className="mb-1 block text-sm font-medium">
+            Opportunity source
+          </label>
           <PremiumSelect
-            id="salary-currency"
-            value={salaryCurrency}
-            onChange={(e) =>
-              setSalaryCurrency((e.target as HTMLSelectElement).value as any)
-            }
+            value={opportunitySource}
+            onChange={(e) => setOpportunitySource(e.target.value)}
+            wrapperClassName="group relative inline-block w-full rounded-3xl ring-1 ring-neutral-200 shadow-sm hover:shadow transition"
+            className="rounded-3xl px-4 py-3 pr-10 text-sm"
             appearance="light"
           >
-            {(["NGN", "USD", "CAD", "EUR", "GBP"] as const).map((c) => (
-              <option key={c} value={c}>
-                {c}
+            {SOURCE_OPTIONS.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
               </option>
             ))}
           </PremiumSelect>
         </div>
+      </div>
+      )}
+
+      {step === 0 && (
+      <div className="grid gap-2 sm:grid-cols-2">
         <div>
-          <label className="block text-sm font-medium mb-1">Monthly salary - from</label>
-          <div className="relative">
-            <input
-              id="salary-from"
-              value={monthlySalaryMin}
-              onChange={(e) => setMonthlySalaryMin(e.target.value.replace(/[^0-9]/g, ""))}
-              className={`w-full rounded-xl p-3 pr-16 border ${
-                showHints && !salaryFromValid ? "border-red-400 focus:ring-2 focus:ring-red-300" : ""
-              }`}
-              type="text"
-              inputMode="numeric"
-              pattern="[0-9]*"
-              placeholder="e.g., 5000"
-            />
-            <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm text-neutral-500">/month</span>
-          </div>
-          {showHints && !salaryFromValid && (
-            <div className="mt-1 text-[11px] text-red-600">Enter a minimum monthly salary.</div>
-          )}
-        </div>
-        <div>
-          <label className="block text-sm font-medium mb-1">Monthly salary - to</label>
-          <div className="relative">
-            <input
-              id="salary-to"
-              value={monthlySalaryMax}
-              onChange={(e) => setMonthlySalaryMax(e.target.value.replace(/[^0-9]/g, ""))}
-              className={`w-full rounded-xl p-3 pr-16 border ${
-                showHints && (!salaryToValid || !salaryOrderValid) ? "border-red-400 focus:ring-2 focus:ring-red-300" : ""
-              }`}
-              type="text"
-              inputMode="numeric"
-              pattern="[0-9]*"
-              placeholder="e.g., 8000"
-            />
-            <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm text-neutral-500">/month</span>
-          </div>
-          {showHints && !salaryToValid && (
-            <div className="mt-1 text-[11px] text-red-600">Enter a maximum monthly salary.</div>
-          )}
-          {showHints && salaryToValid && !salaryOrderValid && (
-            <div className="mt-1 text-[11px] text-red-600">Maximum should be greater than or equal to minimum.</div>
-          )}
-        </div>
-        <div>
-          <label className="block text-sm font-medium mb-1">Hours / week</label>
+          <label className="mb-1 block text-sm font-medium">
+            Submission deadline
+          </label>
           <input
-            id="hours-week"
-            value={hoursPerWeek}
-            onChange={(e) => setHoursPerWeek(e.target.value.replace(/[^0-9]/g, ""))}
-            className={`w-full rounded-xl p-3 border ${showHints && !hoursValid ? "border-red-400 focus:ring-2 focus:ring-red-300" : ""}`}
-            type="text"
-            inputMode="numeric"
-            pattern="[0-9]*"
-            placeholder="e.g., 40"
+            value={submissionDeadline}
+            onChange={(e) => setSubmissionDeadline(e.target.value)}
+            className={INPUT}
+            type="date"
           />
-          {showHints && !hoursValid && (
-            <div className="mt-1 text-[11px] text-red-600">Enter hours per week (e.g., 40).</div>
-          )}
         </div>
       </div>
+      )}
 
-      {/* Skills */}
+      {step === 1 && (
       <div>
-        <label className="block text-sm font-medium mb-1">Skills</label>
-        <div className="flex gap-2">
+        <label className="mb-1 block text-sm font-medium">
+          Support tracks
+        </label>
+        <div className="flex flex-wrap gap-2">
+          {SUPPORT_PRESETS.map((item) => {
+            const selected = skills.includes(item);
+            return (
+              <button
+                key={item}
+                type="button"
+                onClick={() => (selected ? onRemoveSkill(item) : onAddSkill(item))}
+                className={`cursor-pointer rounded-full border px-3 py-1 text-xs ${
+                  selected
+                    ? "border-black bg-black text-white"
+                    : "bg-white text-gray-900 hover:bg-gray-50"
+                }`}
+              >
+                {item}
+              </button>
+            );
+          })}
+        </div>
+        <div className="mt-3 flex gap-2">
           <input
-            id="skills-input"
             value={skillInput}
             onChange={(e) => setSkillInput(e.target.value)}
             onKeyDown={(e) => {
@@ -521,177 +540,118 @@ export default function JobTab(props: JobTabProps) {
                 onAddSkill();
               }
             }}
-            placeholder="Add a skill and press Enter"
-            className={`flex-1 rounded-xl p-3 border ${showHints && !skillsValid ? "border-red-400 focus:ring-2 focus:ring-red-300" : ""}`}
+            placeholder="Add another support area and press Enter"
+            className={cx(INPUT, "flex-1")}
           />
           <button
             type="button"
             onClick={() => onAddSkill()}
-            className="rounded-xl border px-4 py-2 text-sm bg-white text-black hover:bg-gray-50 min-w-[140px] shadow-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/40 cursor-pointer"
+            className={cx(BTN.subtle, "px-4 py-2 text-sm")}
           >
-            Add Skill
+            Add
           </button>
         </div>
-        <div className="mt-2 flex flex-wrap gap-2">
-          {skills.map((s) => (
-            <span
-              key={s}
-              className="inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs text-gray-600 bg-white"
-            >
-              {s}
-              <button
-                type="button"
-                className="text-red-600 cursor-pointer"
-                onClick={() => onRemoveSkill(s)}
-                aria-label={`Remove ${s}`}
-                title="Remove"
+        {skills.length > 0 && (
+          <div className="mt-3 flex flex-wrap gap-2">
+            {skills.map((skill) => (
+              <span
+                key={skill}
+                className="inline-flex items-center gap-2 rounded-full border bg-white px-3 py-1 text-xs text-gray-900"
               >
-                {"\u00D7"}
-              </button>
-            </span>
-          ))}
-        </div>
-        {showHints && !skillsValid && (
-          <div className="mt-1 text-[11px] text-red-600">Add at least one skill.</div>
+                {skill}
+                <button
+                type="button"
+                onClick={() => onRemoveSkill(skill)}
+                  className="cursor-pointer font-semibold text-gray-900"
+                >
+                  ×
+                </button>
+              </span>
+            ))}
+          </div>
         )}
-        <SkillSuggest
-          title={title}
-          existing={skills}
-          enabled={titleReady}
-          onPick={(s) => {
-            if (skills.includes(s)) return;
-            onAddSkill(s);
-          }}
-        />
       </div>
+      )}
 
-      {/* JD */}
+      {step === 1 && (
       <div>
-        <div className="mb-1 text-sm font-medium">Job Description (JD)</div>
+        <label className="mb-1 block text-sm font-medium">
+          Opportunity brief
+        </label>
         <textarea
-          id="jd-text"
           value={jdText}
           onChange={(e) => setJdText(e.target.value)}
-          className={`rounded-xl p-3 h-[300px] w-full overflow-auto leading-6 font-mono text-[13px] border ${
-            showHints && !jdValid ? "border-red-400 focus:ring-2 focus:ring-red-300" : ""
-          }`}
-          placeholder="Paste or generate the job description here..."
+          className="h-[280px] w-full rounded-[28px] border border-neutral-200 bg-white px-4 py-3 text-sm leading-6 text-gray-900 shadow-sm transition placeholder:text-gray-400 focus:border-neutral-300 focus:outline-none focus:ring-2 focus:ring-black/5"
+          placeholder="Summarize the opportunity, buyer context, scope, expectations, constraints, win themes, and any immediate next steps."
         />
         <div className="mt-1 text-xs text-gray-500">
-          JD length: {jdText.trim().length} characters (min 120)
+          Brief length: {briefLength} characters (min 120)
         </div>
-        {showHints && !jdValid && (
-          <div className="mt-1 text-[11px] text-red-600">Please write at least 120 characters.</div>
-        )}
-
-      {showHints && (!titleValid || !roleValid || !companyValid || !jdValid || !locationDetailsValid || !startValid || !salaryFromValid || !salaryToValid || (salaryToValid && !salaryOrderValid) || !commValid || !hoursValid || !skillsValid || !currencyValid) && (
-        <div className="mt-3 rounded-lg border border-amber-300 bg-amber-50 p-2 text-[12px] text-amber-800">
-          Complete to continue:
-          <div className="mt-1 flex flex-wrap gap-2">
-            {!titleValid && (
-              <button type="button" className="underline" onClick={() => focusById("job-title")}>Job Title</button>
-            )}
-            {!roleValid && (
-              <button type="button" className="underline" onClick={() => focusById("role-name")}>Role Name</button>
-            )}
-            {!companyValid && (
-              <button type="button" className="underline" onClick={() => focusById("company-name")}>Company</button>
-            )}
-            {!jdValid && (
-              <button type="button" className="underline" onClick={() => focusById("jd-text")}>Job Description</button>
-            )}
-            {!locationDetailsValid && (
-              <button type="button" className="underline" onClick={() => focusById("location-details")}>Location details</button>
-            )}
-            {!startValid && (
-              <button type="button" className="underline" onClick={() => focusById("start-date")}>Start date</button>
-            )}
-            {(!salaryFromValid || !salaryToValid || (salaryToValid && !salaryOrderValid)) && (
-              <button type="button" className="underline" onClick={() => focusById(!salaryFromValid ? "salary-from" : "salary-to")}>Salary range</button>
-            )}
-            {!commValid && (
-              <button type="button" className="underline" onClick={() => focusById("comm-importance")}>Communication importance</button>
-            )}
-            {!hoursValid && (
-              <button type="button" className="underline" onClick={() => focusById("hours-week")}>Hours / week</button>
-            )}
-            {!skillsValid && (
-              <button type="button" className="underline" onClick={() => focusById("skills-input")}>Skills</button>
-            )}
-            {!currencyValid && (
-              <button type="button" className="underline" onClick={() => focusById("salary-currency")}>Currency</button>
-            )}
-          </div>
-        </div>
-      )}
       </div>
+      )}
 
-      <div className="flex flex-wrap gap-3 justify-end relative">
-        {(() => {
-          const jdEnough = (jdText || "").trim().length >= 60; // prime AI with enough context
-          const hasBasics =
-            (title || "").trim().length > 0 ||
-            (roleName || "").trim().length > 0 ||
-            (company || "").trim().length > 0;
-          const canGenerate = jdEnough && hasBasics;
-          const genTitle = canGenerate
-            ? undefined
-            : "Add title/role/company and at least ~60 chars in JD to generate";
-          return (
-            <>
-              <button
-                type="button"
-                onClick={onGenerateAIJD}
-                className="rounded-2xl px-5 py-3 font-semibold text-white bg-gradient-to-r from-emerald-600 via-emerald-500 to-cyan-600 shadow-xl ring-1 ring-black/10 hover:shadow-2xl transition focus:outline-none focus:ring-2 focus:ring-emerald-400 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:cursor-not-allowed"
-                disabled={aiBusy || !canGenerate}
-                title={genTitle}
-              >
-                {aiBusy ? "Generating..." : "Generate AI JD"}
-              </button>
-            </>
-          );
-        })()}
+      {step === 1 && (
+      <div>
+        <label className="mb-1 block text-sm font-medium">
+          Document notes or reference links
+        </label>
+        <textarea
+          value={documentRefs}
+          onChange={(e) => setDocumentRefs(e.target.value)}
+          className="min-h-[120px] w-full rounded-[28px] border border-neutral-200 bg-white px-4 py-3 text-sm leading-6 text-gray-900 shadow-sm transition placeholder:text-gray-400 focus:border-neutral-300 focus:outline-none focus:ring-2 focus:ring-black/5"
+          placeholder="Paste file paths, shared-drive links, portal references, or notes about documents to collect."
+        />
+      </div>
+      )}
+
+      <div className="flex justify-between gap-3">
         <button
           type="button"
-          onClick={onNext}
-          disabled={!!nextDisabled}
-          title={nextDisabled ? "Complete Job Info to continue" : undefined}
-          className={`rounded-2xl px-5 py-3 font-semibold text-white bg-emerald-700/90 shadow ring-1 ring-black/10 hover:shadow-2xl transition ${
-            nextDisabled ? "opacity-60 cursor-not-allowed" : "cursor-pointer"
-          } disabled:cursor-not-allowed disabled:hover:cursor-not-allowed`}
+          onClick={() => setStep((prev) => (prev > 0 ? ((prev - 1) as 0 | 1) : prev))}
+          disabled={step === 0}
+          className={cx(BTN.subtle, "rounded-2xl", step === 0 && "cursor-not-allowed opacity-50")}
         >
-          Next: Interview
+          Back
         </button>
-        {nextDisabled && (
-          <button
-            type="button"
-            className="absolute right-0 top-0 h-full w-[200px] cursor-not-allowed bg-transparent"
-            title="Complete Job Info to continue"
-            onClick={() => {
-              setShowHints(true);
-              gotoFirstInvalid();
-            }}
-            aria-hidden
-          />
+        {step < 1 ? (
+          <div className="flex flex-col items-end gap-2">
+            {!currentStepValid ? (
+              <div className="text-right text-xs text-red-600">{stepHelp}</div>
+            ) : null}
+            <button
+              type="button"
+              onClick={() => setStep((prev) => ((prev + 1) as 0 | 1))}
+              disabled={!currentStepValid}
+              className={cx(
+                BTN.primary,
+                "rounded-2xl",
+                !currentStepValid && "cursor-not-allowed opacity-50"
+              )}
+            >
+              Continue
+            </button>
+          </div>
+        ) : (
+          <div className="flex flex-col items-end gap-2">
+            {!currentStepValid ? (
+              <div className="text-right text-xs text-red-600">{stepHelp}</div>
+            ) : null}
+            <button
+              type="button"
+              onClick={onNext}
+              disabled={!!nextDisabled || !currentStepValid}
+              className={cx(
+                BTN.primary,
+                "rounded-2xl",
+                (nextDisabled || !currentStepValid) &&
+                  "cursor-not-allowed opacity-50"
+              )}
+            >
+              Create opportunity
+            </button>
+          </div>
         )}
       </div>
-
-      {/* AI JD loader overlay */}
-      {aiBusy && (
-        <div
-          className="fixed inset-0 z-[60] grid place-items-center bg-black/40 backdrop-blur-sm"
-          role="status"
-          aria-live="polite"
-          aria-label="Generating job description"
-        >
-          <div className="flex flex-col items-center gap-4">
-            <div className="relative grid h-12 w-auto place-items-center">
-              <Image src="/euman-logo.png" alt="Euman AI" width={160} height={36} priority className="h-9 w-auto animate-pulse" />
-            </div>
-            <div className="text-white/90 text-sm">Generating JD...</div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

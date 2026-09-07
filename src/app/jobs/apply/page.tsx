@@ -6,8 +6,16 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useSession } from "@/lib/use-session";
+import BrandLoader from "@/components/brand-loader";
 
 // Add validation helpers
+function normalizeLinkedInUrl(raw: string): string {
+  const value = raw.trim();
+  if (!value) return "";
+  if (/^https?:\/\//i.test(value)) return value;
+  return `https://${value}`;
+}
+
 function isValidLinkedInUrl(url: string): boolean {
   try {
     const parsed = new URL(url);
@@ -47,6 +55,9 @@ export default function JobApplyPage() {
   const emailFromLink = (params?.get("email") || "").toLowerCase();
   const ivt = params?.get("ivt") || ""; // signed invite token
   const langParam = params?.get("lang") || "";
+  const participantType = params?.get("participantType") || "candidate";
+  const intakeMethod = params?.get("intakeMethod") || "ai-interview";
+  const participantRequestId = params?.get("requestId") || "";
 
   // Local state
   const [job, setJob] = useState<any>(null);
@@ -57,7 +68,11 @@ export default function JobApplyPage() {
   const [phone, setPhone] = useState("");
   const [linkedin, setLinkedin] = useState("");
   const [resume, setResume] = useState<File | null>(null);
+  const [proposedDate, setProposedDate] = useState("");
+  const [proposedTime, setProposedTime] = useState("");
   const [busy, setBusy] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
+  const [futureOpportunityConsent, setFutureOpportunityConsent] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
   const [language, setLanguage] = useState<string>("en");
@@ -82,14 +97,8 @@ export default function JobApplyPage() {
     [emailFromLink, ivt]
   );
 
-  // Gate: normal applicants must be logged in as talent, but invites skip the gate
-  useEffect(() => {
-    if (!ivt && !sessionLoading) {
-      if (!user || String(user?.role) !== "talent") {
-        router.replace("/zuri/start/login?role=talent");
-      }
-    }
-  }, [ivt, user, sessionLoading, router]);
+  // Participant links are public. An invite token still locks the email and
+  // is verified by the session API, but participants do not need an account.
 
   // For invite flows: check if this candidate already has a finished session
   useEffect(() => {
@@ -227,6 +236,9 @@ export default function JobApplyPage() {
     setErr(null);
     setFormErrors({});
 
+    // Normalize LinkedIn ahead of validation
+    const normalizedLinkedin = normalizeLinkedInUrl(linkedin);
+
     // Validate fields
     const errors: { [key: string]: string } = {};
 
@@ -238,9 +250,9 @@ export default function JobApplyPage() {
       errors.email = "Valid email is required";
     }
 
-    if (!linkedin.trim()) {
+    if (participantType === "candidate" && !normalizedLinkedin.trim()) {
       errors.linkedin = "LinkedIn profile URL is required";
-    } else if (!isValidLinkedInUrl(linkedin)) {
+    } else if (participantType === "candidate" && !isValidLinkedInUrl(normalizedLinkedin)) {
       errors.linkedin =
         "Please enter a valid LinkedIn profile URL (e.g., linkedin.com/in/username)";
     }
@@ -276,13 +288,17 @@ export default function JobApplyPage() {
       return;
     }
 
+    // Update UI with normalized LinkedIn
+    setLinkedin(normalizedLinkedin);
+
     setBusy(true);
     try {
       // Use saved resume if available
       let resumeUrlToUse: string | undefined = (user as any)?.resume?.url;
 
       // If no saved resume, upload a new one
-      if (!resumeUrlToUse) {
+      const needsResume = participantType === "candidate" || intakeMethod === "documents-only";
+      if (!resumeUrlToUse && needsResume) {
         if (!resume) throw new Error("Resume is required.");
 
         // 1) Sign
@@ -318,9 +334,17 @@ export default function JobApplyPage() {
         body: JSON.stringify({
           jobCode: code,
           language,
+          participantType,
+          intakeMethod,
+          participantRequestId: participantRequestId || undefined,
+          proposedInterviewSlots:
+            intakeMethod === "human-interview" && proposedDate && proposedTime
+              ? [{ startAt: new Date(`${proposedDate}T${proposedTime}`).toISOString(), timezone: Intl.DateTimeFormat().resolvedOptions().timeZone }]
+              : [],
+          futureOpportunityConsent,
           inviteToken: ivt || undefined,
-          candidate: { name, email, phone, linkedin },
-          resume: { url: resumeUrlToUse },
+          candidate: { name, email, phone, linkedin: normalizedLinkedin },
+          resume: resumeUrlToUse ? { url: resumeUrlToUse } : undefined,
           screeners: {
             legacy: Array.isArray(job?.screenerQuestions)
               ? screenerAnswers.map((a, i) => ({
@@ -344,7 +368,11 @@ export default function JobApplyPage() {
       if (!res.ok || !j.ok)
         throw new Error(j.error || "Failed to create session");
 
-      window.location.href = `/zuri/${j.id}?t=${j.token}`;
+      if (intakeMethod === "ai-interview") {
+        window.location.href = `/zuri/${j.id}?t=${j.token}`;
+      } else {
+        setSubmitted(true);
+      }
     } catch (e: any) {
       setErr(e.message || "Error");
     } finally {
@@ -353,6 +381,25 @@ export default function JobApplyPage() {
   }
 
   const langs: string[] = Array.isArray(job?.languages) ? job.languages : [];
+
+  if (submitted) {
+    const methodLabel =
+      intakeMethod === "documents-only"
+        ? "document submission"
+        : intakeMethod === "human-interview"
+          ? "human interview"
+          : "manual review";
+    return (
+      <div className="flex min-h-[100svh] items-center justify-center bg-slate-950 px-4 text-white">
+        <div className="w-full max-w-lg rounded-3xl border border-slate-800 bg-slate-900 p-8 text-center shadow-xl">
+          <h1 className="text-2xl font-semibold">Submission received</h1>
+          <p className="mt-3 text-sm leading-6 text-slate-300">
+            Your information has been submitted for {methodLabel}. The Euman Intelligence team will review it and follow up if anything else is needed.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   if (ivt && inviteFinished.checked && inviteFinished.finished) {
     const label = inviteFinished.finishedAt
@@ -436,8 +483,7 @@ export default function JobApplyPage() {
           Before you begin
         </div>
         <ul className="mt-2 list-disc pl-5 text-sm text-gray-700 space-y-1">
-          <li>Keep your camera and microphone available.</li>
-          <li>Be ready to share your screen if asked.</li>
+          {intakeMethod === "ai-interview" && <><li>Keep your camera and microphone available.</li><li>Be ready to share your screen if asked.</li></>}
           <li>Use a quiet space and stable internet.</li>
           <li>
             We score what you say, not your accent. Be concise and concrete.
@@ -491,6 +537,19 @@ export default function JobApplyPage() {
             )}
           </div>
 
+          {intakeMethod === "human-interview" && (
+            <div className="grid gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+              <div>
+                <div className="font-semibold text-slate-900">Suggest an interview time</div>
+                <p className="text-xs text-slate-600">This is a proposal. The Euman Intelligence team will confirm the final time.</p>
+              </div>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <label className="grid gap-1 text-sm text-slate-700">Date<input type="date" value={proposedDate} onChange={(e) => setProposedDate(e.target.value)} className="rounded-xl border border-slate-300 bg-white p-3 text-slate-900" required /></label>
+                <label className="grid gap-1 text-sm text-slate-700">Time<input type="time" value={proposedTime} onChange={(e) => setProposedTime(e.target.value)} className="rounded-xl border border-slate-300 bg-white p-3 text-slate-900" required /></label>
+              </div>
+            </div>
+          )}
+
           <div>
             <input
               value={email}
@@ -518,10 +577,11 @@ export default function JobApplyPage() {
             type="tel"
           />
 
-          <div>
+          {participantType === "candidate" && <div>
             <input
               value={linkedin}
               onChange={(e) => setLinkedin(e.target.value)}
+              onBlur={() => setLinkedin((prev) => normalizeLinkedInUrl(prev))}
               placeholder="LinkedIn profile URL"
               type="url"
               className={`rounded-xl border p-3 w-full ${
@@ -534,7 +594,7 @@ export default function JobApplyPage() {
                 {formErrors.linkedin}
               </div>
             )}
-          </div>
+          </div>}
 
           {Array.isArray(job.screenerQuestions) &&
             job.screenerQuestions.length > 0 && (
@@ -594,7 +654,7 @@ export default function JobApplyPage() {
                               screenerRuleAnswers[idx]?.answer ?? ""
                             )}
                             onChange={(e) => setAns(e.target.value)}
-                            className={`rounded-xl border p-2 ${
+                            className={`rounded-xl border border-radius-10 p-2 bg-white text-gray-900 ${
                               hasErr ? "border-red-500" : ""
                             }`}
                           >
@@ -639,7 +699,7 @@ export default function JobApplyPage() {
                               screenerRuleAnswers[idx]?.answer ?? ""
                             )}
                             onChange={(e) => setAns(e.target.value === "true")}
-                            className={`rounded-xl border p-2 ${
+                            className={`rounded-xl border p-2 bg-white text-gray-900 ${
                               hasErr ? "border-red-500" : ""
                             }`}
                           >
@@ -672,7 +732,7 @@ export default function JobApplyPage() {
               </div>
             )}
 
-          {!hasResume && (
+          {(!hasResume && (participantType === "candidate" || intakeMethod === "documents-only")) && (
             <input
               type="file"
               accept=".pdf,.doc,.docx"
@@ -693,6 +753,16 @@ export default function JobApplyPage() {
             </div>
           )}
 
+          <label className="flex items-start gap-2 text-sm text-slate-300">
+            <input
+              type="checkbox"
+              checked={futureOpportunityConsent}
+              onChange={(e) => setFutureOpportunityConsent(e.target.checked)}
+              className="mt-1 cursor-pointer"
+            />
+            <span>Keep my information for consideration in future opportunities.</span>
+          </label>
+
           <button
             type="submit"
             disabled={busy}
@@ -707,11 +777,7 @@ export default function JobApplyPage() {
       )}
 
       {/* Loading / fallbacks */}
-      {loadingJob && (
-        <div className="mx-auto max-w-xl px-4 py-10 text-center">
-          <div className="animate-pulse h-8 w-2/3 mx-auto bg-gray-200 rounded" />
-        </div>
-      )}
+      {loadingJob && <BrandLoader label="Loading opportunity..." />}
 
       {!loadingJob && !job && (
         <div className="mx-auto max-w-xl px-4 py-10 text-center text-red-600">
@@ -734,7 +800,7 @@ export default function JobApplyPage() {
 
       {(sessionLoading || loadingJob) && (
         <div
-          className="fixed inset-0 z-[60] grid place-items-center bg-black/40 backdrop-blur-sm"
+          className="fixed inset-0 z-[120] grid place-items-center bg-black/40 backdrop-blur-sm"
           role="status"
           aria-live="polite"
           aria-label="Loading interview form"
@@ -742,7 +808,7 @@ export default function JobApplyPage() {
           <div className="flex flex-col items-center gap-4">
             <div className="relative grid h-12 w-auto place-items-center">
               <Image
-                src="/euman-logo.png"
+                src="/euman_logo.png"
                 alt="Euman AI"
                 width={160}
                 height={36}
@@ -759,7 +825,7 @@ export default function JobApplyPage() {
 
       {busy && (
         <div
-          className="fixed inset-0 z-[60] grid place-items-center bg-black/40 backdrop-blur-sm"
+          className="fixed inset-0 z-[120] grid place-items-center bg-black/40 backdrop-blur-sm"
           role="status"
           aria-live="polite"
           aria-label="Starting interview"
@@ -767,7 +833,7 @@ export default function JobApplyPage() {
           <div className="flex flex-col items-center gap-4">
             <div className="relative grid h-12 w-auto place-items-center">
               <Image
-                src="/euman-logo.png"
+                src="/euman_logo.png"
                 alt="Euman AI"
                 width={160}
                 height={36}

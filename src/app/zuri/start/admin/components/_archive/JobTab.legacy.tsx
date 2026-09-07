@@ -420,7 +420,7 @@ export default function JobTab(props: JobTabProps) {
           <div className="flex flex-col items-center gap-4">
             <div className="relative grid h-12 w-auto place-items-center">
               <Image
-                src="/euman-logo.png"
+                src="/euman_logo.png"
                 alt="Euman AI"
                 width={160}
                 height={36}

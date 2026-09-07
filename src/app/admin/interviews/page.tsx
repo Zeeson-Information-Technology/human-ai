@@ -1,11 +1,14 @@
-import dbConnect from "@/lib/db-connect";
-import Session from "@/model/session";
+import DashboardShell from "@/components/dashboardBar";
 import Link from "next/link";
-import { getAdminFromCookies } from "@/lib/admin-session";
 import { redirect } from "next/navigation";
+import { getAdminFromCookies } from "@/lib/admin-session";
+import dbConnect from "@/lib/db-connect";
+import { getAdminNav } from "@/lib/admin-dashboard";
+import { isPlatformAdminRole } from "@/lib/admin-auth";
 import { getOperatorFromCookies } from "@/lib/get-operator";
+import { Job } from "@/model/opportunity";
+import Session from "@/model/session";
 
-// Force dynamic rendering so search params always refresh the list
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
@@ -24,13 +27,13 @@ function fmt(dt?: string | Date) {
   }
 }
 
-async function getSessions({ status, q }: SearchParams) {
+async function getSessions(
+  { status, q }: SearchParams,
+  operator: { id: string; role?: string }
+) {
   await dbConnect();
-  const me = await getOperatorFromCookies();
-  const isAdmin = me?.role === "admin";
-  const ownerFilter = !isAdmin && me?.id ? { ownerId: new (await import("mongoose")).Types.ObjectId(me.id) } : {};
 
-  const match: any = { ...(ownerFilter as any) };
+  const match: any = {};
   if (status && status !== "all") match.status = status;
 
   if (q) {
@@ -45,27 +48,42 @@ async function getSessions({ status, q }: SearchParams) {
     ];
   }
 
+  if (!isPlatformAdminRole(operator.role)) {
+    const assignedJobs = await Job.find(
+      { assignedUserId: operator.id },
+      { code: 1 }
+    ).lean();
+    match.jobCode = {
+      $in: assignedJobs.map((job: any) => job.code).filter(Boolean),
+    };
+  }
+
   const docs = await Session.find(match)
     .sort({ createdAt: -1 })
     .limit(150)
     .lean();
 
   const filteredDocs =
-    status && status !== "all" ? docs.filter((d: any) => d.status === status) : docs;
+    status && status !== "all"
+      ? docs.filter((d: any) => d.status === status)
+      : docs;
 
   return filteredDocs.map((d: any) => ({
     id: String(d._id),
     ownerId: d.ownerId ? String(d.ownerId) : "",
     status: d.status as string,
+    participantType:
+      d.participantType && d.participantType !== "candidate"
+        ? d.participantType
+        : "participant",
     jobCode: d.jobCode || "",
     jobTitle: d.jobTitle || "",
     company: d.company || "",
     roleName: d.roleName || "",
     language: d.language || "en",
-    candidateName: d.candidate?.name || "",
-    candidateEmail: d.candidate?.email || "",
+    participantName: d.candidate?.name || "",
+    participantEmail: d.candidate?.email || "",
     startedAt: d.startedAt ? new Date(d.startedAt).toISOString() : "",
-    finishedAt: d.finishedAt ? new Date(d.finishedAt).toISOString() : "",
     score: d.scorecard?.overallScore ?? null,
     stepsCount: Array.isArray(d.steps) ? d.steps.length : 0,
   }));
@@ -74,56 +92,56 @@ async function getSessions({ status, q }: SearchParams) {
 export default async function AdminInterviewsPage({
   searchParams,
 }: {
-  searchParams?: SearchParams;
+  searchParams?: Promise<SearchParams>;
 }) {
-  // Unified auth: only allow admin/company
   const admin = await getAdminFromCookies();
-  if (!admin) redirect("/zuri/start/login?role=client");
-  const me = await getOperatorFromCookies();
+  if (!admin) redirect("/admin/login");
 
-  const status = (searchParams?.status || "all") as
+  const me = await getOperatorFromCookies();
+  if (!me) {
+    redirect("/admin/login");
+  }
+
+  const params = (await searchParams) || {};
+
+  const status = (params.status || "all") as
     | "all"
     | "running"
     | "finished"
     | "cancelled"
     | "pending";
-  const q = searchParams?.q?.trim() || "";
+  const q = params.q?.trim() || "";
 
-  const sessions = await getSessions({ status, q });
+  const sessions = await getSessions({ status, q }, me);
 
   const total = sessions.length;
   const finished = sessions.filter((s) => s.status === "finished").length;
   const running = sessions.filter((s) => s.status === "running").length;
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-8">
-      <div className="flex items-center justify-between gap-3">
-        <h1 className="text-2xl font-bold">Interviews</h1>
-        <div className="flex items-center gap-2 text-sm">
-          <Link href="/admin/leads" className="rounded-lg border px-3 py-1 hover:bg-gray-50">
-            Leads
-          </Link>
-          <Link href="/admin/jobs" className="rounded-lg border px-3 py-1 hover:bg-gray-50">
-            Jobs
-          </Link>
-        </div>
+    <DashboardShell
+      user={{
+        name: (me as any).name ?? me.email ?? "Admin",
+        email: me.email,
+        role: me.role as any,
+      }}
+      title={isPlatformAdminRole(me.role) ? "Structured Reviews" : "My Reviews"}
+      nav={getAdminNav(me.role)}
+    >
+    <div className="mx-auto max-w-6xl px-4 py-2 text-white">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <h1 className="text-2xl font-bold text-white">Structured Reviews</h1>
       </div>
-
-      {/* Current user (debug/visibility) */}
-      <div className="mt-2 text-xs text-gray-500">
-        Signed in as {me?.email} (role: {me?.role}) • id: {me?.id}
-      </div>
-
-      {/* Filters */}
-      <form className="mt-4 flex flex-wrap items-center gap-3" action="/admin/interviews" method="GET">
+      <form
+        className="mt-4 flex flex-wrap items-center gap-3"
+        action="/admin/interviews"
+        method="GET"
+      >
         <div className="relative">
           <select
             name="status"
             defaultValue={status}
-            className="appearance-none rounded-lg border border-gray-300 px-3 py-2 pr-9 text-sm
-                       bg-white text-gray-900 [color-scheme:light]
-                       dark:bg-gray-900 dark:text-gray-100 dark:border-gray-600 dark:[color-scheme:dark]
-                       focus:outline-none focus:ring-2 focus:ring-black/10"
+            className="appearance-none rounded-lg border border-white/15 bg-white/5 px-3 py-2 pr-9 text-sm text-white focus:outline-none focus:ring-2 focus:ring-white/10"
           >
             <option value="all">All statuses</option>
             <option value="running">Running</option>
@@ -131,11 +149,9 @@ export default async function AdminInterviewsPage({
             <option value="pending">Pending</option>
             <option value="cancelled">Cancelled</option>
           </select>
-
-          {/* custom caret */}
           <svg
             aria-hidden
-            className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 opacity-70"
+            className="pointer-events-none absolute right-2 top-1/2 h-4 w-4 -translate-y-1/2 opacity-70"
             viewBox="0 0 20 20"
             fill="currentColor"
           >
@@ -146,82 +162,82 @@ export default async function AdminInterviewsPage({
         <input
           name="q"
           defaultValue={q}
-          placeholder="Search (name, email, job, code)…"
-          className="min-w-[280px] flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm
-                     bg-white text-gray-900 placeholder:text-gray-500 [color-scheme:light]
-                     dark:bg-gray-900 dark:text-gray-100 dark:placeholder:text-gray-400 dark:border-gray-600 dark:[color-scheme:dark]
-                     focus:outline-none focus:ring-2 focus:ring-black/10"
+          placeholder="Search by participant, email, opportunity, or code..."
+          className="min-w-[280px] flex-1 rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-white/35 focus:outline-none focus:ring-2 focus:ring-white/10"
         />
 
-        <button type="submit" className="rounded-lg bg-black px-4 py-2 text-sm font-medium text-white hover:opacity-90">
+        <button
+          type="submit"
+          className="rounded-lg bg-white px-4 py-2 text-sm font-medium text-black hover:opacity-90"
+        >
           Apply
         </button>
 
         <Link
           href="/admin/interviews"
-          className="rounded-lg border border-gray-300 px-3 py-2 text-sm hover:bg-gray-50 dark:border-gray-600 dark:hover:bg-gray-800"
+          className="rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-sm text-white/85 transition hover:bg-white/10 hover:text-white"
         >
           Reset
         </Link>
       </form>
 
-      {/* Stats */}
-      <div className="mt-4 flex flex-wrap gap-3 text-sm text-gray-600">
+      <div className="mt-4 flex flex-wrap gap-3 text-sm text-white/65">
         <span>Total: {total}</span>
-        <span>• Running: {running}</span>
-        <span>• Finished: {finished}</span>
+        <span>| Running: {running}</span>
+        <span>| Finished: {finished}</span>
       </div>
 
-      {/* List */}
       <div className="mt-6 grid gap-3">
         {sessions.map((s) => (
           <Link
             key={s.id}
             href={`/admin/interviews/${s.id}`}
-            className="block rounded-2xl border p-4 hover:bg-gray-50 dark:hover:bg-gray-800/60"
+            className="block rounded-2xl border border-white/10 bg-white/[0.06] p-4 transition hover:bg-white/[0.1]"
           >
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div className="min-w-0">
-                <div className="truncate font-semibold">
-                  {s.jobTitle || s.roleName || "Interview"}{" "}
-                  <span className="text-gray-500">
-                    {s.company ? ` • ${s.company}` : ""}
-                    {s.jobCode ? ` • ${s.jobCode}` : ""}
+                <div className="truncate font-semibold text-white">
+                  {s.jobTitle || s.roleName || "Participant review"}{" "}
+                  <span className="text-white/55">
+                    {s.company ? ` | ${s.company}` : ""}
+                    {s.jobCode ? ` | ${s.jobCode}` : ""}
                   </span>
                 </div>
-                <div className="mt-1 text-sm text-gray-600 dark:text-gray-400 flex flex-wrap items-center gap-2">
+                <div className="mt-1 flex flex-wrap items-center gap-2 text-sm text-white/65">
                   <span>
-                    {s.candidateName} &lt;{s.candidateEmail}&gt;
+                    {s.participantName || "Participant"} &lt;
+                    {s.participantEmail || "-"}&gt;
+                  </span>
+                  <span className="inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] uppercase tracking-wide">
+                    {s.participantType}
                   </span>
                   <span>Lang: {s.language}</span>
                   <span>Steps: {s.stepsCount}</span>
-                  <span className="text-gray-400">Owner: {s.ownerId || "-"}</span>
+                  <span className="text-white/45">Owner: {s.ownerId || "-"}</span>
                   {s.status === "finished" && (
-                    <span className="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] text-emerald-700 border-emerald-300 bg-emerald-50">
+                    <span className="inline-flex items-center gap-1 rounded-full border border-emerald-300/20 bg-emerald-400/10 px-2 py-0.5 text-[11px] text-emerald-200">
                       Report
-                    </span>
-                  )}
-                  {s.status === "finished" && (
-                    <span className="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] text-blue-700 border-blue-300 bg-blue-50">
-                      Emailed
                     </span>
                   )}
                 </div>
               </div>
+
               <div className="text-right text-sm">
                 <div
                   className={`inline-flex items-center rounded-full px-2 py-0.5 ${
                     s.status === "finished"
                       ? "bg-emerald-600 text-white"
                       : s.status === "running"
-                      ? "bg-black text-white"
-                      : "bg-gray-200 text-gray-800 dark:bg-gray-700 dark:text-gray-100"
+                        ? "bg-black text-white"
+                    : "bg-white/10 text-white/70"
                   }`}
                 >
                   {s.status}
                 </div>
-                <div className="mt-1 text-gray-600 dark:text-gray-400">
-                  {s.status === "finished" ? `Score: ${s.score ?? "-"}` : fmt(s.startedAt)}
+                <div className="mt-1 text-white/60">
+                  {s.status === "finished"
+                    ? `Score: ${s.score ?? "-"}`
+                    : fmt(s.startedAt)}
                 </div>
               </div>
             </div>
@@ -229,12 +245,12 @@ export default async function AdminInterviewsPage({
         ))}
 
         {sessions.length === 0 && (
-          <div className="rounded-xl border bg-gray-50 p-6 text-center text-sm text-gray-600 dark:bg-gray-800/50 dark:text-gray-300">
-            No interviews found. Adjust filters or start a new session.
+          <div className="rounded-xl border border-white/10 bg-white/[0.05] p-6 text-center text-sm text-white/65">
+            No participant reviews found yet.
           </div>
         )}
       </div>
     </div>
+    </DashboardShell>
   );
 }
-

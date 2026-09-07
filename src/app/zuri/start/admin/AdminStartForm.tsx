@@ -1,42 +1,62 @@
-﻿"use client";
+"use client";
 import { useEffect, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import TabsNav, { type Tab } from "./components/TabsNav";
-import ErrorBanner from "@/components/ErrorBanner";
+import BrandLoader from "@/components/brand-loader";
+import PremiumToast from "@/components/feedback/PremiumToast";
+import { useTimedToast } from "@/components/feedback/useTimedToast";
 import { apiFetch, normalizeError } from "@/lib/api";
-import CandidatesPanel from "./components/CandidatesPanel";
-import InvitePanel from "./components/InvitePanel";
 import JobTab from "./components/JobTabClean";
-import InterviewTab from "./components/InterviewTab";
+import type { UploadedFileItem } from "@/components/forms/FileDropUpload";
 
-type InterviewType = "standard" | "resume-based" | "human-data" | "software";
+type ClientOption = {
+  id: string;
+  name: string;
+  primaryContactName?: string;
+  primaryContactEmail?: string;
+};
 
 export default function AdminStartForm() {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const [tab, setTab] = useState<Tab>("job");
+  const inquiryId = (searchParams.get("inquiry") || "").trim();
+  const [prefillLoaded, setPrefillLoaded] = useState(false);
+  const prefillClientId = (searchParams.get("clientId") || "").trim();
 
-  // Job basics (expanded later)
+  // Workspace basics (expanded later)
   const [title, setTitle] = useState("");
   const [roleName, setRoleName] = useState("");
   const [company, setCompany] = useState("");
+  const [clientId, setClientId] = useState("");
+  const [clientName, setClientName] = useState("");
+  const [createClientInline, setCreateClientInline] = useState(false);
+  const [clients, setClients] = useState<ClientOption[]>([]);
+  const [clientsLoading, setClientsLoading] = useState(true);
   const [jdText, setJdText] = useState("");
+  const [clientRepName, setClientRepName] = useState("");
+  const [clientRepEmail, setClientRepEmail] = useState("");
+  const [buyerOrganization, setBuyerOrganization] = useState("");
+  const [solicitationNumber, setSolicitationNumber] = useState("");
+  const [opportunitySource, setOpportunitySource] = useState("sales-call");
+  const [documentRefs, setDocumentRefs] = useState("");
+  const [documents, setDocuments] = useState<UploadedFileItem[]>([]);
+  const [submissionDeadline, setSubmissionDeadline] = useState("");
+  const [marketFocus, setMarketFocus] = useState("");
+  const [sourceText, setSourceText] = useState("");
 
-  // Job details
+  // Retained backend fields with safer defaults for proposal work
   const [location, setLocation] = useState<"remote" | "hybrid" | "onsite">(
     "remote"
   );
   const [locationDetails, setLocationDetails] = useState("");
-  const [employmentType, setEmploymentType] = useState(
-    "full-time"
-  );
+  const [employmentType, setEmploymentType] = useState("contract");
   const [seniority, setSeniority] = useState("mid");
   const [commImportance, setCommImportance] = useState(3);
   const [startDate, setStartDate] = useState("");
-
-  // Compensation + hours
   const [salaryCurrency, setSalaryCurrency] = useState<
     "NGN" | "USD" | "CAD" | "EUR" | "GBP"
-  >("NGN");
+  >("USD");
   const [monthlySalaryMin, setMonthlySalaryMin] = useState("");
   const [monthlySalaryMax, setMonthlySalaryMax] = useState("");
   const [hoursPerWeek, setHoursPerWeek] = useState("");
@@ -45,143 +65,26 @@ export default function AdminStartForm() {
   const [skills, setSkills] = useState<string[]>([]);
   const [skillInput, setSkillInput] = useState("");
 
-  // Interview basics
-  const [interviewType, setInterviewType] = useState<InterviewType | null>(
-    null
-  );
-  const [langs, setLangs] = useState<string[]>(["en"]);
-
-  // Screener rules (user-friendly builder)
-  type ScreenerKind = "number" | "currency" | "select" | "boolean" | "text";
-  type ScreenerCategory =
-    | "experience"
-    | "language"
-    | "monthly-salary"
-    | "notice-period"
-    | "hourly-rate"
-    | "custom";
-  type ScreenerRuleUI = {
-    question: string;
-    kind: ScreenerKind;
-    category: ScreenerCategory;
-    min?: string;
-    max?: string;
-    options?: string;
-    idealAnswer?: string;
-    qualifying: boolean;
-    qualifyWhen?: "lt" | "lte" | "eq" | "gte" | "gt" | "neq" | "in" | "nin";
-    qualifyValue?: string;
-    currency?: "NGN" | "USD" | "CAD" | "EUR" | "GBP";
-    unit?: string;
-  };
-  const [screenerRulesUI, setScreenerRulesUI] = useState<ScreenerRuleUI[]>([]);
-
-  function addScreenerPreset(cat: ScreenerCategory) {
-    const baseQuestion: Record<ScreenerCategory, { q: string; kind: ScreenerKind; unit?: string; currency?: ScreenerRuleUI["currency"]; options?: string } > = {
-      "experience": { q: "How many years of relevant experience do you have?", kind: "number", unit: "years" },
-      "language": { q: "What is your proficiency level in the required language?", kind: "select", options: "A1,A2,B1,B2,C1,C2" },
-      "monthly-salary": { q: "What is your expected monthly salary?", kind: "currency", currency: salaryCurrency },
-      "notice-period": { q: "What is your notice period (weeks)?", kind: "number", unit: "weeks" },
-      "hourly-rate": { q: "What is your expected hourly rate?", kind: "currency", currency: "USD" },
-      "custom": { q: "Write your custom question", kind: "text" },
-    };
-    const b = baseQuestion[cat];
-    setScreenerRulesUI((prev) => [
-      ...prev,
-      {
-        question: b.q,
-        category: cat,
-        kind: b.kind,
-        min: "",
-        max: "",
-        options: b.options || "",
-        idealAnswer: "",
-        qualifying: false,
-        qualifyWhen: b.kind === "number" || b.kind === "currency" ? "gte" : undefined,
-        qualifyValue: "",
-        currency: b.currency,
-        unit: b.unit,
-      },
-    ]);
-  }
-  function updateScreenerRule(idx: number, patch: Partial<ScreenerRuleUI>) {
-    setScreenerRulesUI((prev) => prev.map((r, i) => (i === idx ? { ...r, ...patch } : r)));
-  }
-  function removeScreenerRule(idx: number) {
-    setScreenerRulesUI((prev) => prev.filter((_, i) => i !== idx));
-  }
-
-  function packScreenerRules() {
-    const toNum = (v?: string) => (v !== undefined && v !== "" && !Number.isNaN(Number(v)) ? Number(v) : undefined);
-    return screenerRulesUI.map((r) => {
-      let qualifyValue: any = r.qualifyValue;
-      if ((r.qualifyWhen === "in" || r.qualifyWhen === "nin") && typeof qualifyValue === "string") {
-        qualifyValue = qualifyValue.split(",").map((x) => x.trim()).filter(Boolean);
-      }
-      const options = r.options ? r.options.split(",").map((x) => x.trim()).filter(Boolean) : undefined;
-      let ideal: any = r.idealAnswer;
-      if (typeof ideal === "string" && ideal !== "" && !Number.isNaN(Number(ideal))) ideal = Number(ideal);
-      return {
-        question: r.question.trim(),
-        kind: r.kind,
-        category: r.category,
-        min: toNum(r.min),
-        max: toNum(r.max),
-        options,
-        idealAnswer: ideal,
-        qualifying: !!r.qualifying,
-        qualifyWhen: r.qualifyWhen,
-        qualifyValue: qualifyValue === "" ? undefined : qualifyValue,
-        currency: r.currency,
-        unit: r.unit,
-      };
-    });
-  }
-
-  // Candidates view
-  const [jobCreated, setJobCreated] = useState<{ code?: string } | null>(null);
-  const [applied, setApplied] = useState<any[]>([]);
-  const [vetted, setVetted] = useState<any[]>([]);
-  const [loadingCandidates, setLoadingCandidates] = useState(false);
-
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [aiBusy, setAiBusy] = useState(false);
-
-  // Invite state
-  const [inviteEmails, setInviteEmails] = useState<string[]>([""]);
-  const [inviteBusy, setInviteBusy] = useState(false);
-  const [inviteMsg, setInviteMsg] = useState<string | null>(null);
+  const [extractBusy, setExtractBusy] = useState(false);
+  const { toast, showToast } = useTimedToast();
 
   // Derived validations
-  const salaryMinNum = Number((monthlySalaryMin || "").trim());
-  const salaryMaxNum = Number((monthlySalaryMax || "").trim());
-  const salaryValid =
-    (monthlySalaryMin || "").trim().length > 0 &&
-    (monthlySalaryMax || "").trim().length > 0 &&
-    !Number.isNaN(salaryMinNum) &&
-    !Number.isNaN(salaryMaxNum) &&
-    salaryMinNum <= salaryMaxNum;
-  const locDetailsValid = location === "remote" ? true : (locationDetails || "").trim().length > 0;
-  const startValid = (startDate || "").trim().length > 0;
-  const commValid = Number.isFinite(commImportance) && commImportance >= 1 && commImportance <= 5;
-  const hoursValid = (hoursPerWeek || "").trim().length > 0 && !Number.isNaN(Number(hoursPerWeek)) && Number(hoursPerWeek) > 0;
-  const skillsValid = skills.length > 0;
-  const currencyValid = (salaryCurrency || "").trim().length > 0;
+  const briefValid = jdText.trim().length >= 120;
+  const supportTracksValid = skills.length > 0;
+  const repValid = clientRepName.trim().length > 0;
+  const deadlineValid = submissionDeadline.trim().length > 0;
+  const clientValid = (clientId || clientName.trim().length > 0) && clientRepEmail.trim().length > 0;
   const jobInfoValid =
     title.trim().length > 0 &&
+    clientValid &&
     roleName.trim().length > 0 &&
-    company.trim().length > 0 &&
-    jdText.trim().length >= 120 &&
-    locDetailsValid &&
-    startValid &&
-    salaryValid &&
-    commValid &&
-    hoursValid &&
-    skillsValid &&
-    currencyValid;
-  const interviewInfoValid = langs.length > 0 && !!interviewType;
-
+    repValid &&
+    briefValid &&
+    supportTracksValid &&
+    deadlineValid;
   // Actions
   async function handleGenerateAIJD() {
     setAiBusy(true);
@@ -192,11 +95,11 @@ export default function AdminStartForm() {
         company,
         roleName,
         location,
-        locationDetails,
+        locationDetails: marketFocus || locationDetails,
         employmentType,
         seniority,
         commImportance,
-        startDate,
+        startDate: submissionDeadline || startDate,
         skills,
         salaryCurrency,
         monthlySalaryMin: monthlySalaryMin || undefined,
@@ -212,13 +115,81 @@ export default function AdminStartForm() {
           retries: 1,
         }
       );
-      if (!j?.ok) throw new Error(j?.error || "AI JD failed");
+      if (!j?.ok) throw new Error(j?.error || "AI brief failed");
       setJdText(String(j.jdText || ""));
     } catch (e: any) {
       const { message } = normalizeError(e);
-      setErr(message || "Failed to generate JD");
+      setErr(message || "Failed to generate role brief");
+      showToast(message || "Failed to generate role brief", "error");
     } finally {
       setAiBusy(false);
+    }
+  }
+
+  async function handleExtractOpportunity(filesOverride: UploadedFileItem[] = documents) {
+    const trimmed = sourceText.trim();
+    if (trimmed.length < 80 && filesOverride.length === 0) {
+      setErr("Paste RFP text or upload source documents before extracting details.");
+      showToast("Paste RFP text or upload source documents before extracting details.", "error");
+      return;
+    }
+
+    setExtractBusy(true);
+    setErr(null);
+    try {
+      const j = await apiFetch<{
+        ok: boolean;
+        error?: string;
+        extracted?: {
+          title?: string;
+          buyerOrganization?: string;
+          solicitationNumber?: string;
+          submissionDeadline?: string;
+          marketFocus?: string;
+          roleName?: string;
+          supportTracks?: string[];
+          brief?: string;
+        };
+      }>("/api/admin/opportunities/extract", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          text: trimmed,
+          documents: filesOverride.map((file) => ({
+            name: file.name,
+            url: file.url,
+            resourceType: file.resourceType,
+          })),
+        }),
+        retries: 1,
+      });
+
+      if (!j?.ok || !j.extracted) {
+        throw new Error(j?.error || "Could not extract opportunity details");
+      }
+
+      const extracted = j.extracted;
+      if (extracted.title) setTitle(extracted.title);
+      if (extracted.buyerOrganization) setBuyerOrganization(extracted.buyerOrganization);
+      if (extracted.solicitationNumber) setSolicitationNumber(extracted.solicitationNumber);
+      if (extracted.submissionDeadline) setSubmissionDeadline(extracted.submissionDeadline);
+      if (extracted.marketFocus) setMarketFocus(extracted.marketFocus);
+      if (extracted.roleName) setRoleName(extracted.roleName);
+      if (Array.isArray(extracted.supportTracks) && extracted.supportTracks.length) {
+        setSkills((prev) =>
+          Array.from(new Set([...prev, ...extracted.supportTracks!.filter(Boolean)]))
+        );
+      }
+      if (extracted.brief) {
+        setJdText((prev) => (prev.trim().length >= 120 ? prev : extracted.brief || prev));
+      }
+      showToast("Opportunity details extracted.", "success");
+    } catch (e: any) {
+      const { message } = normalizeError(e);
+      setErr(message || "Failed to extract opportunity details");
+      showToast(message || "Failed to extract opportunity details", "error");
+    } finally {
+      setExtractBusy(false);
     }
   }
 
@@ -228,23 +199,46 @@ export default function AdminStartForm() {
     try {
       const payload: any = {
         title,
-        company,
+        company: clientName || company,
+        clientId: clientId || undefined,
+        clientName: clientName || company,
+        clientContactName: clientRepName || undefined,
+        clientContactEmail: clientRepEmail || undefined,
+        buyerOrganization: buyerOrganization || undefined,
+        solicitationNumber: solicitationNumber || undefined,
+        opportunitySource: opportunitySource || undefined,
+        submissionDeadline: submissionDeadline || undefined,
+        marketFocus: marketFocus || undefined,
         roleName,
+        inquiryId: inquiryId || undefined,
         jdText,
-        languages: langs,
+        documents,
+        languages: ["en"],
         location,
-        locationDetails,
+        locationDetails: marketFocus || locationDetails,
         employmentType,
         seniority,
         commImportance,
-        startDate,
+        startDate: submissionDeadline || startDate,
         skills,
-        interviewType: interviewType || undefined,
+        focusAreas: skills,
+        adminFocusNotes: [
+          `Client rep: ${clientRepName || "-"}${clientRepEmail ? ` <${clientRepEmail}>` : ""}`,
+          `Buyer / issuing authority: ${buyerOrganization || "-"}`,
+          `Solicitation number: ${solicitationNumber || "-"}`,
+          `Source: ${opportunitySource || "-"}`,
+          `Submission deadline: ${submissionDeadline || "-"}`,
+          `Market focus: ${marketFocus || "-"}`,
+          documentRefs ? `Reference materials:\n${documentRefs}` : "",
+        ]
+          .filter(Boolean)
+          .join("\n"),
+        interviewType: "software",
         salaryCurrency,
         monthlySalaryMin: monthlySalaryMin ? Number(monthlySalaryMin) : undefined,
         monthlySalaryMax: monthlySalaryMax ? Number(monthlySalaryMax) : undefined,
         hoursPerWeek: hoursPerWeek ? Number(hoursPerWeek) : undefined,
-        screenerRules: packScreenerRules(),
+        screenerRules: [],
       };
       const j = await apiFetch<{ ok: boolean; code: string; error?: string }>(
         "/api/zuri/jobs",
@@ -256,18 +250,43 @@ export default function AdminStartForm() {
         }
       );
       if (!j?.ok) throw new Error(j?.error || "Create failed");
-      setJobCreated({ code: j.code });
-      setTab("invite");
-      // Keep context if the user reloads before inviting
-      try {
-        const url = new URL(window.location.href);
-        url.searchParams.set("code", String(j.code || ""));
-        url.searchParams.set("tab", "invite");
-        window.history.replaceState({}, "", url.toString());
-      } catch {}
+      setTitle("");
+      setRoleName("");
+      setCompany("");
+      setClientId("");
+      setClientName("");
+      setCreateClientInline(false);
+      setJdText("");
+      setClientRepName("");
+      setClientRepEmail("");
+      setBuyerOrganization("");
+      setSolicitationNumber("");
+      setOpportunitySource("sales-call");
+      setDocumentRefs("");
+      setDocuments([]);
+      setSubmissionDeadline("");
+      setMarketFocus("");
+      setSourceText("");
+      setLocation("remote");
+      setLocationDetails("");
+      setEmploymentType("contract");
+      setSeniority("mid");
+      setCommImportance(3);
+      setStartDate("");
+      setSalaryCurrency("USD");
+      setMonthlySalaryMin("");
+      setMonthlySalaryMax("");
+      setHoursPerWeek("");
+      setSkills([]);
+      setSkillInput("");
+      showToast("Opportunity created.", "success");
+      window.setTimeout(() => {
+        router.replace(`/admin/opportunities/${encodeURIComponent(String(j.code || ""))}`);
+      }, 500);
     } catch (e: any) {
       const { message } = normalizeError(e);
-      setErr(message || "Failed to create job");
+      setErr(message || "Failed to create opportunity");
+      showToast(message || "Failed to create opportunity", "error");
     } finally {
       setBusy(false);
     }
@@ -276,15 +295,107 @@ export default function AdminStartForm() {
   // Hydrate from URL so a manual reload preserves job + tab
   useEffect(() => {
     try {
-      const code = searchParams.get("code");
       const t = (searchParams.get("tab") || "").toLowerCase();
-      if (code && !jobCreated?.code) setJobCreated({ code });
-      if (["job", "interview", "candidates", "invite"].includes(t)) {
-        setTab(t as Tab);
+      if (t === "job") {
+        setTab("job");
       }
     } catch {}
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams]);
+
+  useEffect(() => {
+    if (prefillClientId) {
+      setClientId(prefillClientId);
+    }
+  }, [prefillClientId]);
+
+  useEffect(() => {
+    async function loadInquiryPrefill() {
+      if (!inquiryId || prefillLoaded) return;
+      if (title || company || roleName || jdText) {
+        setPrefillLoaded(true);
+        return;
+      }
+
+      try {
+        const res = await fetch(`/api/admin/inquiries/${inquiryId}`, {
+          cache: "no-store",
+        });
+        const data = await res.json();
+        if (!res.ok || !data?.ok || !data?.inquiry) {
+          setPrefillLoaded(true);
+          return;
+        }
+
+        const inquiry = data.inquiry as {
+          name: string;
+          email: string;
+          company: string;
+          message: string;
+          notes?: string;
+        };
+
+        setTitle(
+          inquiry.company
+            ? `${inquiry.company} opportunity`
+            : "Proposal opportunity"
+        );
+        setClientName(inquiry.company || "");
+        setRoleName("Proposal response support");
+        setCompany(inquiry.company || "");
+        setClientRepName(inquiry.name || "");
+        setClientRepEmail(inquiry.email || "");
+        setJdText(
+          [
+            "Inquiry summary",
+            `Company: ${inquiry.company || "-"}`,
+            `Primary contact: ${inquiry.name || "-"} <${inquiry.email || "-"}>`,
+            "",
+            "Client message",
+            inquiry.message || "-",
+            inquiry.notes ? `\nInternal notes\n${inquiry.notes}` : "",
+          ]
+            .filter(Boolean)
+            .join("\n")
+        );
+        setOpportunitySource("website-inquiry");
+      } catch {}
+
+      setPrefillLoaded(true);
+    }
+
+    loadInquiryPrefill();
+  }, [company, inquiryId, jdText, prefillLoaded, roleName, title]);
+
+  useEffect(() => {
+    async function loadClients() {
+      try {
+        const res = await fetch("/api/admin/clients", { cache: "no-store" });
+        const data = await res.json().catch(() => ({}));
+        if (res.ok && data?.ok) {
+          setClients(data.clients || []);
+        }
+      } finally {
+        setClientsLoading(false);
+      }
+    }
+
+    loadClients();
+  }, []);
+
+  useEffect(() => {
+    if (!clientId) return;
+    const selected = clients.find((client) => client.id === clientId);
+    if (!selected) return;
+    setClientName(selected.name || "");
+    setCompany(selected.name || "");
+    if (!clientRepName && selected.primaryContactName) {
+      setClientRepName(selected.primaryContactName);
+    }
+    if (!clientRepEmail && selected.primaryContactEmail) {
+      setClientRepEmail(selected.primaryContactEmail);
+    }
+  }, [clientId, clientRepEmail, clientRepName, clients]);
 
   function onAddSkill(value?: string) {
     const t = ((value ?? skillInput) || "").trim();
@@ -296,66 +407,14 @@ export default function AdminStartForm() {
     setSkills((prev) => prev.filter((x) => x !== s));
   }
 
-  // Invite actions
-  function onChangeEmail(idx: number, email: string) {
-    setInviteEmails((prev) => prev.map((e, i) => (i === idx ? email : e)));
-  }
-  function onRemoveEmail(idx: number) {
-    setInviteEmails((prev) => (prev.length > 1 ? prev.filter((_, i) => i !== idx) : prev));
-  }
-  function onAddEmail() {
-    setInviteEmails((prev) => [...prev, ""]);
-  }
-  async function onSendInvites() {
-    if (!jobCreated?.code) return;
-    setInviteBusy(true);
-    setInviteMsg(null);
-    try {
-      const j = await apiFetch<{ ok: boolean; sent: number; error?: string }>(
-        "/api/email/invite-multi",
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ jobCode: jobCreated.code, emails: inviteEmails.filter((e) => e.trim()) }),
-          retries: 1,
-        }
-      );
-      if (!j?.ok) throw new Error(j?.error || "Invite failed");
-      setInviteMsg("Invites sent!");
-      // Clear the invite inputs after successful send
-      setInviteEmails([""]);
-    } catch (e: any) {
-      const { message } = normalizeError(e);
-      setInviteMsg(message || "Invite error");
-    } finally {
-      setInviteBusy(false);
-    }
-  }
-
-  useEffect(() => {
-    async function fetchCandidates() {
-      if (!jobCreated?.code) return;
-      setLoadingCandidates(true);
-      try {
-        const res = await fetch(`/api/admin/jobs/${jobCreated.code}/sessions`);
-        const j = await res.json();
-        if (res.ok && j.ok) {
-          setApplied(j.sessions.filter((s: any) => s.status !== "finished"));
-          setVetted(j.sessions.filter((s: any) => s.status === "finished"));
-        }
-      } finally {
-        setLoadingCandidates(false);
-      }
-    }
-    if (tab === "candidates" && jobCreated?.code) fetchCandidates();
-  }, [tab, jobCreated?.code]);
-
   return (
     <div className="relative min-h-[80vh] overflow-hidden">
+      {toast && <PremiumToast message={toast.msg} type={toast.type} />}
+      {extractBusy && <BrandLoader label="Extracting opportunity details..." />}
       <div aria-hidden className="bg-grain absolute inset-0" />
 
       <div className="relative mx-auto flex min-h-[80vh] w-full max-w-4xl flex-col px-4 py-10 sm:px-6 lg:px-8">
-        <TabsNav tab={tab} setTab={setTab} jobCreated={jobCreated} canGoInterview={jobInfoValid} />
+        <TabsNav tab={tab} setTab={setTab} />
 
         <div className="mx-auto w-full max-w-3xl rounded-2xl border border-black/10 bg-white/70 p-6 shadow-2xl backdrop-blur dark:border-white/10 dark:bg-white/10">
           {tab === "job" && (
@@ -366,6 +425,34 @@ export default function AdminStartForm() {
               setRoleName={setRoleName}
               company={company}
               setCompany={setCompany}
+              clientId={clientId}
+              setClientId={setClientId}
+              clientName={clientName}
+              setClientName={setClientName}
+              createClientInline={createClientInline}
+              setCreateClientInline={setCreateClientInline}
+              clients={clients}
+              clientsLoading={clientsLoading}
+              clientRepName={clientRepName}
+              setClientRepName={setClientRepName}
+              clientRepEmail={clientRepEmail}
+              setClientRepEmail={setClientRepEmail}
+              buyerOrganization={buyerOrganization}
+              setBuyerOrganization={setBuyerOrganization}
+              solicitationNumber={solicitationNumber}
+              setSolicitationNumber={setSolicitationNumber}
+              opportunitySource={opportunitySource}
+              setOpportunitySource={setOpportunitySource}
+              documents={documents}
+              setDocuments={setDocuments}
+              documentRefs={documentRefs}
+              setDocumentRefs={setDocumentRefs}
+              submissionDeadline={submissionDeadline}
+              setSubmissionDeadline={setSubmissionDeadline}
+              marketFocus={marketFocus}
+              setMarketFocus={setMarketFocus}
+              sourceText={sourceText}
+              setSourceText={setSourceText}
               jdText={jdText}
               setJdText={setJdText}
               location={location}
@@ -393,62 +480,27 @@ export default function AdminStartForm() {
               setSkillInput={setSkillInput}
               onAddSkill={onAddSkill}
               onRemoveSkill={onRemoveSkill}
+              onExtractOpportunity={handleExtractOpportunity}
               onGenerateAIJD={handleGenerateAIJD}
-              onNext={() => setTab("interview")}
+              onNext={handleCreateJob}
               aiBusy={aiBusy}
+              extractBusy={extractBusy}
               nextDisabled={!jobInfoValid}
-            />
-          )}
-
-          {tab === "interview" && (
-            <InterviewTab
-              interviewType={interviewType}
-              setInterviewType={setInterviewType}
-              langs={langs}
-              setLangs={setLangs}
-              onCreateJob={handleCreateJob}
-              createDisabled={!(jobInfoValid && interviewInfoValid)}
-              screeners={screenerRulesUI}
-              onAddPreset={addScreenerPreset}
-              onChangeRule={updateScreenerRule}
-              onRemoveRule={removeScreenerRule}
-            />
-          )}
-
-          {tab === "candidates" && jobCreated && (
-            <CandidatesPanel
-              jobCode={jobCreated.code!}
-              applied={applied}
-              vetted={vetted}
-              loading={loadingCandidates}
-            />
-          )}
-
-          {tab === "invite" && jobCreated && (
-            <InvitePanel
-              jobCode={jobCreated.code!}
-              inviteEmails={inviteEmails}
-              onChangeEmail={onChangeEmail}
-              onRemoveEmail={onRemoveEmail}
-              onAddEmail={onAddEmail}
-              onSendInvites={onSendInvites}
-              inviteBusy={inviteBusy}
-              inviteMsg={inviteMsg}
             />
           )}
         </div>
 
         {busy && (
           <div className="fixed inset-0 z-[60] bg-black/30 backdrop-blur-[2px] flex items-center justify-center">
-            <div className="text-white/90 text-sm">Working…</div>
-          </div>
-        )}
-        {err && (
-          <div className="mt-4">
-            <ErrorBanner message={err} onRetry={() => window.location.reload()} onDismiss={() => setErr(null)} />
+            <div className="text-white/90 text-sm">Saving opportunity...</div>
           </div>
         )}
       </div>
     </div>
   );
 }
+
+
+
+
+

@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Your account has been removed</title>
+    <style>
+      body {
+        margin: 0;
+        padding: 32px 16px;
+        font-family: Arial, Helvetica, sans-serif;
+        background: #f5f7fb;
+        color: #0f172a;
+      }
+      .card {
+        max-width: 520px;
+        margin: 0 auto;
+        background: #ffffff;
+        border: 1px solid #e7ecf3;
+        border-radius: 20px;
+        padding: 36px 32px;
+        box-shadow: 0 10px 30px rgba(15, 23, 42, 0.05);
+      }
+      .eyebrow {
+        display: inline-block;
+        padding: 7px 12px;
+        border-radius: 999px;
+        background: #fef2f2;
+        color: #b91c1c;
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+      }
+      .brand {
+        margin-top: 18px;
+        font-size: 18px;
+        font-weight: 700;
+        color: #0f766e;
+      }
+      h2 {
+        margin: 18px 0 12px;
+        font-size: 26px;
+        line-height: 1.2;
+        color: #0f172a;
+      }
+      p {
+        margin: 0 0 14px;
+        font-size: 15px;
+        line-height: 1.7;
+        color: #334155;
+      }
+      .panel {
+        margin-top: 20px;
+        padding: 16px 18px;
+        border-radius: 14px;
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+      }
+      .footer {
+        margin-top: 26px;
+        font-size: 12px;
+        color: #94a3b8;
+        text-align: center;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="card">
+      <div class="eyebrow">Account Update</div>
+      <div class="brand">Euman Intelligence</div>
+      <h2>Your account has been removed</h2>
+      <p>Hi {{name}},</p>
+      <p>
+        Your Euman Intelligence account{{companyLine}} has been removed.
+      </p>
+      <div class="panel">
+        If you need access again, ask an admin to send you a new invitation.
+      </div>
+      <div class="footer">&copy; {{year}} Euman Intelligence</div>
+    </div>
+  </body>
+</html>

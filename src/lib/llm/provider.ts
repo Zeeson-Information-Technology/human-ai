@@ -40,9 +40,10 @@ function getGoogleModel() {
     );
   }
 
+  const modelId = (process.env.GEMINI_MODEL_ID || "gemini-2.5-flash").trim();
+
   const google = createGoogleGenerativeAI({ apiKey });
   // Default to Gemini 2.5 Flash, but allow override via GEMINI_MODEL_ID.
-  const modelId = process.env.GEMINI_MODEL_ID || "gemini-2.5-flash";
   return google(modelId);
 }
 
@@ -65,7 +66,6 @@ export async function generateTurn(prompt: string): Promise<InterviewTurn> {
     model: getGoogleModel() as any,
     prompt,
     schema: InterviewTurnSchema,
-    maxTokens: 280,
     temperature: 0.5,
   });
   return object as InterviewTurn;
@@ -78,7 +78,6 @@ export async function streamTurn(prompt: string) {
     model: getGoogleModel() as any,
     prompt,
     schema: InterviewTurnSchema,
-    maxTokens: 280,
     temperature: 0.5,
   });
 }

@@ -9,8 +9,9 @@ export const runtime = "nodejs";
 
 import { NextRequest, NextResponse } from "next/server";
 import dbConnect from "@/lib/db-connect";
+import { Job } from "@/model/opportunity";
 import Session from "@/model/session";
-import { isAdmin } from "@/lib/admin-auth";
+import { isPlatformAdminRole, isScopedStaffRole } from "@/lib/admin-auth";
 import { verifyToken } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
@@ -30,7 +31,13 @@ export async function GET(
   ctx: { params: Promise<{ code: string }> }
 ) {
   try {
-    if (!isAdmin(req)) return unauthorized();
+    const adminCookie = req.cookies.get("admin_token")?.value || "";
+    const userCookie = req.cookies.get("token")?.value || "";
+    const payload = verifyToken(adminCookie || userCookie || "");
+    const role = String(payload?.role || "");
+    if (!payload?.userId || (!isPlatformAdminRole(role) && !isScopedStaffRole(role))) {
+      return unauthorized();
+    }
 
     await dbConnect();
 
@@ -43,6 +50,19 @@ export async function GET(
       );
     }
 
+    if (!isPlatformAdminRole(role)) {
+      const workspace = await Job.findOne(
+        { code },
+        { assignedUserId: 1 }
+      ).lean();
+      if (!workspace || String((workspace as any).assignedUserId || "") !== String(payload.userId)) {
+        return NextResponse.json(
+          { ok: false, error: "Forbidden" },
+          { status: 403 }
+        );
+      }
+    }
+
     const url = new URL(req.url);
     const status = (url.searchParams.get("status") || "").trim();
     const limitParam = Number(url.searchParams.get("limit") || "100");
@@ -53,17 +73,6 @@ export async function GET(
       Math.min(200, isNaN(limitParam) ? 100 : limitParam)
     );
     const filter: any = { jobCode: code };
-    // Scope: if the requester is not a platform admin, restrict by ownerId
-    try {
-      const adminCookie = req.cookies.get("admin_token")?.value || "";
-      const userCookie = req.cookies.get("token")?.value || "";
-      const payload = verifyToken(adminCookie || userCookie || "");
-      const role = String(payload?.role || "");
-      if (role !== "admin" && payload?.userId) {
-        const { Types } = await import("mongoose");
-        filter.ownerId = new Types.ObjectId(String(payload.userId));
-      }
-    } catch {}
     if (status) filter.status = status;
 
     // cursor-based pagination by updatedAt (desc)
@@ -114,3 +123,4 @@ export async function GET(
     );
   }
 }
+

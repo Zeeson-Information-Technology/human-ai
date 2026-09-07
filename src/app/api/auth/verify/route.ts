@@ -43,9 +43,7 @@ export async function POST(req: Request) {
     );
   }
 
-  // In some parts of your codebase you use `emailVerified`, elsewhere `isVerified`.
-  // Honor both to avoid logic drift.
-  if (user.isVerified || user.emailVerified) {
+  if (user.isVerified) {
     return NextResponse.json({ ok: true, already: true }, { status: 200 });
   }
 
@@ -81,7 +79,6 @@ export async function POST(req: Request) {
 
   // Mark verified and clear code so it can't be reused
   user.isVerified = true;
-  user.emailVerified = true; // keep both flags in sync for now
   user.verifyCode = undefined;
   user.verifyCodeExpires = undefined;
   await user.save();

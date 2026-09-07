@@ -2,13 +2,20 @@
 import { NextRequest } from "next/server";
 import { cookies, headers } from "next/headers";
 import { verifyToken, TokenPayload } from "@/lib/auth";
+import dbConnect from "@/lib/db-connect";
+import User from "@/model/user";
 
 export type SessionUser = {
   id: string;
   email?: string;
-  role?: "admin" | "company" | "talent";
+  role?: "admin" | "company" | "staff" | "recruiter" | "manager" | "talent";
   name?: string;
   company?: string;
+  parentCompanyId?: string;
+  permissions?: {
+    canCreateOpportunity?: boolean;
+    canManageInquiries?: boolean;
+  };
 };
 
 /** Try to read a JWT from common places (Authorization header or cookies). */
@@ -42,9 +49,25 @@ export async function getSessionUser(
   const payload: TokenPayload | null = verifyToken(token);
   if (!payload?.userId) return null;
 
+  await dbConnect();
+  const user = await User.findById(payload.userId, {
+    email: 1,
+    role: 1,
+    name: 1,
+    company: 1,
+    parentCompanyId: 1,
+    permissions: 1,
+    accessRevokedAt: 1,
+  }).lean();
+  if (!user || (user as any).accessRevokedAt) return null;
+
   return {
     id: payload.userId,
-    email: payload.email,
-    role: payload.role as SessionUser["role"],
+    email: (user as any).email || payload.email,
+    role: ((user as any).role || payload.role) as SessionUser["role"],
+    name: (user as any).name,
+    company: (user as any).company,
+    parentCompanyId: (user as any).parentCompanyId?.toString?.() || undefined,
+    permissions: (user as any).permissions || undefined,
   };
 }

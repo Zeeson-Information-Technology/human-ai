@@ -2,7 +2,7 @@
 import { NextResponse } from "next/server";
 import dbConnect from "@/lib/db-connect";
 import { getSessionUser } from "@/lib/auth-utils";
-import { Job } from "@/model/job";
+import { Job } from "@/model/opportunity";
 import Session from "@/model/session";
 import User from "@/model/user";
 
@@ -115,3 +115,4 @@ export async function GET() {
     },
   });
 }
+

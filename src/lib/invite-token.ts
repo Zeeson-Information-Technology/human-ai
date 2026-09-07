@@ -6,6 +6,9 @@ type Payload = {
   code: string; // job code
   email: string; // invited email (lowercased)
   exp?: number; // unix seconds (optional expiry)
+  requestId?: string;
+  participantType?: "candidate" | "sme" | "reviewer" | "partner";
+  intakeMethod?: "ai-interview" | "human-interview" | "documents-only" | "manual-review";
 };
 
 // Base64URL encode/decode helpers
@@ -33,6 +36,9 @@ export function signInvite(payload: Payload) {
     code: payload.code.toUpperCase(),
     email: payload.email.toLowerCase(),
     exp,
+    requestId: payload.requestId,
+    participantType: payload.participantType,
+    intakeMethod: payload.intakeMethod,
   };
   const encoded = b64uJson(body);
   const sig = hmac(encoded);
@@ -59,6 +65,9 @@ export function verifyInvite(ivt: string): Payload | null {
       code: obj.code.toUpperCase(),
       email: obj.email.toLowerCase(),
       exp: obj.exp,
+      requestId: obj.requestId,
+      participantType: obj.participantType,
+      intakeMethod: obj.intakeMethod,
     };
   } catch {
     return null;

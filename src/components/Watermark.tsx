@@ -1,13 +1,7 @@
-﻿"use client";
+"use client";
 import { useEffect, useRef } from "react";
 import Image from "next/image";
 
-/**
- * Watermark
- * - Fixed, fullâ€‘width bottom overlay with subtle pointerâ€‘responsive motion
- * - Does not add page height; pointerâ€‘events disabled
- * - Safe for Next/Image `fill` (no height on the image itself)
- */
 export default function Watermark() {
   const wrapRef = useRef<HTMLDivElement>(null);
 
@@ -15,7 +9,6 @@ export default function Watermark() {
     const el = wrapRef.current;
     if (!el) return;
     const onMove = (e: MouseEvent) => {
-      // Small parallax following the pointer; scaled down for subtlety
       const dx = (e.clientX - window.innerWidth / 2) * 0.02;
       const dy = (e.clientY - window.innerHeight / 2) * 0.02;
       el.style.setProperty("--pointer-x", `${dx}px`);
@@ -26,42 +19,31 @@ export default function Watermark() {
   }, []);
 
   return (
-    <div className="pointer-events-none fixed inset-x-0 bottom-0 z-10 select-none">
+    <div className="pointer-events-none w-full select-none overflow-hidden">
       <div
         ref={wrapRef}
-        className="relative mx-auto w-[calc(100vw+2rem)] -mx-4 max-w-none overflow-hidden \
-                   h-72 sm:h-96 md:h-[28rem] lg:h-[34rem] xl:h-[40rem] 2xl:h-[48rem] opacity-[0.03]"
+        className="relative mx-auto w-[calc(100vw+2rem)] -mx-4 max-w-none overflow-hidden h-40 sm:h-52 md:h-64 lg:h-72 xl:h-80 2xl:h-96 opacity-[0.14]"
         style={{
           transform:
             "translate(var(--pointer-x,0), var(--pointer-y,0)) translateZ(0)",
         }}
       >
-        {/* Big brand image */}
         <Image
-          src="/euman-logo.png"
-          alt="Euman AI"
+          src="/euman_logo.png"
+          alt="Euman Intelligence"
           fill
           priority={false}
           sizes="100vw"
           aria-hidden
-          className="object-cover object-top"
-          style={{ top: "-300px", bottom: "auto", color: "transparent" }}
-        />
-
-        {/* Subtle pointerâ€‘responsive stroke circle (desktop only) */}
-        <div
-          className="hidden lg:block absolute -left-[200px] -top-[150px] h-[300px] w-[300px] rounded-full"
+          className="object-contain object-bottom mix-blend-multiply"
           style={{
-            backgroundImage:
-              "radial-gradient(circle closest-side at 50% 50%, rgba(255,255,255,0.35), rgba(255,255,255,0))",
-            transform:
-              "translate(var(--pointer-x,0), var(--pointer-y,0)) translateZ(0)",
-            transition: "opacity .6s ease-in-out",
-            opacity: 0.1,
+            top: "auto",
+            bottom: "-12px",
+            color: "transparent",
+            filter: "grayscale(1) contrast(1.7) brightness(0.42)",
           }}
         />
       </div>
     </div>
   );
 }
-
